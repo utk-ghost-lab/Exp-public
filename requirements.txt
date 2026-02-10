@@ -1,0 +1,8 @@
+anthropic
+pdfplumber
+python-docx
+beautifulsoup4
+requests
+reportlab
+pytest
+python-dotenv
