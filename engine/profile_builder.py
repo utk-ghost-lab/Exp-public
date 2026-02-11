@@ -36,6 +36,7 @@ PKB_SCHEMA = {
     "certifications": [],
     "projects": [],
     "achievements": [],
+    "awards": [],
     "all_experience_keywords": [],
 }
 
@@ -110,6 +111,14 @@ Extract EVERY piece of career information exhaustively and return a JSON object 
       "context": "Company or institution where achieved"
     }
   ],
+  "awards": [
+    {
+      "title": "Award or recognition name (e.g. Star Employee, Top Performer)",
+      "company": "Company or organization that gave the award",
+      "year": "YYYY",
+      "description": "One-line description if available"
+    }
+  ],
   "all_experience_keywords": ["comprehensive flat list of EVERY skill, tool, technology, methodology, domain term, and business concept found across all documents"]
 }
 
@@ -122,6 +131,7 @@ CRITICAL RULES:
 6. DURATION: Calculate duration_months as accurately as possible from the dates.
 7. ALL_EXPERIENCE_KEYWORDS: This should be an exhaustive flat list of every relevant keyword. Include variations (e.g., both "A/B testing" and "A/B tests"). This list is used for keyword matching later.
 8. For bullets, extract skills_demonstrated, tools_used, and metrics even if they require inference from context.
+9. AWARDS: Extract any awards, recognitions, "Star Employee", "Top Performer", or similar mentions into the "awards" array. Include company and year when available.
 
 Return ONLY the JSON object. No markdown, no explanation."""
 
@@ -253,10 +263,14 @@ def validate_pkb(pkb: dict) -> list:
         "achievements",
         "all_experience_keywords",
     ]
+    optional_fields = ["awards"]
 
     for field in required_fields:
         if field not in pkb:
             warnings.append(f"Missing required field: {field}")
+    for field in optional_fields:
+        if field not in pkb:
+            pkb[field] = []
 
     # Validate personal_info
     if "personal_info" in pkb:

@@ -1,17 +1,17 @@
 {
-  "total_score": 76.1,
+  "total_score": 80.3,
   "passed": false,
   "target_score": 90,
   "components": {
     "keyword_match": {
-      "score": 49.7,
+      "score": 64.8,
       "weight": 0.25,
-      "weighted": 12.43
+      "weighted": 16.2
     },
     "semantic_alignment": {
-      "score": 76.5,
+      "score": 82.4,
       "weight": 0.15,
-      "weighted": 11.47
+      "weighted": 12.36
     },
     "parseability": {
       "score": 100.0,
@@ -24,17 +24,17 @@
       "weighted": 8.0
     },
     "impact": {
-      "score": 100.0,
+      "score": 85.7,
       "weight": 0.12,
-      "weighted": 12.0
+      "weighted": 10.28
     },
     "brevity": {
-      "score": 80.0,
+      "score": 86.4,
       "weight": 0.08,
-      "weighted": 6.4
+      "weighted": 6.91
     },
     "style": {
-      "score": 80.0,
+      "score": 80,
       "weight": 0.08,
       "weighted": 6.4
     },
@@ -44,19 +44,19 @@
       "weighted": 5.6
     },
     "completeness": {
-      "score": 80.0,
+      "score": 85.0,
       "weight": 0.03,
-      "weighted": 2.4
+      "weighted": 2.55
     },
     "anti_pattern": {
-      "score": 70.0,
+      "score": 100.0,
       "weight": 0.02,
-      "weighted": 1.4
+      "weighted": 2.0
     }
   },
   "weakest_component": "keyword_match",
   "weakest_two": [
     "keyword_match",
-    "anti_pattern"
+    "title_match"
   ]
 }

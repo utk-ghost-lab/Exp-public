@@ -24,6 +24,7 @@ P1_MIN_OCCURRENCES = 1
 P1_MAX_OCCURRENCES = 2
 MAX_OCCURRENCES_ANY_KEYWORD = 4
 P0_COVERAGE_TARGET_PCT = 95
+MAX_SKILLS_TERMS = 25
 
 
 def _get_resume_text_by_section(resume_content: dict) -> dict:
@@ -201,8 +202,43 @@ def optimize_keywords(resume_content: dict, parsed_jd: dict) -> dict:
         len(missing_keywords), len(over_used),
     )
 
+    # Fix 7: Cap skills at 25 terms. Trim lowest-priority (P1 before P0, least in JD first).
+    optimized_content = resume_content
+    sk = resume_content.get("skills") or {}
+    tech = list(sk.get("technical") or [])
+    meth = list(sk.get("methodologies") or [])
+    dom = list(sk.get("domains") or [])
+    total_skills = tech + meth + dom
+    if len(total_skills) > MAX_SKILLS_TERMS:
+        p0_set = set(k.lower() for k in (parsed_jd.get("p0_keywords") or []))
+        p1_set = set(k.lower() for k in (parsed_jd.get("p1_keywords") or []))
+        jd_flat = parsed_jd.get("all_keywords_flat") or []
+        jd_freq = {}
+        for kw in jd_flat:
+            t = (kw or "").lower()
+            jd_freq[t] = jd_freq.get(t, 0) + 1
+        def priority(term):
+            t = (term or "").strip().lower()
+            in_p0 = t in p0_set or any(t in k for k in p0_set)
+            in_p1 = t in p1_set or any(t in k for k in p1_set)
+            if in_p0:
+                return (0, -jd_freq.get(t, 0))
+            if in_p1:
+                return (1, -jd_freq.get(t, 0))
+            return (2, -jd_freq.get(t, 0))
+        flat = tech + meth + dom
+        flat_sorted = sorted(flat, key=priority)
+        to_keep = flat_sorted[:MAX_SKILLS_TERMS]
+        to_remove = flat_sorted[MAX_SKILLS_TERMS:]
+        if to_remove:
+            logger.info("Skills trimmed to %d: removed %s (lowest priority)", MAX_SKILLS_TERMS, to_remove)
+        keep_set = set(to_keep)
+        new_tech = [t for t in tech if t in keep_set]
+        new_meth = [m for m in meth if m in keep_set]
+        new_dom = [d for d in dom if d in keep_set]
+        optimized_content = {**resume_content, "skills": {"technical": new_tech, "methodologies": new_meth, "domains": new_dom}}
     return {
-        "optimized_content": resume_content,
+        "optimized_content": optimized_content,
         "keyword_report": keyword_report,
     }
 

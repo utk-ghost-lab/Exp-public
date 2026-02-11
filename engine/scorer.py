@@ -39,6 +39,16 @@ WEIGHT_COMPLETENESS = 0.03
 WEIGHT_ANTI_PATTERN = 0.02
 PLACEHOLDER_SCORE = 80.0  # for Brevity, Style, Narrative, Completeness until Phase B
 
+# Banned opening verbs (impact / anti-pattern)
+BANNED_START_VERBS = (
+    "responsible for", "helped", "assisted", "participated", "supported",
+    "worked on", "handled", "involved in", "managed", "planned",
+)
+# Pre-2023 anachronistic tech terms (roles ending before June 2023)
+PRE_2023_TECH_TERMS = ("llm", "llm-powered", "large language model", "gpt", "generative ai", "gen ai", "rag", "retrieval-augmented")
+PRE_2023_CUTOFF_YEAR = 2023
+PRE_2023_CUTOFF_MONTH = 6  # June
+
 # Known abbreviation ↔ full form for ATS coverage sub-check (JD/resume should have both when relevant)
 ABBREVIATION_PAIRS = [
     ("CRM", "Customer Relationship Management"),
@@ -69,6 +79,7 @@ FORMAT_RULES = [
     ("summary_3_lines_or_less", lambda c: (c.get("professional_summary") or "").count("\n") <= 2 and len((c.get("professional_summary") or "").strip()) > 0),
     ("dates_format", lambda c: _check_dates_format(c)),
     ("skills_under_25", lambda c: _count_skills(c) <= 25),
+    ("location_format_consistent", lambda c: _location_format_consistent(c)),
 ]
 
 
@@ -94,6 +105,36 @@ def _check_dates_format(content: dict) -> bool:
 def _count_skills(content: dict) -> int:
     sk = content.get("skills") or {}
     return len(sk.get("technical") or []) + len(sk.get("methodologies") or []) + len(sk.get("domains") or [])
+
+
+def _role_end_before_june_2023(role: dict) -> bool:
+    """True if role end date is before June 2023 (from resume content only)."""
+    dates = role.get("dates") or ""
+    if isinstance(dates, dict):
+        end = dates.get("end") or ""
+    else:
+        end = str(dates)
+    years = re.findall(r"20\d{2}|19\d{2}", end)
+    if not years:
+        return False
+    end_year = int(max(years))
+    if end_year < PRE_2023_CUTOFF_YEAR:
+        return True
+    if end_year > PRE_2023_CUTOFF_YEAR:
+        return False
+    if re.search(r"Jan|Feb|Mar|Apr|May", end, re.I):
+        return True
+    return False
+
+
+def _bullet_starts_with_banned(bullet: str) -> bool:
+    if not bullet:
+        return False
+    lower = (bullet.strip() or "").lower()
+    for banned in BANNED_START_VERBS:
+        if lower.startswith(banned) or lower.startswith(banned + " "):
+            return True
+    return False
 
 
 def _bullet_has_metric(bullet: str) -> bool:
@@ -228,18 +269,46 @@ def _job_title_match_score(resume_content: dict, parsed_jd: dict) -> float:
 
 
 def _anti_pattern_score(resume_content: dict) -> float:
-    """Anti-Pattern Detection (2%): 0-100. Penalize: spelling, inconsistent dates, skills not in bullets, duplicate bullets, anachronistic tech, non-standard headers."""
+    """Anti-Pattern Detection (2%): 0-100. Penalize: years <8, bullet counts, pre-2023 tech, skills >25, banned verbs, duplicates, etc."""
     content = _content_for_scoring(resume_content)
     issues = []
-    # Non-standard section headers (we expect summary, work_experience, skills, education, certifications)
-    allowed = {"professional_summary", "work_experience", "skills", "education", "certifications", "reframing_log", "rule13_self_check"}
-    for key in content:
-        if key not in allowed and key in ("professional_summary", "work_experience", "skills", "education", "certifications"):
-            pass
-    # Duplicate bullets
+    summary = (content.get("professional_summary") or "").strip().lower()
+    # Fix 1: Summary must open with 8+ years — flag 5+, 6+, 7+
+    if "5+ years" in summary or "6+ years" in summary or "7+ years" in summary:
+        issues.append("years_under_8")
+    # Fix 3: Most recent role 3-5 bullets, second role 3-5 bullets
+    work = content.get("work_experience") or []
+    if work:
+        n0 = len(work[0].get("bullets") or [])
+        if n0 < 3 or n0 > 5:
+            issues.append("most_recent_role_bullet_count")
+        if len(work) >= 2:
+            n1 = len(work[1].get("bullets") or [])
+            if n1 < 3 or n1 > 5:
+                issues.append("second_role_bullet_count")
+    # Fix 5: Pre-2023 role with LLM/GPT/RAG/generative AI → score 0 for this component
+    for role in work:
+        if not _role_end_before_june_2023(role):
+            continue
+        for b in role.get("bullets") or []:
+            bl = (b or "").lower()
+            if any(term in bl for term in PRE_2023_TECH_TERMS):
+                issues.append("pre_2023_anachronistic_tech")
+                break
+        if "pre_2023_anachronistic_tech" in issues:
+            break
+    # Fix 7: Skills > 25
+    if _count_skills(content) > 25:
+        issues.append("skills_over_25")
+    # Fix 10: Banned verb at start of any bullet
     bullets = []
     for r in content.get("work_experience") or []:
         bullets.extend(r.get("bullets") or [])
+    for b in bullets:
+        if _bullet_starts_with_banned(b or ""):
+            issues.append("banned_verb_start")
+            break
+    # Duplicate bullets
     seen = set()
     for b in bullets:
         n = (b or "").strip().lower()[:80]
@@ -247,16 +316,7 @@ def _anti_pattern_score(resume_content: dict) -> float:
             issues.append("duplicate_bullet")
             break
         seen.add(n)
-    # Inconsistent dates (overlap or reverse order)
-    dates_strs = []
-    for r in content.get("work_experience") or []:
-        d = r.get("dates") or ""
-        if d:
-            dates_strs.append(d)
-    if len(dates_strs) >= 2:
-        # Simple check: if "Present" or "current" in first and end year in second, ok; else just count
-        pass
-    # Skills not backed by experience: skills listed but never appear in bullets
+    # Skills not backed by experience
     skill_words = set()
     sk = content.get("skills") or {}
     for key in ("technical", "methodologies", "domains"):
@@ -268,13 +328,14 @@ def _anti_pattern_score(resume_content: dict) -> float:
     unbacked = sum(1 for w in skill_words if w not in exp_text and (content.get("professional_summary") or "").lower().find(w) == -1)
     if unbacked > len(skill_words) * 0.5:
         issues.append("skills_not_backed")
-    # Anachronistic tech: e.g. "blockchain" in old role from 2015 without context
-    # Simple heuristic: very long bullets (run-on)
+    # Run-on bullet
     for b in bullets:
         if len((b or "").split()) > 40:
             issues.append("runon_bullet")
             break
-    # Spelling: basic check for common typos (optional; skip if no dict)
+    # Critical: pre-2023 anachronistic tech → 0
+    if "pre_2023_anachronistic_tech" in issues:
+        return 0.0
     n_issues = len(issues)
     if n_issues == 0:
         return 100.0
@@ -285,8 +346,77 @@ def _anti_pattern_score(resume_content: dict) -> float:
     return max(0, 50 - (n_issues - 2) * 15)
 
 
+def _brevity_score(resume_content: dict) -> float:
+    """Brevity (8%): summary no sentence >45 words; score = % of bullets in 20-30 word range."""
+    content = _content_for_scoring(resume_content)
+    score = 80.0
+    summary = (content.get("professional_summary") or "").strip()
+    if summary:
+        for line in summary.split("\n"):
+            line = line.strip()
+            if not line:
+                continue
+            wc = len(line.split())
+            if wc > 45:
+                score = max(0, score - 25)
+    bullets = []
+    for r in content.get("work_experience") or []:
+        bullets.extend(r.get("bullets") or [])
+    if bullets:
+        in_range = sum(1 for b in bullets if 20 <= len((b or "").split()) <= 30)
+        pct = 100.0 * in_range / len(bullets)
+        score = min(100, (score + pct) / 2)  # blend placeholder with bullet %
+    return round(max(0, min(100, score)), 1)
+
+
+def _style_score(resume_content: dict) -> float:
+    """Style (8%): penalize -10 per opening verb that appears 3+ times."""
+    content = _content_for_scoring(resume_content)
+    bullets = []
+    for r in content.get("work_experience") or []:
+        bullets.extend(r.get("bullets") or [])
+    if not bullets:
+        return 80.0
+    verb_counts = Counter()
+    for b in bullets:
+        first = (b or "").strip().split()
+        if first:
+            verb = first[0].lower().rstrip(".,;")
+            verb_counts[verb] += 1
+    penalty = sum(10 for v, c in verb_counts.items() if c >= 3)
+    return round(max(0, min(100, 80 - penalty)), 1)
+
+
+def _completeness_score(resume_content: dict) -> float:
+    """Completeness (3%): base 80; +5 if awards section with at least 1 award."""
+    content = _content_for_scoring(resume_content)
+    base = 80.0
+    awards = content.get("awards") or []
+    if isinstance(awards, list) and len(awards) >= 1:
+        base = min(100, base + 5)
+    return round(max(0, min(100, base)), 1)
+
+
+def _location_format_consistent(content: dict) -> bool:
+    """Fix 8: All locations follow same pattern (e.g. City, Country). Inconsistent formats penalized."""
+    work = content.get("work_experience") or []
+    locs = [str(r.get("location") or "").strip() for r in work if r.get("location")]
+    if len(locs) < 2:
+        return True
+    # Check all have a comma (City, Country) and similar structure
+    has_comma = ["," in loc for loc in locs]
+    if not all(has_comma):
+        return False
+    # Reject if some have state/region keywords and others don't (inconsistent)
+    state_region = ("telangana", "karnataka", "metropolitan region", " area", "state")
+    has_region = [any(s in loc.lower() for s in state_region) for loc in locs]
+    if any(has_region) and not all(has_region):
+        return False
+    return True
+
+
 def _format_compliance_score(resume_content: dict) -> float:
-    """Parseability (10%): (rules passed / total rules) × 100. ATS structure."""
+    """Parseability (10%): (rules passed / total rules) × 100. ATS structure. Includes location consistency (Fix 8)."""
     content = _content_for_scoring(resume_content)
     passed = sum(1 for _, check in FORMAT_RULES if check(content))
     total = len(FORMAT_RULES)
@@ -351,10 +481,10 @@ def score_resume(resume_content: dict, parsed_jd: dict, keyword_report: dict = N
     parseability = _format_compliance_score(resume_content)
     title_match = _job_title_match_score(resume_content, parsed_jd)
     impact = _achievement_density_score(resume_content)
-    brevity = PLACEHOLDER_SCORE
-    style = PLACEHOLDER_SCORE
+    brevity = _brevity_score(resume_content)
+    style = _style_score(resume_content)
     narrative = PLACEHOLDER_SCORE
-    completeness = PLACEHOLDER_SCORE
+    completeness = _completeness_score(resume_content)
     anti_pattern = _anti_pattern_score(resume_content)
 
     total = (
@@ -506,7 +636,12 @@ def run_scoring_with_iteration(
         feedback_applied.append(feedback)
         logger.info("Score below %d; re-running reframer with feedback on: %s", TARGET_SCORE_PASS, score_report.get("weakest_two"))
 
-        reframed = reframe_experience(mapping_matrix, pkb, parsed_jd, feedback_for_improvement=feedback)
+        # Use patch mode: pass current resume for targeted edits (faster, smaller prompt)
+        reframed = reframe_experience(
+            mapping_matrix, pkb, parsed_jd,
+            feedback_for_improvement=feedback,
+            current_resume_content=current_content
+        )
         reframed_content = _content_for_scoring(reframed)
         optimized = optimize_keywords(reframed_content, parsed_jd)
         current_content = optimized["optimized_content"]

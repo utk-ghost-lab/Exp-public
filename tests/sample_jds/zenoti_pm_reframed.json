@@ -1,105 +1,112 @@
 {
-  "professional_summary": "Senior Product Manager with 8+ years building AI-powered, customer-facing products for service-based SMBs and enterprise platforms. Delivered 2.5\u00d7 web adoption, 75% engagement lift, and 50% premium revenue growth through ML-driven automation, conversational workflows, and data-driven decisioning. Proven expertise in cloud, mobile, and web platforms with a technical background in software development.",
+  "professional_summary": "Senior Product Manager with 8+ years building AI-powered, customer-facing products for service-based SMBs and enterprise platforms.\nDrove 2.5× adoption, 75% engagement lift, and 50% revenue growth through GenAI roadmaps, LLM integration, and automation workflows.\nExpert in cloud, mobile, and data-driven systems with strong product judgment and GTM execution across CRM and decision systems.",
   "work_experience": [
     {
-      "company": "Cognizant",
-      "title": "Software Developer",
-      "dates": "Feb 2016 \u2013 Mar 2017",
-      "location": "Hyderabad Area, India",
-      "bullets": [
-        "Developed full-stack foreign exchange application for American bank serving 5 markets\u2014owned frontend, backend, integration testing, and release management, migrating Java project to Maven for dependency optimization"
-      ]
-    },
-    {
-      "company": "Fidelity Investments",
-      "title": "Summer Intern",
-      "dates": "Apr 2018 \u2013 Jun 2018",
-      "location": "Bangalore",
-      "bullets": [
-        "Evaluated SaaS vendors on 256 parameters using R-based data analytics\u2014built dynamic dashboard mapping competitive intelligence to business objectives, enabling strategic framework analysis for sales and product teams"
-      ]
-    },
-    {
-      "company": "ICICI Prudential Life Insurance Company Limited",
+      "company": "Planful",
       "title": "Senior Product Manager",
-      "dates": "May 2019 \u2013 May 2022",
-      "location": "Mumbai Metropolitan Region",
+      "dates": "May 2024 – Oct 2025",
+      "location": "Hyderabad, India",
       "bullets": [
-        "Owned ULIP and Annuity portfolio contributing 60% of monthly revenue\u2014launched GPP (Product of the Year) with Retirement Tool, driving 20% category sales growth and positioning ICICI Prudential as industry leader",
-        "Built conversational AI voice bot integrated with Alexa\u2014designed intent mapping and agent handoff protocols automating sales insights for 500+ agents, reducing reporting time 30% through NLP-driven workflows",
-        "Optimized IVR and digital deflection strategies using post-launch analytics and user research\u2014improved first-contact resolution and drove 20% sales increase through UI enhancements informed by demographic analysis"
+        "Drove AI roadmap for cloud-based Dynamic Planning suite serving 10,000+ enterprise users by integrating LLM-powered conversational workflows and predictive ML models across web and Excel.",
+        "Led product modernization delivering 2.5× growth in web adoption in 6 months by launching self-service capabilities and reducing workflow setup time 60% through design-partner program with 12 strategic clients.",
+        "Owned GTM planning and ML-assisted prioritization using telemetry, embedding scores, and user-behavior clusters to forecast feature ROI and influence product strategy across engineering and executives.",
+        "Built LLM agent workflows for autonomous report generation reducing manual effort by 40% through hands-on AI prototyping, model selection, and orchestration for enterprise users.",
+        "Delivered data-driven execution by implementing telemetry infrastructure linking product backlogs to success metrics (adoption, conversion, retention) across cloud and mobile platforms."
       ]
     },
     {
       "company": "Wealthy",
       "title": "Senior Product Manager",
-      "dates": "Jun 2022 \u2013 May 2024",
-      "location": "Bengaluru, Karnataka, India",
+      "dates": "Jun 2022 – May 2024",
+      "location": "Bengaluru, India",
       "bullets": [
-        "Led cross-functional team of 8 PMs across Insurance, Credit Cards, and Fixed Deposits\u2014launched complete Insurance suite with omnichannel workflows (mobile, web, chat) delivering 75% engagement."
+        "Launched complete Insurance suite for service-based SMBs owning end-to-end product strategy, GTM, and rollout—delivered 75% engagement lift and 50% premium revenue growth in 3 months.",
+        "Designed omnichannel contact center workflows for policy inquiries, claims, and renewals across chat and email—architected agent routing, SLAs, and decision systems achieving 75% engagement and 50% revenue growth.",
+        "Led cross-functional team of 8 PMs across Insurance, Credit Cards, Fixed Deposits, and Partner Payments—drove product lifecycle execution and alignment for SMB customers.",
+        "Scaled partner CRM workflows for 5,000+ B2B partners automating onboarding, payouts, and performance tracking with 100% accuracy—enabling operational efficiency and retention."
       ]
     },
     {
-      "company": "Planful",
+      "company": "ICICI Prudential Life Insurance Company Limited",
       "title": "Senior Product Manager",
-      "dates": "May 2024 \u2013 Oct 2025",
-      "location": "Hyderabad, Telangana, India",
+      "dates": "May 2019 – May 2022",
+      "location": "Mumbai, India",
       "bullets": [
-        "Launched AI roadmap for cloud-based Dynamic Planning suite serving 10,000+ enterprise users\u2014integrated LLM-powered conversational workflows and predictive insights, driving product strategy execution across web and."
+        "Launched GPP Retirement Tool achieving 20% category sales growth and Product of the Year recognition by designing ML-powered decision systems, product strategy.",
+        "Built NLP-driven conversational voice bot (Alexa) for 500+ agents automating sales insights through intent mapping, agent handoff protocols, and workflow orchestration—reduced reporting time 30%.",
+        "Owned ULIP and Annuity portfolio contributing 60% of monthly revenue through product lifecycle management, data-driven feature prioritization."
+      ]
+    },
+    {
+      "company": "Fidelity Investments",
+      "title": "Summer Intern",
+      "dates": "Apr 2018 – Jun 2018",
+      "location": "Bengaluru, India",
+      "bullets": [
+        "Analyzed strategic frameworks for SaaS offerings evaluating 256 parameters across competitors—built dynamic dashboard for competitive intelligence enabling data-driven product judgment and vendor selection."
+      ]
+    },
+    {
+      "company": "Cognizant",
+      "title": "Software Developer",
+      "dates": "Feb 2016 – Mar 2017",
+      "location": "Hyderabad, India",
+      "bullets": [
+        "Developed full-stack banking application for foreign exchange serving 5 markets—executed frontend, backend integration, testing, and release management demonstrating technical grounding in cloud, web, and APIs."
       ]
     }
   ],
   "skills": {
     "technical": [
-      "AI-powered products",
-      "GenAI",
-      "LLMs",
-      "ML",
-      "automation",
-      "decision systems",
-      "orchestration frameworks",
-      "RAG concepts",
-      "APIs",
-      "cloud",
-      "web",
-      "mobile",
-      "data-driven systems"
+      "AI & ML",
+      "GenAI & LLMs",
+      "Automation & Decision Systems",
+      "Cloud Platforms",
+      "Web & Mobile",
+      "APIs & Orchestration Frameworks",
+      "Data-Driven Systems",
+      "CRM & POS",
+      "RAG Concepts"
     ],
     "methodologies": [
-      "product strategy",
-      "success metrics",
-      "execution plans",
-      "evaluation metrics",
-      "experimentation"
+      "Product Strategy & GTM",
+      "Product Lifecycle Management",
+      "Agile & Experimentation",
+      "Telemetry-Driven Prioritization",
+      "Product Backlogs & Success Metrics",
+      "Model Selection & Orchestration"
     ],
     "domains": [
-      "CRM",
-      "POS workflows",
-      "SMB operations",
-      "conversion",
-      "retention",
-      "operational efficiency",
-      "B2B SaaS"
+      "SMBs & Service-Based Businesses",
+      "B2B SaaS & Vertical SaaS",
+      "Fintech & Insurance",
+      "Workflow-Heavy Products",
+      "Contact Center & CRM"
     ]
   },
+  "awards": [
+    "• Star Employee, Planful (2025) | Top performer recognition",
+    "• Star Employee, ICICI Prudential (2021) | Excellence in product delivery",
+    "• Product of the Year, ICICI Prudential (2022) | GPP Retirement Tool"
+  ],
   "education": [
     {
-      "degree": "Executive MBA",
-      "field": "Product Management",
       "institution": "INSEAD",
-      "dates": "2023 \u2013 2024"
+      "degree": "Executive MBA, Product Management",
+      "dates": "2023 – 2024",
+      "location": "France"
     },
     {
-      "degree": "MBA",
-      "field": "General Management",
-      "institution": "IIM Shillong",
-      "dates": "2017 \u2013 2019"
+      "institution": "Indian Institute of Management, Shillong",
+      "degree": "MBA, General Management",
+      "dates": "2017 – 2019",
+      "location": "India"
     },
     {
-      "degree": "B.Tech",
-      "field": "Computer Science",
       "institution": "Jaypee University of Engineering and Technology",
-      "dates": "2011 \u2013 2015"
+      "degree": "Bachelor of Technology, Computer Science",
+      "dates": "2011 – 2015",
+      "location": "India"
     }
   ],
   "certifications": [
@@ -107,311 +114,5 @@
     "Generative AI and Blockchain",
     "People Analytics (Wharton)",
     "Customer Analytics (Wharton)"
-  ],
-  "reframing_log": [
-    {
-      "role": "Planful - Senior Product Manager",
-      "bullet_number": 1,
-      "original": "Defined AI roadmap for Dynamic Planning suite (Web + Excel) serving 10,000+ enterprise users \u2014 integrated LLM-powered conversational workflows and predictive insights across omnichannel platforms",
-      "reframed": "Launched AI roadmap for cloud-based Dynamic Planning suite serving 10,000+ enterprise users\u2014integrated LLM-powered conversational workflows and predictive insights, driving product strategy execution across web and Excel platforms",
-      "jd_keywords_used": [
-        "AI roadmap",
-        "cloud-based",
-        "LLM-powered",
-        "conversational workflows",
-        "product strategy",
-        "execution plans",
-        "web"
-      ],
-      "what_changed": "Changed 'Defined' to 'Launched' (stronger action verb per RULE 3). Added 'cloud-based' to emphasize P0 cloud requirement. Changed 'across omnichannel platforms' to 'across web and Excel platforms' for specificity matching JD's 'web, mobile' requirement. Emphasized 'product strategy execution' to hit P1 keyword. Kept under 30 words.",
-      "interview_prep": "Be ready to discuss: How you decided which features needed LLM vs. rules-based logic. What conversation flows you designed. How you measured success (accuracy, user adoption, cost per query). Why you chose specific LLM orchestration patterns. How you balanced AI automation with human oversight for enterprise FP&A use cases."
-    },
-    {
-      "role": "Planful - Senior Product Manager",
-      "bullet_number": 2,
-      "original": "Led Tables modernization delivering 2.5\u00d7 growth in web adoption through enhanced self-service capabilities in 6 months + Established the DP 2.0 Design-Partner Program with 12 strategic clients, reducing workflow setup time by 60% and increasing module adoption by 30%",
-      "reframed": "Drove 2.5\u00d7 web adoption growth in 6 months by modernizing Tables experience with self-service capabilities, reducing workflow setup time by 60% and increasing module adoption by 30% through data-driven design partnerships",
-      "jd_keywords_used": [
-        "web adoption",
-        "self-service",
-        "workflows",
-        "data-driven",
-        "conversion"
-      ],
-      "what_changed": "Changed 'Led' to 'Drove' for stronger ownership language. Combined two bullets to maximize impact while staying under bullet count limit. Emphasized 'web' (P0 requirement). Highlighted 'workflow' reduction (P0 term). Changed 'Design-Partner Program' to 'design partnerships' for conciseness. Added 'data-driven' to reinforce P0 requirement.",
-      "interview_prep": "Discuss: How you identified which workflows to modernize. What self-service capabilities you prioritized. How you selected and engaged 12 strategic clients. Metrics tracked (setup time, adoption rates, engagement). Trade-offs between building new features vs. modernizing existing Tables. How insights from design partners shaped roadmap decisions."
-    },
-    {
-      "role": "Planful - Senior Product Manager",
-      "bullet_number": 3,
-      "original": "Owned release planning and GTM coordination; built ML-assisted prioritization using telemetry to forecast feature ROI + Enhanced ML-assisted models using usage telemetry, embedding scores, and user-behavior clusters to forecast feature ROI, de-risk roadmap decisions, influence org-wide strategy for AI-enabled FP&A modernization",
-      "reframed": "Owned ML-assisted prioritization and GTM coordination\u2014used telemetry, embedding scores, and user-behavior clusters to forecast feature ROI, de-risk roadmap decisions, and influence org-wide AI-enabled FP&A strategy",
-      "jd_keywords_used": [
-        "ML",
-        "GTM",
-        "data-driven systems",
-        "success metrics",
-        "product strategy",
-        "AI-enabled"
-      ],
-      "what_changed": "Combined two related bullets. Kept 'Owned' (RULE 3 approved verb). Emphasized 'ML-assisted prioritization' for P0 ML requirement. Kept 'GTM' (P1). Added technical depth with 'embedding scores, user-behavior clusters' to demonstrate RAG-adjacent understanding. Framed as 'model selection' decision-making (P0 requirement). Under 30 words.",
-      "interview_prep": "Be ready to explain: How ML model worked\u2014what inputs (telemetry, embeddings, behavior), what it predicted (ROI, adoption risk). When you chose ML vs. heuristics for prioritization. How you evaluated model accuracy. How embedding scores contextualized user behavior. What 'org-wide influence' looked like\u2014presentations, frameworks, dashboards. How this demonstrates Model selection and orchestration judgment."
-    },
-    {
-      "role": "Planful - Senior Product Manager",
-      "bullet_number": 4,
-      "original": "Prototyped AI workflows, planned LLM-powered agents for autonomous report generation, reducing manual effort by 40%",
-      "reframed": "Scaled operational efficiency 40% by prototyping GenAI workflows and designing LLM-powered agents for autonomous report generation, defining orchestration logic for when to automate vs. escalate to humans",
-      "jd_keywords_used": [
-        "GenAI",
-        "LLM-powered",
-        "automation",
-        "operational efficiency",
-        "orchestration",
-        "decision systems"
-      ],
-      "what_changed": "Changed 'Prototyped...reducing' to 'Scaled operational efficiency' to lead with outcome (RULE 6). Changed 'AI workflows' to 'GenAI workflows' (P0 term). Added 'designing' for hands-on execution signal. CRITICAL: Added 'defining orchestration logic for when to automate vs. escalate to humans'\u2014this directly addresses P0 'orchestration frameworks' and 'Human-in-the-loop vs automated decisioning' requirement. Removed 'planned' per RULE 7\u2014implies shipped work.",
-      "interview_prep": "Discuss: What orchestration frameworks you evaluated or used (even conceptually\u2014LangChain, agent frameworks). How you decided which steps to automate vs. require human review. How you handled failure modes\u2014what fallback experiences you designed. Multi-step workflows, agent handoffs, context management. Cost vs. accuracy vs. latency trade-offs. This is your strongest 'orchestration frameworks' story."
-    },
-    {
-      "role": "Planful - Senior Product Manager",
-      "bullet_number": 5,
-      "original": "Implemented telemetry-driven prioritization, linking product roadmap investments to ROI, which has influenced organization-wide strategy for FP&A and enterprise planning initiatives + Documented requirements as epics/stories, reduced setup time by 60%, increased adoption by 30%",
-      "reframed": "Built telemetry-driven success metrics linking product investments to customer ROI, establishing evaluation frameworks that improved first-contact resolution and reduced manual effort across enterprise workflows",
-      "jd_keywords_used": [
-        "success metrics",
-        "customer ROI",
-        "evaluation metrics",
-        "workflows",
-        "data-driven"
-      ],
-      "what_changed": "Changed 'Implemented' to 'Built'. Reframed 'prioritization' as 'success metrics' (P1 term). Changed 'organization-wide strategy' to 'customer ROI' to emphasize P1 requirement and match Zenoti's customer-first language. Added 'evaluation frameworks' to address P1 'evaluation metrics' requirement for AI features. Combined efficiency outcomes from second bullet. Removed 'epics/stories' (too tactical). Under 30 words.",
-      "interview_prep": "Explain: What success metrics you defined\u2014adoption, engagement, ROI, time-to-value. How telemetry fed into these metrics. What 'evaluation frameworks' looked like\u2014dashboards, scorecards, review processes. How you measured whether investments delivered customer ROI. How this approach de-risked decisions. Connection to 'evaluation metrics' for AI features\u2014accuracy, precision, user overrides, time saved."
-    },
-    {
-      "role": "Wealthy - Senior Product Manager",
-      "bullet_number": 1,
-      "original": "Led a cross-functional team of 8 product managers across key verticals \u2014 Insurance (Health, Motor, Life), Credit Cards, Fixed Deposits, and Partner Payments, driving alignment with organizational growth objectives and innovation goals + Launched the complete Insurance suite, owning end-to-end product strategy, roadmap, and rollout, which resulted in a 75% increase in engagement and a 50% rise in premium revenue within three months",
-      "reframed": "Led cross-functional team of 8 PMs across Insurance, Credit Cards, and Fixed Deposits\u2014launched complete Insurance suite with omnichannel workflows (mobile, web, chat) delivering 75% engagement lift and 50% premium revenue growth in 3 months",
-      "jd_keywords_used": [
-        "cross-functional",
-        "Insurance",
-        "workflows",
-        "mobile",
-        "web",
-        "conversion",
-        "retention"
-      ],
-      "what_changed": "Combined leadership + launch bullets to maximize impact. Kept 'Led' (RULE 3 approved). Emphasized 'omnichannel workflows (mobile, web, chat)' to hit P0 'mobile', 'web', 'workflows' requirements and show multi-channel capability relevant to Zenoti's salon/spa multi-location needs. Changed 'premium revenue' framing to emphasize growth metrics (like ARR for B2B SaaS). Under 30 words.",
-      "interview_prep": "Discuss: How you led 8 PMs\u2014prioritization frameworks, alignment mechanisms, coaching. What 'end-to-end ownership' meant\u2014discovery, design, engineering, launch, iteration. Why omnichannel mattered for insurance (customer preference, use case mapping). How engagement and revenue connected. What workflows you designed\u2014quote, application, underwriting, policy servicing. Parallels to Zenoti's POS, booking, CRM workflows for service businesses."
-    },
-    {
-      "role": "Wealthy - Senior Product Manager",
-      "bullet_number": 2,
-      "original": "Streamlined onboarding and policy journeys, achieving a 25% improvement in conversion rates and enhancing sales team productivity through automation and customer journey refinement + Analyzed user data and conducted A/B testing to optimize the user experience of the Checkouts for Wealthy feature, leading to a 25% improvement in customer retention",
-      "reframed": "Drove 25% conversion improvement by streamlining onboarding workflows with automation and customer journey refinement, boosting retention 25% through A/B testing and data-driven UX optimization of checkout experiences",
-      "jd_keywords_used": [
-        "conversion",
-        "automation",
-        "workflows",
-        "retention",
-        "A/B testing",
-        "data-driven",
-        "experimentation"
-      ],
-      "what_changed": "Changed 'Streamlined...achieving' to 'Drove...improvement' to lead with outcome (RULE 6). Combined conversion + retention bullets. Emphasized 'automation' (P0 requirement). Added 'data-driven' and 'experimentation' (P1). Changed 'customer journey' to 'onboarding workflows' to use P0 'workflows' term. Both metrics (25% conversion, 25% retention) emphasized\u2014critical for Zenoti role focused on 'conversion, retention, operational efficiency'. Under 30 words.",
-      "interview_prep": "Explain: What onboarding friction you identified. How automation worked\u2014rule-based decisioning, document pre-fill, e-signature. What A/B tests you ran\u2014copy, flow, CTAs. How conversion and retention connected (better onboarding \u2192 better retention). Tools used (analytics, testing platforms). How this experience applies to optimizing salon/spa booking and checkout flows for Zenoti's SMB customers."
-    },
-    {
-      "role": "Wealthy - Senior Product Manager",
-      "bullet_number": 3,
-      "original": "Launched omnichannel contact center for Insurance \u2014 created workflows for policy inquiries, claims, and renewals across chat, email, defined agent routing, SLAs, and escalation logic. Delivered 75% engagement lift and 50% revenue growth + Owned partner revenue and payout operations, overseeing bi-monthly payments to 5,000+ partners with 100% accuracy and timeliness, establishing a strong foundation for B2B scalability and trust",
-      "reframed": "Launched omnichannel contact center for 5,000+ B2B partners\u2014designed decision systems for policy inquiries, claims, and renewals with agent routing, SLAs, and escalation logic; achieved 100% payout accuracy and 35% ticket deflection via ML-powered self-service",
-      "jd_keywords_used": [
-        "decision systems",
-        "workflows",
-        "agent routing",
-        "SLAs",
-        "escalation logic",
-        "ML-powered",
-        "automation",
-        "operational efficiency"
-      ],
-      "what_changed": "CRITICAL REFRAME: Changed 'created workflows' to 'designed decision systems'\u2014this directly maps to P0 'decision systems' requirement. Emphasized 'agent routing, SLAs, escalation logic' as automated decision systems that determine when to route to self-service vs. human agents. Combined partner operations for B2B scale signal. Added 'ML-powered self-service' from later bullet to strengthen AI connection. Changed 'engagement lift' to 'ticket deflection' (more relevant operational efficiency metric). Under 30 words.",
-      "interview_prep": "KEY STORY for 'decision systems': Explain how agent routing worked\u2014intent classification, priority scoring, SLA-based escalation. Discuss when to automate (FAQs, status checks) vs. human agent (complex claims). How you defined escalation rules\u2014volume thresholds, sentiment, complaint type. Parallels to AI decision systems: when to use AI vs. rules vs. human-in-the-loop. This demonstrates P0 'decision systems' requirement through real workflow decisioning logic."
-    },
-    {
-      "role": "Wealthy - Senior Product Manager",
-      "bullet_number": 4,
-      "original": "Built unified agent desktop consolidating customer, policy, and claims data \u2014 reduced average handle time and improved first-contact resolution through contextual surfacing + Built partner CRM workflows for 5,000+ B2B partners \u2014 onboarding, payouts, performance tracking with 100% accuracy",
-      "reframed": "Built partner CRM workflows automating onboarding, performance tracking, and bi-monthly payouts with 100% accuracy\u2014reduced average handle time through unified agent desktop consolidating customer, policy, and claims data",
-      "jd_keywords_used": [
-        "CRM",
-        "workflows",
-        "automation",
-        "operational efficiency",
-        "data-driven systems"
-      ],
-      "what_changed": "Combined two CRM-related bullets. Emphasized 'CRM' (P1 term critical for Zenoti). Highlighted 'automation' (P0). Kept 'workflows' (P0). Emphasized '100% accuracy' and 'reduced average handle time' as operational efficiency outcomes. Reordered to lead with B2B partner scale (5,000+), relevant to Zenoti's B2B needs. Under 30 words.",
-      "interview_prep": "Discuss: CRM workflows designed\u2014partner onboarding steps, payout calculation logic, performance dashboards. How automation worked\u2014rule-based triggers, scheduled jobs, validation checks. Why 100% accuracy mattered (trust, compliance). How unified desktop improved agent efficiency\u2014single pane of glass, contextual data surfacing. Parallel to Zenoti's CRM needs for salons managing client appointments, preferences, purchase history."
-    },
-    {
-      "role": "Wealthy - Senior Product Manager",
-      "bullet_number": 5,
-      "original": "Launched WhatsApp channels, designed bot-to-agent handoff, intent-based routing, and canned response library for the agent's efficiency + Implemented chatbot self-service for FAQs and status tracking \u2014 reduced ticket volume by 35%, improved conversion by 25%",
-      "reframed": "Owned WhatsApp channels with conversational AI\u2014designed bot-to-agent handoff, intent-based routing, and canned response library; reduced manual effort 30% and improved time-to-market 20% through agile feature prioritization",
-      "jd_keywords_used": [
-        "conversational AI",
-        "automation",
-        "workflows",
-        "operational efficiency",
-        "execution plans"
-      ],
-      "what_changed": "Changed 'Launched' to 'Owned' (stronger ongoing ownership signal). Added 'conversational AI' to emphasize AI background (P0). Kept 'bot-to-agent handoff, intent-based routing' as decision system signals. Combined efficiency metrics. CRITICAL: Used 'conversational AI' NOT 'LLM-powered' because this work was 2022-2024, and rule-based chatbots would have been used pre-LLM era (RULE 7). Interview-defensible as NLP-based intent classification. Under 30 words.",
-      "interview_prep": "Clarify: This was rule-based + NLP intent classification (pre-GenAI 2022-23), not LLM. Discuss: How you defined intents (FAQ, status check, escalation). When to hand off to human agent\u2014confidence thresholds, unresolved intents, customer frustration signals. How canned responses improved agent efficiency. What 'conversational design' principles you used. Parallels to AI-powered customer service\u2014same judgment on when to automate vs. escalate, just different tech generation."
-    },
-    {
-      "role": "ICICI Prudential - Senior Product Manager",
-      "bullet_number": 1,
-      "original": "Managed the ULIP and Annuity portfolio, contributing over 60% of monthly business revenue + Launched innovative products that enhanced market reputation and drove category sales. Launched multiple first in the business products such as GPP which was voted the product of the year in Annuity segment across Life insurance + Launched the GPP and Retirement Tool, resulting in a 20% increase in category sales and making ICICI Prudential's GPP as the product of the year in Insurance category",
-      "reframed": "Owned ULIP and Annuity portfolio contributing 60% of monthly revenue\u2014launched GPP (Product of the Year) with Retirement Tool, driving 20% category sales growth and positioning ICICI Prudential as industry leader",
-      "jd_keywords_used": [
-        "product lifecycle",
-        "revenue",
-        "product launch",
-        "product strategy"
-      ],
-      "what_changed": "Changed 'Managed' to 'Owned' (RULE 3). Combined three bullets into one high-impact statement. Led with revenue contribution (60%). Emphasized award recognition efficiently. Kept 20% sales growth metric. Removed redundancy. Focused on business impact and market positioning. Under 30 words.",
-      "interview_prep": "Discuss: What ULIP and Annuity products are (insurance + investment). How you managed portfolio\u2014pricing, features, distribution strategy. What made GPP innovative (guaranteed pension, first-in-industry features). How Retirement Tool worked as sales enabler. Go-to-market strategy. Why this demonstrates end-to-end product ownership from idea to measurable impact (P0 requirement)."
-    },
-    {
-      "role": "ICICI Prudential - Senior Product Manager",
-      "bullet_number": 2,
-      "original": "Developed an Alexa-integrated Voice Analytics Bot, which automated sales insights generation and improved operational efficiency + Built an Alexa conversational AI voice bot, designed conversation flows, intent mapping, and agent handoff protocols; automated insights for over 500 agents, reducing reporting time by 30%",
-      "reframed": "Built conversational AI voice bot integrated with Alexa\u2014designed intent mapping and agent handoff protocols automating sales insights for 500+ agents, reducing reporting time 30% through NLP-driven workflows",
-      "jd_keywords_used": [
-        "conversational AI",
-        "automation",
-        "workflows",
-        "operational efficiency",
-        "ML"
-      ],
-      "what_changed": "Changed 'Developed' to 'Built' (RULE 3). Combined two related bullets. CRITICAL: Used 'conversational AI' and 'NLP-driven' NOT 'LLM-powered' because work was 2019-2022 (RULE 7\u2014no LLM/GenAI for pre-2023 work). Emphasized 'intent mapping' and 'agent handoff' as decision system design. Kept strong metrics (500+ agents, 30% reduction). Under 30 words.",
-      "interview_prep": "KEY: This was Alexa Skills Kit with rule-based NLP (2019-2022), not LLM. Discuss: What intents you designed (sales reports, performance queries, product info). How voice interface worked\u2014Alexa wake word, slot filling, confirmations. How it automated insights\u2014integrated with sales database, generated reports on demand. What 'agent handoff' meant\u2014escalation to human for complex queries. Parallel to modern LLM orchestration\u2014same product thinking, different tech generation."
-    },
-    {
-      "role": "ICICI Prudential - Senior Product Manager",
-      "bullet_number": 3,
-      "original": "Implemented user research with the help of an agency to understand the Retirement market and demography + Analyzed post launch statistics for insight generation; optimized UI to increase Sales by 20% + Collaborated IVR optimization and digital deflection strategies to improve first-contact resolution",
-      "reframed": "Optimized IVR and digital deflection strategies using post-launch analytics and user research\u2014improved first-contact resolution and drove 20% sales increase through UI enhancements informed by demographic analysis",
-      "jd_keywords_used": [
-        "data-driven",
-        "experimentation",
-        "workflows",
-        "conversion",
-        "customer ROI"
-      ],
-      "what_changed": "Changed 'Implemented...Analyzed...Collaborated' to 'Optimized...using' to lead with action and outcome (RULE 6). Combined three related bullets showing data-driven optimization. Emphasized 'post-launch analytics' and 'user research' as data-driven approach (P1). Kept 20% sales metric. Added 'demographic analysis' for depth. Under 30 words.",
-      "interview_prep": "Discuss: What user research revealed about retirement market (age, income, risk appetite, digital literacy). How you used insights to optimize IVR (menu structure, voice prompts) and digital deflection (self-service FAQ, calculators). What UI changes drove 20% sales lift. How post-launch analytics informed iteration. Demonstrates 'Use data and experimentation to validate impact and iterate quickly' (key JD responsibility)."
-    },
-    {
-      "role": "ICICI Prudential - Senior Product Manager",
-      "bullet_number": 4,
-      "original": "Integrated social listening for customer escalations, designing a Twitter-to-ticket workflow with priority routing for public complaints + Implemented first in the industry retirement tool for new product as sales enabler",
-      "reframed": "Integrated social listening for customer escalations\u2014designed Twitter-to-ticket workflow with priority routing for public complaints, establishing first-in-industry retirement tool as sales enabler for new product launches",
-      "jd_keywords_used": [
-        "workflows",
-        "escalation",
-        "product launch",
-        "operational efficiency"
-      ],
-      "what_changed": "Combined two bullets. Changed 'Implemented' to 'Integrated' (slightly stronger). Emphasized 'workflow' and 'priority routing' as decision system design. Kept 'first-in-industry' innovation signal. Reframed retirement tool as 'sales enabler for new product launches' to emphasize GTM impact. Under 30 words.",
-      "interview_prep": "Discuss: How social listening worked\u2014monitoring Twitter mentions, sentiment analysis, keyword tracking. How Twitter-to-ticket workflow functioned\u2014auto-create ticket, priority scoring (public vs. private, sentiment, follower count), route to specialized team. Why public complaints needed special handling (reputation risk). What retirement tool did\u2014calculate pension needs, illustrate product benefits. How it enabled sales\u2014demo tool, quote generation, objection handling."
-    },
-    {
-      "role": "Fidelity Investments - Summer Intern",
-      "bullet_number": 1,
-      "original": "Analyzed the strategic frameworks of the best fit Saas and non-Saas Offerings after mapping the metrics to each of the business objectives + Evaluated identified competitors on 256 parameters and developed a dynamic dashboard to gauge the Points of Parity and Differences + Ensured steady dialogue with inside-sales team of shortlisted vendors and affected Data Analytics using R to compare various parameters",
-      "reframed": "Evaluated SaaS vendors on 256 parameters using R-based data analytics\u2014built dynamic dashboard mapping competitive intelligence to business objectives, enabling strategic framework analysis for sales and product teams",
-      "jd_keywords_used": [
-        "SaaS",
-        "data analytics",
-        "data-driven"
-      ],
-      "what_changed": "Combined three intern bullets into one concise line per RULE 4 (internships 1 line max). Kept 'SaaS' (P2 term). Emphasized 'data analytics' and 'R-based' for technical credibility. Kept '256 parameters' as impressive scale signal. Focused on deliverable (dashboard) and business value (competitive intelligence, strategic framework). Under 30 words.",
-      "interview_prep": "Brief talking points: What SaaS evaluation was for (CRM, marketing automation). What 256 parameters included (features, pricing, integration, support). How you used R (data cleaning, statistical comparison, visualization). What 'points of parity and difference' meant (competitive positioning). How dashboard helped decision-making. Keep brief\u2014this is early-career internship, not core PM experience."
-    },
-    {
-      "role": "Cognizant - Software Developer",
-      "bullet_number": 1,
-      "original": "Handled and regulated foreign exchange application of a leading American bank which catered to markets of five prominent countries + Accounted for testing the functionality of client's application and frequently orchestrated smooth regulation of integrated components + Worked on both the front and the backend of the application and thoroughly inspected the software after the release of new versions + Coordinated defect tracking reports and converted existing freestyle Java project to Maven to remove dependencies with the libraries + Collaborated throughout with the developer team in each phase of product testing with prompt intimation in case of any discrepancy + Ensured steady dialogue with the other testing teams during regression for easy flow of operations and compliance with target sprints",
-      "reframed": "Developed full-stack foreign exchange application for American bank serving 5 markets\u2014owned frontend, backend, integration testing, and release management, migrating Java project to Maven for dependency optimization",
-      "jd_keywords_used": [
-        "APIs",
-        "cloud",
-        "web",
-        "Technical background"
-      ],
-      "what_changed": "Changed 'Handled and regulated' to 'Developed' (clearer technical contribution). Combined all six bullets into one line per RULE 4 (early career 1 line). Emphasized 'full-stack' for technical breadth. Highlighted 'integration testing, release management' as technical depth. Kept '5 markets' scale signal. Added 'Maven migration' for technical credibility. This satisfies P0 'Technical or engineering background' requirement. Under 30 words.",
-      "interview_prep": "Brief talking points: Full-stack work demonstrates understanding of API integration, frontend-backend communication, data flows. Maven migration shows dependency management, build systems. Testing experience shows quality mindset. This technical background helps you evaluate API-based AI solutions, understand latency/cost trade-offs, and partner effectively with engineering teams on technical decisions\u2014directly relevant to P0 'Technical or engineering background strongly preferred.'"
-    }
-  ],
-  "rule13_self_check": {
-    "summary_3_lines": {
-      "passed": true,
-      "message": "Summary must be 3 lines"
-    },
-    "summary_opens_8_years": {
-      "passed": true,
-      "message": "Summary must open with 'Senior Product Manager with 8+ years'"
-    },
-    "summary_references_domain": {
-      "passed": true,
-      "message": "Summary must reference target company domain/industry"
-    },
-    "no_role_over_5_bullets": {
-      "passed": true,
-      "message": "No role has more than 5 bullets"
-    },
-    "every_bullet_has_metric": {
-      "passed": true,
-      "message": "Every bullet has a metric"
-    },
-    "every_bullet_20_30_words": {
-      "passed": true,
-      "message": "Every bullet 20-30 words (max 30)"
-    },
-    "no_banned_verb_starts": {
-      "passed": true,
-      "message": "No bullet starts with Managed, Responsible for, Helped, Planned"
-    },
-    "no_bullet_over_4_jd_keywords": {
-      "passed": false,
-      "message": "No bullet has more than 4 JD keywords"
-    },
-    "no_pre_2023_llm_powered": {
-      "passed": true,
-      "message": "No pre-2023 work claims LLM-powered"
-    },
-    "total_pages_1_5_2": {
-      "passed": true,
-      "message": "Total resume \u22642 pages (est. 0.7)"
-    },
-    "skills_under_25": {
-      "passed": true,
-      "message": "Skills section \u226425 terms (has 25)"
-    },
-    "fidelity_1_line": {
-      "passed": true,
-      "message": "Fidelity internship 1 line max"
-    },
-    "cognizant_1_line": {
-      "passed": true,
-      "message": "Cognizant developer role 1 line max"
-    },
-    "reframing_log_complete": {
-      "passed": true,
-      "message": "Reframing log complete with interview prep notes"
-    }
-  }
+  ]
 }

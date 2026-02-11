@@ -15,6 +15,7 @@ import json
 import logging
 import os
 import re
+import time
 
 import anthropic
 
@@ -35,52 +36,124 @@ BANNED_START_VERBS = (
     "assisted",
     "participated",
     "planned",
+    "supported",
+    "worked on",
+    "handled",
+    "involved in",
 )
 REQUIRED_START_VERBS = (
     "led", "drove", "launched", "built", "owned", "delivered",
     "designed", "spearheaded", "achieved", "scaled", "transformed", "architected",
 )
 MAX_WORDS_PER_BULLET = 30
+MIN_WORDS_PER_BULLET = 20
 MAX_JD_KEYWORDS_PER_BULLET = 4
 MAX_BULLETS_MOST_RECENT = 5
-MAX_BULLETS_SECOND = 5
+MIN_BULLETS_MOST_RECENT = 4
+MAX_BULLETS_SECOND = 4
+MIN_BULLETS_SECOND = 3
 MAX_BULLETS_THIRD = 4
-MAX_BULLETS_OLD_ROLE = 1
-PRE_2023_CUTOFF_YEAR = 2023  # Roles ending before this: no "LLM-powered" / "GenAI"
+MIN_BULLETS_THIRD = 3
+MAX_BULLETS_OLD_ROLE = 2
+MAX_BULLETS_INTERNSHIP = 1
+PRE_2023_CUTOFF_YEAR = 2023  # Roles ending before June 2023: no LLM/GPT/RAG/GenAI
+PRE_2023_CUTOFF_MONTH = 6  # June 2023
+MAX_SKILLS_TERMS = 25
+MAX_SUMMARY_WORDS_PER_LINE = 40
+# Verb variety: if same verb 3+ times, replace with synonym
+VERB_SYNONYMS = {
+    "led": ["spearheaded", "championed"],
+    "drove": ["owned", "directed"],
+    "built": ["designed", "architected"],
+    "launched": ["shipped", "delivered"],
+    "managed": ["orchestrated", "coordinated"],
+    "developed": ["engineered", "created"],
+    "implemented": ["deployed", "executed"],
+}
+# Location normalization: remove state/region, standardize city names
+LOCATION_NORMALIZE = {
+    "bangalore": "Bengaluru",
+    "mumbai metropolitan region": "Mumbai",
+    "hyderabad area": "Hyderabad",
+    "telangana": "",
+    "karnataka": "",
+    "metropolitan region": "",
+    " area": "",
+}
 WORDS_PER_PAGE_ESTIMATE = 400
 MAX_PAGES = 2
 
 REFRAME_PROMPT = """You are an expert resume reframing engine for ATS-optimized, interview-defensible resumes. Generate tailored resume content from the candidate's Profile Knowledge Base (PKB), using the JD analysis and mapping matrix. Follow ALL 13 rules below. These are final and non-negotiable.
 
-RULE 1 — EXPERIENCE POSITIONING: Always present "8+ years of experience". Always position as "Senior Product Manager" in the summary. Frame as experienced senior leader.
+RULE 1 — EXPERIENCE POSITIONING: The summary must open with "Senior Product Manager with [X]+ years" where X = max(8, actual_years_of_experience). Never output less than 8+. Calculate actual years from the earliest role start date to today. Always position as "Senior Product Manager". Frame as experienced senior leader.
 
-RULE 2 — PROFESSIONAL SUMMARY: Maximum 3 lines. Must OPEN with "Senior Product Manager with 8+ years...". Include top 3 skills from the JD and 2-3 strongest metrics (e.g. 2.5× adoption, 75% engagement lift, 50% revenue growth). MUST reference the target company's domain: if beauty/wellness/salons/spas, reference service-based businesses or SMBs; if fintech, reference financial platforms. Make the hiring manager feel "this person gets our business." No filler. Summary should make a recruiter think "I need to call this person."
+RULE 2 — PROFESSIONAL SUMMARY: Professional Summary must be exactly 3 lines. Line 1: title + years + core domain. Line 2: top 2-3 achievements with specific metrics. Line 3: key capabilities relevant to target JD domain. Maximum 40 words per line. Do NOT list more than 3 skills in a single clause. Do NOT chain skills with commas — weave them into achievement context. MUST reference the target company's domain. No keyword stuffing.
 
-RULE 3 — BULLET STRUCTURE: XYZ: Accomplished [X] as measured by [Y], by doing [Z]. Every bullet MUST have a quantified metric. Maximum 20-30 words per bullet. Max 3-4 JD keywords per bullet. Lead each role with the most JD-relevant bullet. BANNED starts: "Responsible for", "Managed", "Helped", "Assisted", "Participated", "Planned". REQUIRED starts: Led, Drove, Launched, Built, Owned, Delivered, Designed, Spearheaded, Achieved, Scaled, Transformed, Architected. Only describe shipped/deployed work — do NOT use "planned" for features.
+RULE 3 — BULLET STRUCTURE: XYZ: Accomplished [X] as measured by [Y], by doing [Z]. Every bullet MUST have a quantified metric. Every bullet must be 20-30 words. No exceptions. Max 3-4 JD keywords per bullet. Lead each role with the most JD-relevant bullet. BANNED starts: "Responsible for", "Managed", "Helped", "Assisted", "Participated", "Planned", "Supported", "Worked on", "Handled", "Involved in". REQUIRED starts: Led, Drove, Launched, Built, Owned, Delivered, Designed, Spearheaded, Achieved, Scaled, Transformed, Architected. Only describe shipped/deployed work.
 
-RULE 4 — BULLETS PER ROLE: Most recent: max 4-5. Second: max 5. Third: max 3-4. Older than 5 years: max 1-2 lines. Internships: 1 line max (omit if not relevant). Early career/developer: 1 line. If a bullet has no metric and you cannot estimate one, CUT it.
+RULE 4 — BULLETS PER ROLE (hard constraints): Most recent role: minimum 4, maximum 5 bullets. Second most recent: minimum 3, maximum 4 bullets. Third role: minimum 3, maximum 4 bullets. Roles older than 3 positions back: maximum 2 bullets. Internships: exactly 1 bullet. If reframer produces fewer than minimum, pull additional relevant experience from PKB.
 
 RULE 5 — ONLY RELEVANT POINTERS: Every bullet must map to P0 or P1 JD requirement. Does this help get shortlisted for THIS job? If no, cut it. 4 perfect bullets beat 8 mediocre ones.
 
 RULE 6 — TOP 1% LANGUAGE: Outcomes, not tasks. Business impact: revenue, growth, retention, efficiency. Show WHY it mattered and the RESULT. Think: how would a VP describe this in a board presentation?
 
-RULE 7 — REFRAMING BOUNDARIES: Allowed: change framing to match JD, use exact JD vocabulary, add defensible metrics, reorder bullets, elevate framing. Not allowed: invent work, claim tools never used. CRITICAL: For work before 2023, do NOT use "LLM-powered" or "GenAI". Use "conversational AI", "NLP-driven", or "ML-powered" for pre-2023 work. Do NOT use "planned" for features — only shipped/deployed work.
+RULE 7 — REFRAMING BOUNDARIES (no anachronistic tech): For roles ending before June 2023, do NOT use "LLM", "LLM-powered", "large language model", "GPT", "generative AI", "gen AI", "RAG", "retrieval-augmented". Use "NLP-driven", "ML-powered", "conversational AI", "machine learning", "information retrieval" instead. Not allowed: invent work, claim tools never used. Only shipped/deployed work.
 
 RULE 8 — KEYWORD USAGE: EXACT phrases from JD. P0: 2-3 times; P1: 1-2 times. No keyword more than 4 times. Distribute across summary + skills + experience.
 
-RULE 9 — SKILLS SECTION: Max 25 terms total. Technical, Methodologies, Domains. Every term maps to P0 or P1. Add domain terms matching target company (e.g. POS, CRM for Zenoti). No filler.
+RULE 9 — SKILLS SECTION: Skills section must contain maximum 25 terms. Organize into Technical, Methodologies, and Domains. Every term must map to a P0 or P1 keyword. If more than 25 terms, drop lowest-priority ones (P1 before P0, least frequent in JD first).
 
-RULE 10 — FORMAT: Date format "Mon YYYY – Mon YYYY". Single column. Standard headers.
+RULE 10 — FORMAT: Date format "Mon YYYY – Mon YYYY". Single column. Standard headers. Location format: "City, Country" only (no state/region e.g. no Telangana, Karnataka, Metropolitan Region). Bangalore → Bengaluru, Hyderabad Area → Hyderabad, Mumbai Metropolitan Region → Mumbai.
 
-RULE 11 — EDUCATION & CERTIFICATIONS: One line per education. Certifications relevant to JD only.
+RULE 11 — AWARDS & RECOGNITION: If PKB has awards, add "Awards & Recognition" section after Skills and before Education. Format: one line per award: "• [Award Title], [Company] ([Year]) | [One-line description]". Maximum 3 awards. Only include awards from the last 7 years. Sort by most recent first.
 
-RULE 12 — TONE: Confident, human, crisp. No buzzword chains. How would Shreyas Doshi describe this?
+RULE 12 — EDUCATION & CERTIFICATIONS: One line per education. Certifications relevant to JD only.
 
-RULE 13 — SELF-CHECK: Summary 3 lines, opens "Senior Product Manager with 8+ years", references target domain; no role >5 bullets; every bullet has metric, 20-30 words, no banned starts, ≤4 JD keywords; no pre-2023 "LLM-powered"; skills ≤25 terms; Fidelity 1 line; Cognizant 1 line; reframing_log complete.
+RULE 13 — TONE: Confident, human, crisp. No buzzword chains. No verb used more than twice across all bullets — use synonym variety (Led → Spearheaded, Drove → Owned, etc.).
+
+RULE 14 — SELF-CHECK: Summary exactly 3 lines, opens "Senior Product Manager with 8+ years"; most recent role 4-5 bullets, second 3-4, third 3-4; every bullet 20-30 words, metric, no banned starts; no pre-2023 LLM/GPT/RAG/GenAI; skills ≤25 terms; locations City, Country; reframing_log complete.
 
 REFRAMING LOG: For each reframed bullet: original, reframed, jd_keywords_used, what_changed, interview_prep.
 
 Work experience: REVERSE-CHRONOLOGICAL. Same companies/titles from PKB. Apply bullet limits. Return ONLY valid JSON (no markdown)."""
+
+PATCH_REFRAME_PROMPT = """You are making targeted edits to an existing resume to address specific feedback. The resume is already well-structured and ATS-optimized. Make MINIMAL, targeted changes only.
+
+RULES:
+- Keep all existing content unless the feedback specifically asks to change it
+- When adding keywords (e.g., "GTM", "product judgment"), integrate them naturally into existing sentences
+- Maintain the same structure, tone, and formatting
+- Do NOT regenerate entire sections unless feedback explicitly requires it
+- Preserve all metrics, dates, and company names exactly as they are
+- Return the FULL resume JSON with only the targeted edits applied
+
+Return ONLY valid JSON (no markdown)."""
+
+
+def _condensed_pkb_for_api(pkb: dict) -> dict:
+    """Build a smaller PKB for the API call to reduce payload and avoid timeouts.
+    Keeps only fields needed for resume generation; full pkb is used for post-processing."""
+    work = []
+    for w in pkb.get("work_experience") or []:
+        bullets = []
+        for b in w.get("bullets") or []:
+            text = (b.get("original_text") or "").strip()
+            if text:
+                bullets.append(text)
+        work.append({
+            "company": w.get("company"),
+            "title": w.get("title"),
+            "dates": w.get("dates"),
+            "location": w.get("location"),
+            "bullets": bullets,
+        })
+    return {
+        "personal_info": pkb.get("personal_info") or {},
+        "work_experience": work,
+        "skills": pkb.get("skills") or {},
+        "education": pkb.get("education") or [],
+        "certifications": pkb.get("certifications") or [],
+    }
 
 
 def _format_dates_from_pkb(work: dict) -> str:
@@ -198,37 +271,198 @@ def _get_role_end_year(role: dict, pkb: dict) -> int:
     return 2030
 
 
+def _role_end_before_june_2023(role: dict, pkb: dict) -> bool:
+    """True if role end date is before June 2023 (no LLM/GPT/RAG/GenAI)."""
+    end_year = _get_role_end_year(role, pkb)
+    if end_year < PRE_2023_CUTOFF_YEAR:
+        return True
+    if end_year > PRE_2023_CUTOFF_YEAR:
+        return False
+    dates = role.get("dates") or ""
+    if isinstance(dates, dict):
+        end = dates.get("end") or ""
+    else:
+        end = str(dates)
+    # If 2023, check month: Jan-May = before June
+    if re.search(r"Jan|Feb|Mar|Apr|May", end, re.I):
+        return True
+    return False
+
+
 def _fix_pre_2023_language(bullet: str, role_end_year: int) -> str:
     """Replace LLM-powered/GenAI with conversational AI/ML-powered for pre-2023 roles."""
     if role_end_year >= PRE_2023_CUTOFF_YEAR:
         return bullet
-    b = re.sub(r"\bLLM-powered\b", "conversational AI", bullet, flags=re.IGNORECASE)
+    b = re.sub(r"\bLLM-powered\b", "NLP-driven", bullet, flags=re.IGNORECASE)
+    b = re.sub(r"\bLLM\b", "conversational AI", b, flags=re.IGNORECASE)
+    b = re.sub(r"\blarge language model\b", "machine learning", b, flags=re.IGNORECASE)
+    b = re.sub(r"\bGPT\b", "ML-powered", b, flags=re.IGNORECASE)
+    b = re.sub(r"\bgenerative AI\b", "machine learning", b, flags=re.IGNORECASE)
+    b = re.sub(r"\bgen AI\b", "ML-powered", b, flags=re.IGNORECASE)
+    b = re.sub(r"\bRAG\b", "information retrieval", b, flags=re.IGNORECASE)
+    b = re.sub(r"\bretrieval-augmented\b", "information retrieval", b, flags=re.IGNORECASE)
     b = re.sub(r"\bGenAI\b", "ML-powered", b, flags=re.IGNORECASE)
-    b = re.sub(r"\bLLM\b", "conversational AI", b)
+    b = re.sub(r"\bAI-powered\b", "ML-powered", b, flags=re.IGNORECASE)
     return b
 
 
+def _fix_pre_2023_tech_full(result: dict, pkb: dict) -> dict:
+    """Post-process: for roles ending before June 2023, replace anachronistic tech terms. Log every replacement."""
+    work = result.get("work_experience", [])
+    new_work = []
+    for role in work:
+        if not _role_end_before_june_2023(role, pkb):
+            new_work.append(role)
+            continue
+        end_year = _get_role_end_year(role, pkb)
+        new_bullets = []
+        for b in role.get("bullets") or []:
+            orig = b
+            b = _fix_pre_2023_language(b, end_year)
+            if b != orig:
+                logger.info("Pre-2023 tech replacement: %s -> %s", orig[:60], b[:60])
+            new_bullets.append(b)
+        new_work.append({**role, "bullets": new_bullets})
+    return {**result, "work_experience": new_work}
+
+
+def _normalize_location(loc: str) -> str:
+    """Normalize to 'City, Country'. Remove state/region. Map Bangalore→Bengaluru, etc."""
+    if not loc or not isinstance(loc, str):
+        return loc
+    s = loc.strip()
+    for k, v in LOCATION_NORMALIZE.items():
+        if k in s.lower():
+            s = re.sub(re.escape(k), v, s, flags=re.IGNORECASE)
+    # Remove trailing comma/comma-space and "India" duplicates, clean double spaces
+    s = re.sub(r",\s*,", ",", s)
+    s = re.sub(r"\s+", " ", s).strip()
+    if s.endswith(","):
+        s = s[:-1].strip()
+    if not re.search(r"India|USA|UK", s, re.I) and "India" in loc:
+        s = s + ", India" if s else "India"
+    return s or loc
+
+
+def _normalize_locations(result: dict) -> dict:
+    """Post-process: every role location to City, Country format."""
+    work = result.get("work_experience", [])
+    new_work = [{**r, "location": _normalize_location(r.get("location") or "")} for r in work]
+    return {**result, "work_experience": new_work}
+
+
+def _get_opening_verb(bullet: str) -> str:
+    """Return the first word (verb) of the bullet, lowercased."""
+    if not bullet:
+        return ""
+    first = (bullet.strip().split() or [""])[0].lower().rstrip(".,;")
+    return first
+
+
+def _enforce_verb_variety(result: dict) -> dict:
+    """No verb used more than twice. Replace 3rd+ with synonym. Log every swap."""
+    work = result.get("work_experience", [])
+    all_bullets_flat = []
+    for r in work:
+        for b in r.get("bullets") or []:
+            all_bullets_flat.append((r, b))
+    verb_count = {}
+    for r, b in all_bullets_flat:
+        v = _get_opening_verb(b)
+        if v:
+            verb_count[v] = verb_count.get(v, 0) + 1
+    replacements = {}
+    for v, count in verb_count.items():
+        if count >= 3 and v in VERB_SYNONYMS:
+            syns = VERB_SYNONYMS[v]
+            need = count - 2
+            replacements[v] = (syns, need)
+    if not replacements:
+        return result
+    new_work = []
+    used = {}
+    for role in work:
+        new_bullets = []
+        for bullet in role.get("bullets") or []:
+            v = _get_opening_verb(bullet)
+            if v not in replacements:
+                new_bullets.append(bullet)
+                continue
+            syns, need = replacements[v]
+            used[v] = used.get(v, 0) + 1
+            if used[v] <= 2:
+                new_bullets.append(bullet)
+                continue
+            idx = min(used[v] - 3, len(syns) - 1)
+            repl = syns[idx]
+            words = bullet.split()
+            rest = " ".join(words[1:]).lstrip() if len(words) > 1 else ""
+            new_b = (repl.capitalize() + " " + rest).strip()
+            logger.info("Verb variety swap: %s -> %s", v, repl)
+            new_bullets.append(new_b)
+        new_work.append({**role, "bullets": new_bullets})
+    return {**result, "work_experience": new_work}
+
+
+def _replace_banned_verbs(result: dict) -> dict:
+    """If any bullet starts with a banned phrase, replace with strong verb. Log every replacement."""
+    work = result.get("work_experience", [])
+    new_work = []
+    for role in work:
+        new_bullets = []
+        for b in role.get("bullets") or []:
+            if _bullet_starts_with_banned(b):
+                new_b = _rewrite_banned_start(b)
+                logger.info("Banned verb replaced: %s -> %s", b[:50], new_b[:50])
+                new_bullets.append(new_b)
+            else:
+                new_bullets.append(b)
+        new_work.append({**role, "bullets": new_bullets})
+    return {**result, "work_experience": new_work}
+
+
+def _enforce_bullet_word_count(result: dict) -> dict:
+    """Trim bullets >30 words; flag (log) if <15. Keep verb, metric, primary keyword."""
+    work = result.get("work_experience", [])
+    new_work = []
+    for role in work:
+        new_bullets = []
+        for b in role.get("bullets") or []:
+            wc = _word_count(b)
+            if wc > MAX_WORDS_PER_BULLET:
+                b = _shorten_bullet_to_max_words(b, max_words=MAX_WORDS_PER_BULLET)
+                logger.info("Bullet trimmed to %d words (max %d)", _word_count(b), MAX_WORDS_PER_BULLET)
+            elif wc < 15 and wc > 0:
+                logger.warning("Bullet under 15 words (flag for expansion): %d words", wc)
+            new_bullets.append(b)
+        new_work.append({**role, "bullets": new_bullets})
+    return {**result, "work_experience": new_work}
+
+
 def _enforce_bullet_limits(work_experience: list, pkb: dict) -> list:
-    """Enforce max bullets per role: 5, 5, 4, then 1 for old/internship/developer."""
+    """Enforce min/max bullets: most recent 4-5, second 3-4, third 3-4, older max 2, internship 1."""
     pkb_order = [w["company"] for w in pkb.get("work_experience", [])]
     if not pkb_order:
         return work_experience
     result = []
     for i, role in enumerate(work_experience):
-        company = (role.get("company") or "").strip()
+        company = (role.get("company") or "").strip().lower()
         bullets = list(role.get("bullets") or [])
-        if i == 0:
-            cap = MAX_BULLETS_MOST_RECENT
+        is_internship = "fidelity" in company or "intern" in (role.get("title") or "").lower()
+        is_early_dev = "cognizant" in company
+        if is_internship or is_early_dev:
+            cap_min, cap_max = MAX_BULLETS_INTERNSHIP, MAX_BULLETS_INTERNSHIP
+        elif i == 0:
+            cap_min, cap_max = MIN_BULLETS_MOST_RECENT, MAX_BULLETS_MOST_RECENT
         elif i == 1:
-            cap = MAX_BULLETS_SECOND
+            cap_min, cap_max = MIN_BULLETS_SECOND, MAX_BULLETS_SECOND
         elif i == 2:
-            cap = MAX_BULLETS_THIRD
+            cap_min, cap_max = MIN_BULLETS_THIRD, MAX_BULLETS_THIRD
         else:
-            cap = MAX_BULLETS_OLD_ROLE
-        if company.lower() in ("fidelity investments", "cognizant"):
-            cap = 1
-        if len(bullets) > cap:
-            bullets = bullets[:cap]
+            cap_min, cap_max = 0, MAX_BULLETS_OLD_ROLE
+        if len(bullets) > cap_max:
+            bullets = bullets[:cap_max]
+        # Min is enforced by prompt; we don't pull from PKB here (reframer must produce enough)
         result.append({**role, "bullets": bullets})
     return result
 
@@ -385,19 +619,44 @@ def run_rule13_self_check(result: dict, parsed_jd: dict, pkb: dict) -> dict:
     return checks
 
 
+def _inject_awards_from_pkb(result: dict, pkb: dict) -> dict:
+    """If PKB has awards, add Awards & Recognition section (max 3, last 7 years)."""
+    awards_raw = pkb.get("awards") or []
+    if not awards_raw:
+        return result
+    from datetime import datetime
+    current_year = datetime.now().year
+    # Filter last 7 years; take max 3; sort by year desc
+    entries = []
+    for a in awards_raw:
+        if isinstance(a, dict):
+            year = a.get("year") or a.get("date") or current_year
+            if isinstance(year, str):
+                year = int(re.search(r"20\d{2}|19\d{2}", year).group(0)) if re.search(r"20\d{2}|19\d{2}", year) else current_year
+            if current_year - year > 7:
+                continue
+            title = a.get("title") or a.get("name") or "Award"
+            company = a.get("company") or a.get("organization") or ""
+            desc = a.get("description") or ""
+            entries.append((year, f"• {title}, {company} ({year})" + (f" | {desc}" if desc else "")))
+        elif isinstance(a, str) and a.strip():
+            entries.append((current_year, f"• {a.strip()}"))
+    entries.sort(key=lambda x: -x[0])
+    result["awards"] = [e[1] for e in entries[:3]]
+    return result
+
+
 def _apply_programmatic_fixes(result: dict, parsed_jd: dict, pkb: dict) -> dict:
-    """Apply all programmatic fixes: word count, banned verbs, metrics, pre-2023 language, bullet limits, page length."""
+    """Apply all programmatic fixes: pre-2023 tech, banned verbs, word count, bullet limits, locations, verb variety, skills cap, awards."""
+    # Pre-2023 anachronistic tech replacement (Rule 7)
+    result = _fix_pre_2023_tech_full(result, pkb)
     work = result.get("work_experience", [])
     p0_p1 = (parsed_jd.get("p0_keywords") or []) + (parsed_jd.get("p1_keywords") or [])
     new_work = []
-
     for role in work:
-        end_year = _get_role_end_year(role, pkb)
         new_bullets = []
         for bullet in role.get("bullets", []):
-            if not _bullet_has_metric(bullet):
-                continue
-            b = _fix_pre_2023_language(bullet, end_year)
+            b = bullet or ""
             if _bullet_starts_with_banned(b):
                 b = _rewrite_banned_start(b)
             wc = _word_count(b)
@@ -408,40 +667,128 @@ def _apply_programmatic_fixes(result: dict, parsed_jd: dict, pkb: dict) -> dict:
                 b = _shorten_bullet_to_max_words(b, max_words=25)
             new_bullets.append(b)
         new_work.append({**role, "bullets": new_bullets})
-
-    new_work = _enforce_bullet_limits(new_work, pkb)
     result = {**result, "work_experience": new_work}
+    result = _replace_banned_verbs(result)
+    result = _enforce_bullet_word_count(result)
+    result = {**result, "work_experience": _enforce_bullet_limits(result.get("work_experience", []), pkb)}
     result = _trim_to_fit_pages(result, parsed_jd, max_pages=MAX_PAGES)
-    # Cap skills at 25 terms total (prioritize technical, then methodologies, then domains)
+    result = _normalize_locations(result)
+    result = _enforce_verb_variety(result)
+    # Skills cap 25
     sk = result.get("skills", {})
     tech = sk.get("technical") or []
     meth = sk.get("methodologies") or []
     dom = sk.get("domains") or []
     total = tech + meth + dom
-    if len(total) > 25:
+    if len(total) > MAX_SKILLS_TERMS:
         tech_cap = min(len(tech), 15)
         meth_cap = min(len(meth), 5)
-        dom_cap = 25 - tech_cap - meth_cap
+        dom_cap = MAX_SKILLS_TERMS - tech_cap - meth_cap
         result["skills"] = {
             "technical": tech[:tech_cap],
             "methodologies": meth[:meth_cap],
             "domains": dom[:max(0, dom_cap)],
         }
+        logger.info("Skills trimmed to %d terms (max %d)", tech_cap + meth_cap + max(0, dom_cap), MAX_SKILLS_TERMS)
+    result = _inject_awards_from_pkb(result, pkb)
     return result
 
 
-def reframe_experience(mapping_matrix: dict, pkb: dict, parsed_jd: dict) -> dict:
+def _patch_reframe_with_retry(
+    current_resume_content: dict,
+    feedback: str,
+    parsed_jd: dict,
+    max_retries: int = 1,
+) -> dict:
+    """Patch mode: make targeted edits to existing resume. Returns patched resume or original on failure."""
+    client = anthropic.Anthropic()
+    resume_json = json.dumps(current_resume_content, indent=2)
+    jd_keywords = json.dumps({
+        "p0_keywords": parsed_jd.get("p0_keywords", []),
+        "p1_keywords": parsed_jd.get("p1_keywords", []),
+    }, indent=2)
+
+    for attempt in range(max_retries + 1):
+        try:
+            logger.info("Patch reframe attempt %d/%d (targeted edits only)...", attempt + 1, max_retries + 1)
+            message = client.messages.create(
+                model="claude-sonnet-4-5-20250929",
+                max_tokens=8000,
+                timeout=120.0,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": (
+                            f"{PATCH_REFRAME_PROMPT}\n\n"
+                            f"---\n\n"
+                            f"FEEDBACK TO ADDRESS:\n{feedback}\n\n"
+                            f"---\n\n"
+                            f"CURRENT RESUME (make targeted edits only):\n{resume_json}\n\n"
+                            f"---\n\n"
+                            f"JD KEYWORDS (for reference):\n{jd_keywords}"
+                        ),
+                    }
+                ],
+            )
+            response_text = message.content[0].text.strip()
+            json_str = _extract_json_from_response(response_text)
+            result = json.loads(json_str)
+            # Unwrap if nested
+            if "resume" in result and isinstance(result["resume"], dict):
+                result = result["resume"]
+            logger.info("Patch reframe succeeded")
+            return result
+        except Exception as e:
+            logger.warning("Patch reframe attempt %d failed: %s", attempt + 1, str(e))
+            if attempt < max_retries:
+                logger.info("Retrying in 5 seconds...")
+                time.sleep(5)
+            else:
+                logger.warning("Patch reframe failed after %d attempts; returning original resume", max_retries + 1)
+                return current_resume_content
+    return current_resume_content
+
+
+def reframe_experience(
+    mapping_matrix: dict,
+    pkb: dict,
+    parsed_jd: dict,
+    feedback_for_improvement=None,
+    current_resume_content=None,
+) -> dict:
     """Generate tailored resume content using intelligent reframing.
 
     Args:
         mapping_matrix: JD-to-experience mappings from profile_mapper
         pkb: Profile Knowledge Base
         parsed_jd: Structured JD analysis from jd_parser
+        feedback_for_improvement: Optional feedback from scorer to improve weakest component.
+        current_resume_content: Optional already-reframed resume. If provided with feedback,
+                                uses patch mode (targeted edits) instead of full regeneration.
 
     Returns:
         Resume content dict with professional_summary, work_experience,
         skills, education, certifications, and reframing_log
     """
+    # Patch mode: if both feedback and current resume provided, make targeted edits only
+    if feedback_for_improvement and current_resume_content:
+        logger.info("Using patch mode: targeted edits to existing resume")
+        patched = _patch_reframe_with_retry(current_resume_content, feedback_for_improvement, parsed_jd)
+        # Ensure required keys exist
+        patched.setdefault("professional_summary", current_resume_content.get("professional_summary", ""))
+        patched.setdefault("work_experience", current_resume_content.get("work_experience", []))
+        patched.setdefault("skills", current_resume_content.get("skills", {}))
+        patched.setdefault("education", current_resume_content.get("education", []))
+        patched.setdefault("certifications", current_resume_content.get("certifications", []))
+        patched.setdefault("reframing_log", current_resume_content.get("reframing_log", []))
+        # Normalize dates from PKB
+        patched["work_experience"] = _normalize_work_experience_dates(patched.get("work_experience", []), pkb)
+        # Apply programmatic fixes
+        patched = _apply_programmatic_fixes(patched, parsed_jd, pkb)
+        patched["work_experience"] = _normalize_work_experience_dates(patched.get("work_experience", []), pkb)
+        return patched
+
+    # Full reframe mode: regenerate from PKB
     client = anthropic.Anthropic()
 
     # Build context: JD + mapping + PKB
@@ -464,40 +811,67 @@ def reframe_experience(mapping_matrix: dict, pkb: dict, parsed_jd: dict) -> dict
     }, indent=2)
 
     mapping_json = json.dumps(mapping_matrix, indent=2)
-    pkb_json = json.dumps(pkb, indent=2)
+    # Use condensed PKB to reduce payload and avoid API timeouts
+    condensed_pkb = _condensed_pkb_for_api(pkb)
+    pkb_json = json.dumps(condensed_pkb, indent=2)
+    logger.info("Full reframe payload: JD + mapping + condensed PKB (~%d chars)", len(jd_json) + len(mapping_json) + len(pkb_json))
+
+    feedback_block = ""
+    if feedback_for_improvement and feedback_for_improvement.strip():
+        feedback_block = (
+            "\n\n---\n\nSCORER FEEDBACK (address this to improve the resume score):\n"
+            f"{feedback_for_improvement.strip()}\n\n"
+        )
+        logger.info("Reframing with scorer feedback for improvement")
 
     logger.info("Reframing experience with Claude (intelligent reframing engine)...")
-    message = client.messages.create(
-        model="claude-sonnet-4-5-20250929",
-        max_tokens=16000,
-        messages=[
-            {
-                "role": "user",
-                "content": (
-                    f"{REFRAME_PROMPT}\n\n"
-                    "---\n\n"
-                    "JOB DESCRIPTION ANALYSIS:\n"
-                    f"{jd_json}\n\n"
-                    "---\n\n"
-                    "MAPPING MATRIX (JD requirements → candidate experience):\n"
-                    f"{mapping_json}\n\n"
-                    "---\n\n"
-                    "CANDIDATE PROFILE KNOWLEDGE BASE (PKB):\n"
-                    f"{pkb_json}"
-                ),
-            }
-        ],
-    )
-
-    response_text = message.content[0].text.strip()
-    json_str = _extract_json_from_response(response_text)
-
-    try:
-        result = json.loads(json_str)
-    except json.JSONDecodeError as e:
-        logger.error("Failed to parse reframer output as JSON: %s", e)
-        logger.error("Response preview: %s", response_text[:800])
-        raise ValueError("LLM returned invalid JSON for reframing.") from e
+    # Retry logic for full reframe: 3 attempts, 300s timeout
+    max_retries = 2
+    full_reframe_timeout = 300.0
+    last_error = None
+    for attempt in range(max_retries + 1):
+        try:
+            message = client.messages.create(
+                model="claude-sonnet-4-5-20250929",
+                max_tokens=16000,
+                timeout=full_reframe_timeout,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": (
+                            f"{REFRAME_PROMPT}\n\n"
+                            f"{feedback_block}"
+                            "---\n\n"
+                            "JOB DESCRIPTION ANALYSIS:\n"
+                            f"{jd_json}\n\n"
+                            "---\n\n"
+                            "MAPPING MATRIX (JD requirements → candidate experience):\n"
+                            f"{mapping_json}\n\n"
+                            "---\n\n"
+                            "CANDIDATE PROFILE KNOWLEDGE BASE (PKB):\n"
+                            f"{pkb_json}"
+                        ),
+                    }
+                ],
+            )
+            response_text = message.content[0].text.strip()
+            json_str = _extract_json_from_response(response_text)
+            result = json.loads(json_str)
+            last_error = None
+            break  # Success
+        except Exception as e:
+            last_error = e
+            logger.warning(
+                "Full reframe attempt %d/%d failed: %s: %s",
+                attempt + 1, max_retries + 1, type(e).__name__, str(e)
+            )
+            if attempt < max_retries:
+                wait_sec = 10
+                logger.info("Retrying in %d seconds...", wait_sec)
+                time.sleep(wait_sec)
+            else:
+                logger.error("Full reframe failed after %d attempts. Last error: %s", max_retries + 1, last_error)
+                raise
 
     # Unwrap if LLM returned { "resume": { ... } }
     if "resume" in result and isinstance(result["resume"], dict):
