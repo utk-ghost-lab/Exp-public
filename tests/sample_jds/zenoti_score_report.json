@@ -1,0 +1,33 @@
+{
+  "total_score": 76.6,
+  "passed": false,
+  "target_score": 90,
+  "components": {
+    "keyword_match": {
+      "score": 59.7,
+      "weight": 0.4,
+      "weighted": 23.88
+    },
+    "semantic_alignment": {
+      "score": 76.5,
+      "weight": 0.25,
+      "weighted": 19.12
+    },
+    "format_compliance": {
+      "score": 100.0,
+      "weight": 0.15,
+      "weighted": 15.0
+    },
+    "achievement_density": {
+      "score": 100.0,
+      "weight": 0.1,
+      "weighted": 10.0
+    },
+    "human_readability": {
+      "score": 85.7,
+      "weight": 0.1,
+      "weighted": 8.57
+    }
+  },
+  "weakest_component": "keyword_match"
+}

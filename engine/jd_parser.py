@@ -30,12 +30,19 @@ Extract and categorize into these EXACT buckets:
 9. **job_level**: Seniority signals (Senior, Lead, Director, IC)
 10. **cultural_signals**: Values and culture markers (e.g., "data-driven", "move fast")
 
-For each skill/term, assign priority:
-- **P0 (Must-Have)**: Keywords in job title, first paragraph, or "Requirements"/"What you need" section. These are deal-breakers.
-- **P1 (Should-Have)**: Keywords in description body, mentioned once in responsibilities
-- **P2 (Nice-to-Have)**: Keywords in "Preferred"/"Bonus"/"Plus" sections
+For each skill/term, assign priority STRICTLY:
 
-CRITICAL: Extract the EXACT phrases as they appear in the JD for ATS exact-match. Do not paraphrase.
+- **P0 (Must-Have)** — STRICTLY LIMITED. Only include a keyword as P0 if it meets ONE of:
+  1. It appears in the **job title**
+  2. It appears in an explicit **Requirements** / **What you need** / **What skills and experience do you need** section
+  3. It is **repeated 2 or more times** anywhere in the JD (true deal-breakers the employer emphasizes)
+  A typical JD should have **8–15 P0 keywords total**. If you have more than 15, demote the rest to P1. P0 are true deal-breakers only.
+
+- **P1 (Should-Have)**: Keywords mentioned **once** in the main description body, responsibilities section, or role description. Not in title or requirements section, and not repeated 2+ times.
+
+- **P2 (Nice-to-Have)**: Keywords **only** in "Preferred", "Bonus", "Plus", "Nice to have" or equivalent sections. Do not put main body or responsibility keywords here.
+
+CRITICAL: Extract the EXACT phrases as they appear in the JD for ATS exact-match. Do not paraphrase. P0 count must be 8–15 for a typical JD.
 
 Return this EXACT JSON structure:
 {
@@ -69,13 +76,14 @@ Return this EXACT JSON structure:
 }
 
 RULES:
-1. Be EXHAUSTIVE — capture every skill, tool, technology, and domain term mentioned.
+1. Be EXHAUSTIVE in all_keywords_flat — capture every skill, tool, technology, and domain term mentioned.
 2. Preserve original phrasing exactly for ATS matching.
-3. Include both abbreviated and full forms (e.g., "PM" and "Product Manager").
-4. For compound skills, include both the compound and individual parts (e.g., "B2B SaaS" → also "B2B", "SaaS").
-5. Keywords in the title or requirements section are always P0.
-6. When a section says "plus" or "preferred" or "nice to have", those are P2.
-7. all_keywords_flat should be comprehensive — this is used for keyword matching later.
+3. Include both abbreviated and full forms in all_keywords_flat (e.g., "PM" and "Product Manager").
+4. For compound skills, include both the compound and individual parts in all_keywords_flat.
+5. P0 MUST be 8–15 keywords: only job title, requirements section, or repeated 2+ times. If you have 20+ P0, you are over-classifying — demote to P1.
+6. P1 = mentioned once in body/responsibilities; P2 = only in preferred/bonus/plus sections.
+7. When a section says "plus" or "preferred" or "nice to have", those keywords are P2 only.
+8. all_keywords_flat should be comprehensive — this is used for keyword matching later.
 
 Return ONLY the JSON object. No markdown, no explanation."""
 
@@ -168,8 +176,11 @@ def validate_parsed_jd(parsed: dict) -> list:
     if not parsed.get("job_title"):
         warnings.append("job_title is empty")
 
-    if len(parsed.get("p0_keywords", [])) < 3:
-        warnings.append("Too few P0 keywords (< 3)")
+    p0_count = len(parsed.get("p0_keywords", []))
+    if p0_count < 5:
+        warnings.append("Too few P0 keywords (< 5)")
+    if p0_count > 20:
+        warnings.append("Too many P0 keywords (> 20); typical is 8-15")
 
     if len(parsed.get("all_keywords_flat", [])) < 10:
         warnings.append("Too few total keywords (< 10)")
@@ -199,6 +210,75 @@ def scrape_jd_from_url(url: str) -> str:
 
     logger.info(f"Scraped {len(text)} characters from URL")
     return text
+
+
+def reclassify_priorities_from_jd_text(parsed: dict, jd_text: str, max_p0: int = 15) -> dict:
+    """Reclassify P0/P1/P2 using raw JD text: P0 = title + requirements section + repeated 2+; cap P0 at max_p0.
+    Use when LLM over-classified P0. Requires parsed to have p0_keywords, p1_keywords, p2_keywords or derived from hard_skills etc."""
+    import re
+    jd_lower = jd_text.lower()
+    # Requirements block: from "what skills" or "experience" to "equal employment" or end
+    req_start = re.search(r"what skills and experience|experience\s*$|requirements|what you need", jd_lower, re.I)
+    req_end = re.search(r"equal employment|zenoti provides equal", jd_lower, re.I)
+    requirements_section = ""
+    if req_start:
+        start = req_start.start()
+        end = req_end.start() if req_end else len(jd_text)
+        requirements_section = jd_text[start:end].lower()
+    title = (parsed.get("job_title") or "").lower()
+
+    # Collect all keywords with current priority
+    all_kw = list(dict.fromkeys(
+        (parsed.get("p0_keywords") or []) +
+        (parsed.get("p1_keywords") or []) +
+        (parsed.get("p2_keywords") or [])
+    ))
+    if not all_kw:
+        for item in (parsed.get("hard_skills") or []) + (parsed.get("soft_skills") or []):
+            s = (item.get("skill") or item.get("term") or "").strip()
+            if s and s not in all_kw:
+                all_kw.append(s)
+    if not all_kw:
+        return parsed
+
+    p0_candidates = []
+    for kw in all_kw:
+        if not kw or len(kw) < 2:
+            continue
+        kw_lower = kw.lower()
+        count = len(re.findall(re.escape(kw_lower), jd_lower))
+        in_title = kw_lower in title
+        in_req = kw_lower in requirements_section
+        if in_title or in_req or count >= 2:
+            p0_candidates.append((kw, count, in_title, in_req))
+    # Sort by: in title first, then in req, then by count. Take top max_p0.
+    p0_candidates.sort(key=lambda x: (x[2], x[3], x[1]), reverse=True)
+    new_p0 = list(dict.fromkeys(k[0] for k in p0_candidates[: max_p0 * 2]))[:max_p0]  # dedupe, then cap
+    if len(new_p0) < 5 and p0_candidates:
+        new_p0 = list(dict.fromkeys(k[0] for k in p0_candidates))[:max_p0]
+    p0_set = set(new_p0)
+    new_p1 = [k for k in all_kw if k and k not in p0_set]
+    new_p2 = [k for k in (parsed.get("p2_keywords") or []) if k and k not in p0_set and k not in new_p1]
+    # P2: only if in "plus"/"preferred" snippet
+    plus_section = ""
+    if re.search(r"is a plus|preferred|nice to have|bonus", jd_lower):
+        for m in re.finditer(r".{0,200}(?:plus|preferred|nice to have|bonus).{0,300}", jd_lower, re.I | re.DOTALL):
+            plus_section += m.group(0)
+    p2_set = set()
+    for kw in new_p1[:]:
+        if kw and kw.lower() in plus_section and "product manager" not in kw.lower():
+            p2_set.add(kw)
+    new_p1 = [k for k in new_p1 if k not in p2_set]
+    new_p2 = list(p2_set) + [k for k in (parsed.get("p2_keywords") or []) if k and k not in p0_set]
+    new_p2 = list(dict.fromkeys(new_p2))
+
+    out = dict(parsed)
+    out["p0_keywords"] = new_p0
+    out["p1_keywords"] = new_p1
+    out["p2_keywords"] = new_p2
+    out["all_keywords_flat"] = list(dict.fromkeys(new_p0 + new_p1 + new_p2))
+    logger.info("Reclassified priorities from JD text: P0=%d, P1=%d, P2=%d", len(new_p0), len(new_p1), len(new_p2))
+    return out
 
 
 def parse_jd_from_url(url: str) -> dict:
