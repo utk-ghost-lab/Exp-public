@@ -1,0 +1,335 @@
+{
+  "p0_coverage": 59.5,
+  "p0_covered_count": 22,
+  "p0_total": 37,
+  "p0_in_target_range_2_3": 5,
+  "p0_in_target_range_pct": 13.5,
+  "p0_target_pct": 95,
+  "p1_coverage": 23.2,
+  "p1_covered_count": 16,
+  "p1_total": 69,
+  "missing_keywords": [
+    "Model selection and orchestration",
+    "product judgment",
+    "communication skills",
+    "collaboration",
+    "hands-on execution",
+    "salons",
+    "spas",
+    "medspas",
+    "fitness",
+    "product lifecycle",
+    "4+ years of experience",
+    "Technical Product Manager",
+    "Technical or engineering background",
+    "Experience building or owning AI-powered product features",
+    "Proven experience owning products from idea to launch to measurable impact",
+    "product backlogs",
+    "GTM",
+    "customer ROI",
+    "leadership",
+    "beauty and wellness industry",
+    "ARR",
+    "scalable solutions",
+    "concept to adoption",
+    "engineering",
+    "data science",
+    "GTM teams",
+    "customers",
+    "discovery",
+    "solution design",
+    "AI trade-offs",
+    "measurement",
+    "iteration",
+    "rules",
+    "heuristics",
+    "workflow design",
+    "customer value",
+    "cost",
+    "reliability",
+    "Accuracy",
+    "latency",
+    "failure modes",
+    "Human-in-the-loop",
+    "automated decisioning",
+    "guardrails",
+    "fallback experiences",
+    "productivity",
+    "voice of the customer",
+    "low-tech SMB operators",
+    "frontline staff",
+    "ambiguous problems",
+    "actionable plans",
+    "measurable impact",
+    "engineers",
+    "designers",
+    "executives",
+    "fast-moving",
+    "imperfect environments",
+    "AI features",
+    "Model limitations",
+    "trade-offs",
+    "Accuracy vs cost vs latency",
+    "precision",
+    "overrides",
+    "time saved",
+    "modern AI tooling",
+    "unicorn valuation",
+    "iterate quickly",
+    "business metrics"
+  ],
+  "over_used_keywords": [
+    {
+      "keyword": "AI",
+      "count": 5
+    },
+    {
+      "keyword": "web",
+      "count": 5
+    },
+    {
+      "keyword": "workflows",
+      "count": 5
+    }
+  ],
+  "insertion_suggestions": [
+    {
+      "keyword": "Model selection and orchestration",
+      "suggested_location": "skills section (technical) or a technical bullet in work experience"
+    },
+    {
+      "keyword": "product judgment",
+      "suggested_location": "skills section or a relevant experience bullet"
+    },
+    {
+      "keyword": "communication skills",
+      "suggested_location": "skills section or a relevant experience bullet"
+    },
+    {
+      "keyword": "collaboration",
+      "suggested_location": "skills section or a relevant experience bullet"
+    },
+    {
+      "keyword": "hands-on execution",
+      "suggested_location": "skills section (methodologies) or a product/launch bullet in work experience"
+    },
+    {
+      "keyword": "salons",
+      "suggested_location": "skills section or a relevant experience bullet"
+    },
+    {
+      "keyword": "spas",
+      "suggested_location": "skills section or a relevant experience bullet"
+    },
+    {
+      "keyword": "medspas",
+      "suggested_location": "skills section or a relevant experience bullet"
+    },
+    {
+      "keyword": "fitness",
+      "suggested_location": "skills section or a relevant experience bullet"
+    },
+    {
+      "keyword": "product lifecycle",
+      "suggested_location": "skills section or a relevant experience bullet"
+    },
+    {
+      "keyword": "4+ years of experience",
+      "suggested_location": "skills section or a relevant experience bullet"
+    },
+    {
+      "keyword": "Technical Product Manager",
+      "suggested_location": "skills section or a relevant experience bullet"
+    },
+    {
+      "keyword": "Technical or engineering background",
+      "suggested_location": "skills section or a relevant experience bullet"
+    },
+    {
+      "keyword": "Experience building or owning AI-powered product features",
+      "suggested_location": "skills section (technical) or a technical bullet in work experience"
+    },
+    {
+      "keyword": "Proven experience owning products from idea to launch to measurable impact",
+      "suggested_location": "skills section or a relevant experience bullet"
+    },
+    {
+      "keyword": "product backlogs",
+      "suggested_location": "skills section or a relevant experience bullet"
+    },
+    {
+      "keyword": "GTM",
+      "suggested_location": "skills section (methodologies) or a product/launch bullet in work experience"
+    },
+    {
+      "keyword": "customer ROI",
+      "suggested_location": "skills section or a relevant experience bullet"
+    },
+    {
+      "keyword": "leadership",
+      "suggested_location": "skills section or a relevant experience bullet"
+    },
+    {
+      "keyword": "beauty and wellness industry",
+      "suggested_location": "skills section or a relevant experience bullet"
+    },
+    {
+      "keyword": "ARR",
+      "suggested_location": "skills section or a relevant experience bullet"
+    },
+    {
+      "keyword": "scalable solutions",
+      "suggested_location": "skills section or a relevant experience bullet"
+    },
+    {
+      "keyword": "concept to adoption",
+      "suggested_location": "skills section or a relevant experience bullet"
+    },
+    {
+      "keyword": "engineering",
+      "suggested_location": "skills section or a relevant experience bullet"
+    },
+    {
+      "keyword": "data science",
+      "suggested_location": "skills section or a relevant experience bullet"
+    },
+    {
+      "keyword": "GTM teams",
+      "suggested_location": "skills section (methodologies) or a product/launch bullet in work experience"
+    },
+    {
+      "keyword": "customers",
+      "suggested_location": "skills section or a relevant experience bullet"
+    },
+    {
+      "keyword": "discovery",
+      "suggested_location": "skills section or a relevant experience bullet"
+    },
+    {
+      "keyword": "solution design",
+      "suggested_location": "skills section or a relevant experience bullet"
+    },
+    {
+      "keyword": "AI trade-offs",
+      "suggested_location": "skills section (technical) or a technical bullet in work experience"
+    }
+  ],
+  "distribution": {
+    "p0_in_summary": 11,
+    "p0_in_skills": 18,
+    "p0_in_experience": 6,
+    "p1_in_summary": 4,
+    "p1_in_skills": 10,
+    "p1_in_experience": 9
+  },
+  "p0_counts": {
+    "Product Manager": 1,
+    "AI": 5,
+    "AI-powered": 2,
+    "GenAI": 1,
+    "ML": 2,
+    "automation": 2,
+    "decision systems": 1,
+    "LLMs": 1,
+    "orchestration frameworks": 1,
+    "RAG concepts": 1,
+    "APIs": 1,
+    "Model selection and orchestration": 0,
+    "cloud": 3,
+    "web": 5,
+    "mobile": 3,
+    "data-driven systems": 1,
+    "product judgment": 0,
+    "communication skills": 0,
+    "collaboration": 0,
+    "hands-on execution": 0,
+    "cross-functional": 1,
+    "SMBs": 1,
+    "service-based SMBs": 1,
+    "salons": 0,
+    "spas": 0,
+    "medspas": 0,
+    "fitness": 0,
+    "conversion": 1,
+    "retention": 1,
+    "operational efficiency": 1,
+    "workflows": 5,
+    "product lifecycle": 0,
+    "4+ years of experience": 0,
+    "Technical Product Manager": 0,
+    "Technical or engineering background": 0,
+    "Experience building or owning AI-powered product features": 0,
+    "Proven experience owning products from idea to launch to measurable impact": 0
+  },
+  "p1_counts": {
+    "product strategy": 2,
+    "success metrics": 1,
+    "execution plans": 1,
+    "evaluation metrics": 1,
+    "data": 3,
+    "experimentation": 1,
+    "product backlogs": 0,
+    "GTM": 0,
+    "customer ROI": 0,
+    "POS": 4,
+    "CRM": 1,
+    "leadership": 0,
+    "cloud-based": 1,
+    "beauty and wellness industry": 0,
+    "ARR": 0,
+    "revenue": 2,
+    "scalable solutions": 0,
+    "concept to adoption": 0,
+    "engineering": 0,
+    "data science": 0,
+    "design": 1,
+    "GTM teams": 0,
+    "customers": 0,
+    "discovery": 0,
+    "solution design": 0,
+    "AI trade-offs": 0,
+    "execution": 2,
+    "launch": 4,
+    "measurement": 0,
+    "iteration": 0,
+    "rules": 0,
+    "heuristics": 0,
+    "workflow design": 0,
+    "customer value": 0,
+    "cost": 0,
+    "reliability": 0,
+    "Accuracy": 0,
+    "latency": 0,
+    "failure modes": 0,
+    "Human-in-the-loop": 0,
+    "automated decisioning": 0,
+    "guardrails": 0,
+    "fallback experiences": 0,
+    "productivity": 0,
+    "voice of the customer": 0,
+    "low-tech SMB operators": 0,
+    "frontline staff": 0,
+    "ambiguous problems": 0,
+    "actionable plans": 0,
+    "measurable impact": 0,
+    "strategy": 2,
+    "engineers": 0,
+    "designers": 0,
+    "executives": 0,
+    "fast-moving": 0,
+    "imperfect environments": 0,
+    "AI features": 0,
+    "Model limitations": 0,
+    "trade-offs": 0,
+    "Accuracy vs cost vs latency": 0,
+    "precision": 0,
+    "lift": 1,
+    "overrides": 0,
+    "time saved": 0,
+    "modern AI tooling": 0,
+    "unicorn valuation": 0,
+    "iterate quickly": 0,
+    "customer-facing products": 1,
+    "business metrics": 0
+  }
+}

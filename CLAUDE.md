@@ -526,7 +526,7 @@ pytest
 - [x] Step 2: JD Parser (jd_parser.py)
 - [x] Step 3: Profile Mapper (profile_mapper.py)
 - [x] Step 4: Reframing Engine (reframer.py)
-- [ ] Step 5: Keyword Optimizer (keyword_optimizer.py)
+- [x] Step 5: Keyword Optimizer (keyword_optimizer.py)
 - [ ] Step 6: Scorer (scorer.py)
 - [ ] Step 7: Formatter (formatter.py)
 - [ ] Step 8: Generator (generator.py)
