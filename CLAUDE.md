@@ -232,40 +232,123 @@ For ADJACENT and TRANSFERABLE, generate a reframing strategy.
 
 **Input:** Mapping matrix + PKB + JD analysis
 
-**Process:** Generate tailored resume content following these STRICT rules:
+**Process:** Generate tailored resume content following these STRICT rules. Every resume generated must follow all 13 rules. These are final and non-negotiable.
 
-**REFRAMING RULES (NON-NEGOTIABLE):**
+**RESUME CONTENT RULES (NON-NEGOTIABLE)**
 
-1. XYZ FORMULA: Every bullet = "Accomplished [X] as measured by [Y], by doing [Z]"
-   - X = What you did (using JD terminology)
-   - Y = Quantified result (number, %, $)
-   - Z = How you did it
+**RULE 1: EXPERIENCE POSITIONING**
+- Always present the user as "8+ years of experience" regardless of what the JD asks for
+- Always position as "Senior Product Manager" in the professional summary
+- Frame the user as an experienced senior leader in every resume
 
-2. EXACT JD LANGUAGE: If JD says "stakeholder management," resume says "stakeholder management" — never a synonym
+**RULE 2: PROFESSIONAL SUMMARY**
+- Maximum 3 lines. No exceptions.
+- Must open with: "Senior Product Manager with 8+ years..."
+- Must contain the top 3 skills/requirements from the JD
+- Must contain 2-3 of the user's strongest metrics (highest numbers like 2.5× adoption, 75% engagement lift, 50% revenue growth)
+- Must reference the target company's domain language. If the company is in beauty/wellness, the summary should reference service-based businesses. If in fintech, reference financial platforms. Make the hiring manager feel "this person gets our business."
+- No generic filler like "passionate" or "results-driven"
+- The summary alone should make a recruiter think "I need to call this person"
 
-3. EVERY BULLET HAS A METRIC: If original has no metric, estimate a defensible one
-   - "Managed a team" → "Led cross-functional team of 8 engineers and designers"
-   - "Improved the product" → "Drove 25% improvement in NPS through research-informed iteration"
+**RULE 3: BULLET POINT STRUCTURE**
+- XYZ formula: "Accomplished [X] as measured by [Y], by doing [Z]"
+- Every bullet MUST contain a quantified metric (number, %, $, team size)
+- Maximum 20-30 words per bullet. One clear point, one metric.
+- Maximum 3-4 JD keywords per bullet. More = keyword stuffing.
+- Lead each role with the most impressive and JD-relevant bullet
+- BANNED starting words: "Responsible for", "Managed", "Helped", "Assisted", "Participated", "Planned"
+- REQUIRED starting verbs: Led, Drove, Launched, Built, Owned, Delivered, Designed, Spearheaded, Achieved, Scaled, Transformed, Architected
+- If a bullet describes a task instead of an outcome, rewrite it as an outcome
+- Bad: "Managed the product roadmap for the CRM platform"
+- Good: "Owned CRM platform strategy serving 30,000+ businesses, driving 35% improvement in customer retention"
 
-4. REFRAMING BOUNDARIES:
-   - ✅ Change framing (customer lifecycle → CRM strategy)
-   - ✅ Emphasize different aspects per JD
-   - ✅ Use JD vocabulary for real work
-   - ✅ Add reasonable metrics to unquantified work
-   - ✅ Reorder bullets (most JD-relevant first)
-   - ❌ Invent work you never did
-   - ❌ Claim tools/technologies never used
-   - ❌ Fabricate companies or roles
+**RULE 4: BULLETS PER ROLE**
+- Most recent role: Maximum 4-5 bullets
+- Second most recent role: Maximum 5 bullets
+- Third role: Maximum 3-4 bullets
+- Roles older than 5 years: Maximum 1-2 lines
+- Internships: 1 line maximum. Remove entirely if not relevant.
+- Early career / developer roles: 1 line showing technical background
+- If a bullet has no metric and you cannot reasonably estimate one, CUT the bullet rather than keep it
 
-5. SEMANTIC CLUSTERING: Distribute related keywords across bullets
-   - Don't repeat "data analysis" 5 times
-   - Use: "data analysis" + "data-driven decisions" + "analytical insights"
+**RULE 5: ONLY RELEVANT POINTERS**
+- Every bullet must directly map to a P0 or P1 JD requirement
+- Before including any bullet, ask: "Does this help get shortlisted for THIS specific job?"
+- If the answer is no, cut it regardless of how impressive it sounds
+- 4 perfect bullets beat 8 mediocre ones
 
-6. PROFESSIONAL SUMMARY: 3-4 lines mirroring the JD's top requirements + user's best metric
+**RULE 6: TOP 1% LANGUAGE**
+- Every bullet should read like a top 1% PM wrote it — outcomes, not tasks
+- Frame everything as business impact: revenue, growth, retention, efficiency, cost reduction, adoption
+- Show strategic thinking: not just what was built, but WHY it mattered and the RESULT
+- Think: "How would a VP describe this work in a board presentation?"
+- Elevate scope: "Built chatbot" → "Launched AI-powered self-service automation reducing ticket volume by 35% and improving conversion by 25%"
 
-7. SKILLS SECTION: Every P0 and P1 hard skill, exactly as written in JD
+**RULE 7: REFRAMING BOUNDARIES**
+- ✅ Change framing of real experience to match JD language
+- ✅ Emphasize different aspects of the same role for different JDs
+- ✅ Use exact JD vocabulary for real work
+- ✅ Add reasonable, defensible metrics to unquantified work
+- ✅ Reorder bullets so most JD-relevant comes first
+- ✅ Elevate strategic framing of real work
+- ❌ Invent work that never happened
+- ❌ Claim tools or technologies never used
+- ❌ Do NOT say "LLM-powered" for products built before 2023 when LLMs were not mainstream. Use "NLP-driven" or "conversational AI" or "ML-powered" for pre-2023 work.
+- ❌ Do NOT use the word "planned" for features — only reference shipped or deployed work
 
-8. TONE: Senior PM writing about their own work — confident, specific, outcome-oriented. NOT robotic keyword stuffing.
+**RULE 8: KEYWORD USAGE**
+- Use EXACT phrases from JD — not synonyms
+- P0 keywords: appear 2-3 times across resume
+- P1 keywords: appear 1-2 times
+- No keyword more than 4 times total
+- Include both full forms and abbreviations
+- Distribute across summary + skills + experience — never cluster
+
+**RULE 9: SKILLS SECTION**
+- Maximum 25 terms total
+- Organize into: Technical, Methodologies, Domains
+- Every term must map to a P0 or P1 JD requirement
+- Add domain terms that match the target company's business (e.g., if company does POS and CRM, include POS and CRM in domains)
+- No filler skills
+
+**RULE 10: RESUME LENGTH AND FORMAT**
+- Maximum 2 pages, target 1.5 pages
+- Output both PDF and DOCX
+- Single column, no sidebars, no two-column
+- Font: Arial or Calibri, 10-11pt body, 14-16pt name
+- Standard headers: "Professional Summary", "Work Experience", "Skills", "Education", "Certifications"
+- No graphics, tables, images, icons
+- File naming: "FirstName_LastName_SeniorProductManager_Resume.pdf"
+
+**RULE 11: EDUCATION AND CERTIFICATIONS**
+- One line each for education
+- All certifications on one line separated by pipes
+- Only include certifications relevant to target JD
+
+**RULE 12: TONE AND VOICE**
+- Confident but not arrogant
+- Sounds like a human, not AI. Read every bullet out loud.
+- No buzzword chains
+- Think: How would Shreyas Doshi describe this work?
+- Crisp, direct, impactful
+
+**RULE 13: SELF-CHECK BEFORE OUTPUT**
+Before finalizing, verify ALL of these:
+- Summary is 3 lines, opens with "Senior Product Manager with 8+ years"
+- Summary references target company's domain/industry
+- No role has more than 5 bullets
+- Every bullet has a metric
+- Every bullet is 20-30 words
+- No bullet starts with banned verbs (Managed, Responsible for, Helped, Planned)
+- No bullet has more than 4 JD keywords
+- No pre-2023 work claims "LLM-powered"
+- Total resume fits in 1.5-2 pages
+- Skills section has ≤25 terms
+- Every bullet passes "can I defend this in an interview?"
+- Every bullet passes "does this sound like a top 1% PM?"
+- Fidelity internship is 1 line max
+- Cognizant developer role is 1 line max
+- Reframing log is complete with interview prep notes
 
 **Output:**
 ```json
@@ -442,7 +525,7 @@ pytest
 - [x] Step 1: Profile Knowledge Base builder (profile_builder.py)
 - [x] Step 2: JD Parser (jd_parser.py)
 - [x] Step 3: Profile Mapper (profile_mapper.py)
-- [ ] Step 4: Reframing Engine (reframer.py)
+- [x] Step 4: Reframing Engine (reframer.py)
 - [ ] Step 5: Keyword Optimizer (keyword_optimizer.py)
 - [ ] Step 6: Scorer (scorer.py)
 - [ ] Step 7: Formatter (formatter.py)
