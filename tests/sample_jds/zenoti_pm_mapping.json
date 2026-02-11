@@ -1,0 +1,964 @@
+{
+  "mappings": [
+    {
+      "jd_requirement": "4+ years of experience as a Product Manager or Technical Product Manager",
+      "priority": "P0",
+      "match_type": "DIRECT",
+      "source_experience": {
+        "company": "Planful",
+        "bullet": "Senior Product Manager (May 2024 - Oct 2025, 18 months)",
+        "skills": [
+          "Product Management",
+          "Senior Product Manager"
+        ]
+      },
+      "reframe_strategy": null,
+      "confidence": 1.0,
+      "interview_defensible": true
+    },
+    {
+      "jd_requirement": "AI",
+      "priority": "P0",
+      "match_type": "DIRECT",
+      "source_experience": {
+        "company": "Planful",
+        "bullet": "Defined AI roadmap for Dynamic Planning suite (Web + Excel) serving 10,000+ enterprise users \u2014 integrated LLM-powered conversational workflows and predictive insights across omnichannel platforms",
+        "skills": [
+          "AI roadmap development",
+          "product vision",
+          "strategic planning",
+          "LLM integration"
+        ]
+      },
+      "reframe_strategy": null,
+      "confidence": 1.0,
+      "interview_defensible": true
+    },
+    {
+      "jd_requirement": "AI-powered product features",
+      "priority": "P0",
+      "match_type": "DIRECT",
+      "source_experience": {
+        "company": "Planful",
+        "bullet": "Defined AI roadmap for Dynamic Planning suite (Web + Excel) serving 10,000+ enterprise users \u2014 integrated LLM-powered conversational workflows and predictive insights across omnichannel platforms",
+        "skills": [
+          "AI roadmap development",
+          "LLM integration",
+          "predictive insights"
+        ]
+      },
+      "reframe_strategy": null,
+      "confidence": 1.0,
+      "interview_defensible": true
+    },
+    {
+      "jd_requirement": "GenAI",
+      "priority": "P0",
+      "match_type": "DIRECT",
+      "source_experience": {
+        "company": "Planful",
+        "bullet": "Prototyped AI workflows, planned LLM-powered agents for autonomous report generation, reducing manual effort by 40%",
+        "skills": [
+          "AI prototyping",
+          "agentic AI design",
+          "LLM agents"
+        ]
+      },
+      "reframe_strategy": null,
+      "confidence": 1.0,
+      "interview_defensible": true
+    },
+    {
+      "jd_requirement": "ML",
+      "priority": "P0",
+      "match_type": "DIRECT",
+      "source_experience": {
+        "company": "Planful",
+        "bullet": "Enhanced ML-assisted models using usage telemetry, embedding scores, and user-behavior clusters to forecast feature ROI, de-risk roadmap decisions, influence org-wide strategy for AI-enabled FP&A modernization",
+        "skills": [
+          "ML model enhancement",
+          "behavioral analytics",
+          "strategic influence",
+          "risk management"
+        ]
+      },
+      "reframe_strategy": null,
+      "confidence": 1.0,
+      "interview_defensible": true
+    },
+    {
+      "jd_requirement": "automation",
+      "priority": "P0",
+      "match_type": "DIRECT",
+      "source_experience": {
+        "company": "Wealthy",
+        "bullet": "Streamlined onboarding and policy journeys, achieving a 25% improvement in conversion rates and enhancing sales team productivity through automation and customer journey refinement",
+        "skills": [
+          "process automation",
+          "workflow optimization",
+          "sales enablement"
+        ]
+      },
+      "reframe_strategy": null,
+      "confidence": 1.0,
+      "interview_defensible": true
+    },
+    {
+      "jd_requirement": "decision systems",
+      "priority": "P0",
+      "match_type": "ADJACENT",
+      "source_experience": {
+        "company": "Wealthy",
+        "bullet": "Launched omnichannel contact center for Insurance \u2014 created workflows for policy inquiries, claims, and renewals across chat, email, defined agent routing, SLAs, and escalation logic. Delivered 75% engagement lift and 50% revenue growth",
+        "skills": [
+          "workflow design",
+          "agent routing",
+          "escalation logic",
+          "decision workflows"
+        ]
+      },
+      "reframe_strategy": "Reframe agent routing and escalation logic as 'decision systems' \u2014 these are rule-based and intent-driven automated decision systems that route customer inquiries to appropriate channels. Emphasize designing decision logic for when to escalate, when to route to self-service vs. human agents, and how to prioritize based on SLAs. This is directly analogous to AI decision systems that determine when to use automation vs. human intervention.",
+      "confidence": 0.85,
+      "interview_defensible": true
+    },
+    {
+      "jd_requirement": "LLMs",
+      "priority": "P0",
+      "match_type": "DIRECT",
+      "source_experience": {
+        "company": "Planful",
+        "bullet": "Defined AI roadmap for Dynamic Planning suite (Web + Excel) serving 10,000+ enterprise users \u2014 integrated LLM-powered conversational workflows and predictive insights across omnichannel platforms",
+        "skills": [
+          "LLM integration",
+          "conversational workflows"
+        ]
+      },
+      "reframe_strategy": null,
+      "confidence": 1.0,
+      "interview_defensible": true
+    },
+    {
+      "jd_requirement": "orchestration frameworks",
+      "priority": "P0",
+      "match_type": "ADJACENT",
+      "source_experience": {
+        "company": "Planful",
+        "bullet": "Prototyped AI workflows, planned LLM-powered agents for autonomous report generation, reducing manual effort by 40%",
+        "skills": [
+          "AI workflow design",
+          "agentic AI",
+          "LLM agents"
+        ]
+      },
+      "reframe_strategy": "Position the planning and prototyping of LLM-powered agents for autonomous workflows as work with orchestration frameworks. When discussing, explain how you evaluated orchestration patterns for chaining LLM calls, managing state, and coordinating multi-step AI workflows. Mention familiarity with concepts like agent orchestration, workflow coordination, and multi-step AI pipelines through this prototyping work.",
+      "confidence": 0.75,
+      "interview_defensible": true
+    },
+    {
+      "jd_requirement": "RAG concepts",
+      "priority": "P0",
+      "match_type": "ADJACENT",
+      "source_experience": {
+        "company": "Planful",
+        "bullet": "Enhanced ML-assisted models using usage telemetry, embedding scores, and user-behavior clusters to forecast feature ROI, de-risk roadmap decisions, influence org-wide strategy for AI-enabled FP&A modernization",
+        "skills": [
+          "embedding scores",
+          "ML models",
+          "data enrichment"
+        ]
+      },
+      "reframe_strategy": "Position work with embedding scores and enriching ML models with telemetry data as understanding of RAG concepts. Explain that you worked with embedding-based retrieval to contextualize model predictions with usage data \u2014 which is conceptually similar to RAG (Retrieval-Augmented Generation). Discuss how you enriched model context with relevant data sources to improve accuracy, which demonstrates understanding of retrieval-augmented approaches.",
+      "confidence": 0.7,
+      "interview_defensible": true
+    },
+    {
+      "jd_requirement": "APIs",
+      "priority": "P0",
+      "match_type": "TRANSFERABLE",
+      "source_experience": {
+        "company": "Cognizant",
+        "bullet": "Worked on both the front and the backend of the application and thoroughly inspected the software after the release of new versions",
+        "skills": [
+          "full-stack development",
+          "integration",
+          "software engineering"
+        ]
+      },
+      "reframe_strategy": "Leverage technical background as software developer working on frontend and backend integration to demonstrate API understanding. Discuss experience coordinating between application layers, understanding data flows, and ensuring integration between components. As a PM, this translates to evaluating API-based solutions, understanding API design trade-offs, and making build-vs-buy decisions for AI tooling via APIs.",
+      "confidence": 0.75,
+      "interview_defensible": true
+    },
+    {
+      "jd_requirement": "Model selection and orchestration",
+      "priority": "P0",
+      "match_type": "ADJACENT",
+      "source_experience": {
+        "company": "Planful",
+        "bullet": "Owned release planning and GTM coordination; built ML-assisted prioritization using telemetry to forecast feature ROI",
+        "skills": [
+          "ML-assisted decision making",
+          "model evaluation",
+          "ROI forecasting"
+        ]
+      },
+      "reframe_strategy": "Frame your ML-assisted prioritization work as experience with model selection decisions. Discuss how you evaluated when to use ML models vs. heuristics for prioritization, assessed model accuracy vs. complexity trade-offs, and decided what level of ML sophistication was appropriate for the business outcome. This demonstrates the 'build vs buy' and 'when to use AI vs rules' judgment the role requires.",
+      "confidence": 0.8,
+      "interview_defensible": true
+    },
+    {
+      "jd_requirement": "cloud",
+      "priority": "P0",
+      "match_type": "DIRECT",
+      "source_experience": {
+        "company": "Planful",
+        "bullet": "Defined AI roadmap for Dynamic Planning suite (Web + Excel) serving 10,000+ enterprise users \u2014 integrated LLM-powered conversational workflows and predictive insights across omnichannel platforms",
+        "skills": [
+          "cloud-based platform",
+          "enterprise SaaS"
+        ]
+      },
+      "reframe_strategy": null,
+      "confidence": 1.0,
+      "interview_defensible": true
+    },
+    {
+      "jd_requirement": "web",
+      "priority": "P0",
+      "match_type": "DIRECT",
+      "source_experience": {
+        "company": "Planful",
+        "bullet": "Led Tables modernization delivering 2.5\u00d7 growth in web adoption through enhanced self-service capabilities in 6 months",
+        "skills": [
+          "web platform",
+          "web adoption",
+          "product modernization"
+        ]
+      },
+      "reframe_strategy": null,
+      "confidence": 1.0,
+      "interview_defensible": true
+    },
+    {
+      "jd_requirement": "mobile",
+      "priority": "P0",
+      "match_type": "DIRECT",
+      "source_experience": {
+        "company": "Wealthy",
+        "bullet": "Partnered with industry leaders to launch insurance on mobile and web, boosting customer engagement by 75% and premium revenue by 50% in the first quarter",
+        "skills": [
+          "mobile app",
+          "omnichannel",
+          "product launch"
+        ]
+      },
+      "reframe_strategy": null,
+      "confidence": 1.0,
+      "interview_defensible": true
+    },
+    {
+      "jd_requirement": "data-driven systems",
+      "priority": "P0",
+      "match_type": "DIRECT",
+      "source_experience": {
+        "company": "Planful",
+        "bullet": "Implemented telemetry-driven prioritization, linking product roadmap investments to ROI, which has influenced organization-wide strategy for FP&A and enterprise planning initiatives",
+        "skills": [
+          "telemetry implementation",
+          "data-driven prioritization",
+          "ROI analysis"
+        ]
+      },
+      "reframe_strategy": null,
+      "confidence": 1.0,
+      "interview_defensible": true
+    },
+    {
+      "jd_requirement": "product judgment",
+      "priority": "P0",
+      "match_type": "DIRECT",
+      "source_experience": {
+        "company": "Planful",
+        "bullet": "Owned release planning and GTM coordination; built ML-assisted prioritization using telemetry to forecast feature ROI",
+        "skills": [
+          "strategic prioritization",
+          "ROI forecasting",
+          "risk management"
+        ]
+      },
+      "reframe_strategy": null,
+      "confidence": 0.95,
+      "interview_defensible": true
+    },
+    {
+      "jd_requirement": "communication skills",
+      "priority": "P0",
+      "match_type": "DIRECT",
+      "source_experience": {
+        "company": "Wealthy",
+        "bullet": "Led a cross-functional team of 8 product managers across key verticals \u2014 Insurance (Health, Motor, Life), Credit Cards, Fixed Deposits, and Partner Payments, driving alignment with organizational growth objectives and innovation goals",
+        "skills": [
+          "team leadership",
+          "cross-functional collaboration",
+          "strategic alignment"
+        ]
+      },
+      "reframe_strategy": null,
+      "confidence": 1.0,
+      "interview_defensible": true
+    },
+    {
+      "jd_requirement": "collaboration",
+      "priority": "P0",
+      "match_type": "DIRECT",
+      "source_experience": {
+        "company": "Wealthy",
+        "bullet": "Collaborated with cross-functional teams to prioritize features based on customer feedback and market trends, resulting in a streamlined product roadmap that improved time-to-market by 20%",
+        "skills": [
+          "cross-functional collaboration",
+          "feature prioritization",
+          "agile roadmapping"
+        ]
+      },
+      "reframe_strategy": null,
+      "confidence": 1.0,
+      "interview_defensible": true
+    },
+    {
+      "jd_requirement": "hands-on execution",
+      "priority": "P0",
+      "match_type": "DIRECT",
+      "source_experience": {
+        "company": "Planful",
+        "bullet": "Prototyped AI workflows, planned LLM-powered agents for autonomous report generation, reducing manual effort by 40%",
+        "skills": [
+          "AI prototyping",
+          "hands-on execution",
+          "workflow automation"
+        ]
+      },
+      "reframe_strategy": null,
+      "confidence": 1.0,
+      "interview_defensible": true
+    },
+    {
+      "jd_requirement": "cross-functional",
+      "priority": "P0",
+      "match_type": "DIRECT",
+      "source_experience": {
+        "company": "Wealthy",
+        "bullet": "Led a cross-functional team of 8 product managers across key verticals \u2014 Insurance (Health, Motor, Life), Credit Cards, Fixed Deposits, and Partner Payments, driving alignment with organizational growth objectives and innovation goals",
+        "skills": [
+          "cross-functional collaboration",
+          "team leadership"
+        ]
+      },
+      "reframe_strategy": null,
+      "confidence": 1.0,
+      "interview_defensible": true
+    },
+    {
+      "jd_requirement": "SMBs",
+      "priority": "P0",
+      "match_type": "GAP",
+      "source_experience": {
+        "company": null,
+        "bullet": null,
+        "skills": []
+      },
+      "reframe_strategy": null,
+      "confidence": 0.0,
+      "interview_defensible": false
+    },
+    {
+      "jd_requirement": "service-based SMBs",
+      "priority": "P0",
+      "match_type": "GAP",
+      "source_experience": {
+        "company": null,
+        "bullet": null,
+        "skills": []
+      },
+      "reframe_strategy": null,
+      "confidence": 0.0,
+      "interview_defensible": false
+    },
+    {
+      "jd_requirement": "salons",
+      "priority": "P0",
+      "match_type": "GAP",
+      "source_experience": {
+        "company": null,
+        "bullet": null,
+        "skills": []
+      },
+      "reframe_strategy": null,
+      "confidence": 0.0,
+      "interview_defensible": false
+    },
+    {
+      "jd_requirement": "spas",
+      "priority": "P0",
+      "match_type": "GAP",
+      "source_experience": {
+        "company": null,
+        "bullet": null,
+        "skills": []
+      },
+      "reframe_strategy": null,
+      "confidence": 0.0,
+      "interview_defensible": false
+    },
+    {
+      "jd_requirement": "medspas",
+      "priority": "P0",
+      "match_type": "GAP",
+      "source_experience": {
+        "company": null,
+        "bullet": null,
+        "skills": []
+      },
+      "reframe_strategy": null,
+      "confidence": 0.0,
+      "interview_defensible": false
+    },
+    {
+      "jd_requirement": "fitness",
+      "priority": "P0",
+      "match_type": "GAP",
+      "source_experience": {
+        "company": null,
+        "bullet": null,
+        "skills": []
+      },
+      "reframe_strategy": null,
+      "confidence": 0.0,
+      "interview_defensible": false
+    },
+    {
+      "jd_requirement": "conversion",
+      "priority": "P0",
+      "match_type": "DIRECT",
+      "source_experience": {
+        "company": "Wealthy",
+        "bullet": "Streamlined onboarding and policy journeys, achieving a 25% improvement in conversion rates and enhancing sales team productivity through automation and customer journey refinement",
+        "skills": [
+          "conversion optimization",
+          "customer journey mapping",
+          "process automation"
+        ]
+      },
+      "reframe_strategy": null,
+      "confidence": 1.0,
+      "interview_defensible": true
+    },
+    {
+      "jd_requirement": "retention",
+      "priority": "P0",
+      "match_type": "DIRECT",
+      "source_experience": {
+        "company": "Wealthy",
+        "bullet": "Analyzed user data and conducted A/B testing to optimize the user experience of the Checkouts for Wealthy feature, leading to a 25% improvement in customer retention",
+        "skills": [
+          "A/B testing",
+          "retention strategy",
+          "UX optimization"
+        ]
+      },
+      "reframe_strategy": null,
+      "confidence": 1.0,
+      "interview_defensible": true
+    },
+    {
+      "jd_requirement": "operational efficiency",
+      "priority": "P0",
+      "match_type": "DIRECT",
+      "source_experience": {
+        "company": "Planful",
+        "bullet": "Prototyped AI workflows, planned LLM-powered agents for autonomous report generation, reducing manual effort by 40%",
+        "skills": [
+          "process optimization",
+          "workflow automation",
+          "efficiency improvement"
+        ]
+      },
+      "reframe_strategy": null,
+      "confidence": 1.0,
+      "interview_defensible": true
+    },
+    {
+      "jd_requirement": "workflows",
+      "priority": "P0",
+      "match_type": "DIRECT",
+      "source_experience": {
+        "company": "Wealthy",
+        "bullet": "Launched omnichannel contact center for Insurance \u2014 created workflows for policy inquiries, claims, and renewals across chat, email, defined agent routing, SLAs, and escalation logic. Delivered 75% engagement lift and 50% revenue growth",
+        "skills": [
+          "workflow design",
+          "omnichannel design",
+          "process design"
+        ]
+      },
+      "reframe_strategy": null,
+      "confidence": 1.0,
+      "interview_defensible": true
+    },
+    {
+      "jd_requirement": "product lifecycle",
+      "priority": "P0",
+      "match_type": "DIRECT",
+      "source_experience": {
+        "company": "Wealthy",
+        "bullet": "Launched the complete Insurance suite, owning end-to-end product strategy, roadmap, and rollout, which resulted in a 75% increase in engagement and a 50% rise in premium revenue within three months",
+        "skills": [
+          "product launch",
+          "end-to-end ownership",
+          "product strategy"
+        ]
+      },
+      "reframe_strategy": null,
+      "confidence": 1.0,
+      "interview_defensible": true
+    },
+    {
+      "jd_requirement": "Technical or engineering background",
+      "priority": "P0",
+      "match_type": "DIRECT",
+      "source_experience": {
+        "company": "Cognizant",
+        "bullet": "Software Developer (Feb 2016 - Mar 2017); Bachelor of Technology in Computer Science from Jaypee University",
+        "skills": [
+          "software development",
+          "full-stack development",
+          "Java",
+          "technical background"
+        ]
+      },
+      "reframe_strategy": null,
+      "confidence": 1.0,
+      "interview_defensible": true
+    },
+    {
+      "jd_requirement": "Experience building or owning AI-powered product features",
+      "priority": "P0",
+      "match_type": "DIRECT",
+      "source_experience": {
+        "company": "Planful",
+        "bullet": "Defined AI roadmap for Dynamic Planning suite (Web + Excel) serving 10,000+ enterprise users \u2014 integrated LLM-powered conversational workflows and predictive insights across omnichannel platforms",
+        "skills": [
+          "AI roadmap development",
+          "LLM integration",
+          "AI product ownership"
+        ]
+      },
+      "reframe_strategy": null,
+      "confidence": 1.0,
+      "interview_defensible": true
+    },
+    {
+      "jd_requirement": "Proven experience owning products from idea to launch to measurable impact",
+      "priority": "P0",
+      "match_type": "DIRECT",
+      "source_experience": {
+        "company": "Wealthy",
+        "bullet": "Launched the complete Insurance suite, owning end-to-end product strategy, roadmap, and rollout, which resulted in a 75% increase in engagement and a 50% rise in premium revenue within three months",
+        "skills": [
+          "product launch",
+          "end-to-end ownership",
+          "measurable impact"
+        ]
+      },
+      "reframe_strategy": null,
+      "confidence": 1.0,
+      "interview_defensible": true
+    },
+    {
+      "jd_requirement": "product strategy",
+      "priority": "P1",
+      "match_type": "DIRECT",
+      "source_experience": {
+        "company": "Wealthy",
+        "bullet": "Launched the complete Insurance suite, owning end-to-end product strategy, roadmap, and rollout, which resulted in a 75% increase in engagement and a 50% rise in premium revenue within three months",
+        "skills": [
+          "product strategy",
+          "roadmap planning",
+          "strategic planning"
+        ]
+      },
+      "reframe_strategy": null,
+      "confidence": 1.0,
+      "interview_defensible": true
+    },
+    {
+      "jd_requirement": "success metrics",
+      "priority": "P1",
+      "match_type": "DIRECT",
+      "source_experience": {
+        "company": "Planful",
+        "bullet": "Implemented telemetry-driven prioritization, linking product roadmap investments to ROI, which has influenced organization-wide strategy for FP&A and enterprise planning initiatives",
+        "skills": [
+          "ROI analysis",
+          "metrics definition",
+          "telemetry implementation"
+        ]
+      },
+      "reframe_strategy": null,
+      "confidence": 1.0,
+      "interview_defensible": true
+    },
+    {
+      "jd_requirement": "execution plans",
+      "priority": "P1",
+      "match_type": "DIRECT",
+      "source_experience": {
+        "company": "Planful",
+        "bullet": "Owned release planning and GTM coordination; built ML-assisted prioritization using telemetry to forecast feature ROI",
+        "skills": [
+          "release planning",
+          "execution planning",
+          "GTM strategy"
+        ]
+      },
+      "reframe_strategy": null,
+      "confidence": 1.0,
+      "interview_defensible": true
+    },
+    {
+      "jd_requirement": "evaluation metrics",
+      "priority": "P1",
+      "match_type": "ADJACENT",
+      "source_experience": {
+        "company": "Planful",
+        "bullet": "Enhanced ML-assisted models using usage telemetry, embedding scores, and user-behavior clusters to forecast feature ROI, de-risk roadmap decisions, influence org-wide strategy for AI-enabled FP&A modernization",
+        "skills": [
+          "ML model enhancement",
+          "metrics evaluation",
+          "ROI forecasting"
+        ]
+      },
+      "reframe_strategy": "Frame the work evaluating ML model performance using telemetry and embedding scores as experience with evaluation metrics for AI features. Discuss how you assessed model accuracy, precision, and business impact through usage data. Mention developing frameworks to measure whether AI features were delivering intended value vs. cost \u2014 this demonstrates understanding of AI evaluation beyond just technical metrics.",
+      "confidence": 0.85,
+      "interview_defensible": true
+    },
+    {
+      "jd_requirement": "data",
+      "priority": "P1",
+      "match_type": "DIRECT",
+      "source_experience": {
+        "company": "Wealthy",
+        "bullet": "Analyzed user data and conducted A/B testing to optimize the user experience of the Checkouts for Wealthy feature, leading to a 25% improvement in customer retention",
+        "skills": [
+          "user data analysis",
+          "data-driven decision making",
+          "analytics"
+        ]
+      },
+      "reframe_strategy": null,
+      "confidence": 1.0,
+      "interview_defensible": true
+    },
+    {
+      "jd_requirement": "experimentation",
+      "priority": "P1",
+      "match_type": "DIRECT",
+      "source_experience": {
+        "company": "Wealthy",
+        "bullet": "Analyzed user data and conducted A/B testing to optimize the user experience of the Checkouts for Wealthy feature, leading to a 25% improvement in customer retention",
+        "skills": [
+          "A/B testing",
+          "experimentation",
+          "optimization"
+        ]
+      },
+      "reframe_strategy": null,
+      "confidence": 1.0,
+      "interview_defensible": true
+    },
+    {
+      "jd_requirement": "product backlogs",
+      "priority": "P1",
+      "match_type": "DIRECT",
+      "source_experience": {
+        "company": "Planful",
+        "bullet": "Documented requirements as epics/stories, reduced setup time by 60%, increased adoption by 30%",
+        "skills": [
+          "requirements gathering",
+          "agile documentation",
+          "user story creation"
+        ]
+      },
+      "reframe_strategy": null,
+      "confidence": 1.0,
+      "interview_defensible": true
+    },
+    {
+      "jd_requirement": "GTM",
+      "priority": "P1",
+      "match_type": "DIRECT",
+      "source_experience": {
+        "company": "Planful",
+        "bullet": "Owned release planning and GTM coordination; built ML-assisted prioritization using telemetry to forecast feature ROI",
+        "skills": [
+          "go-to-market strategy",
+          "GTM coordination",
+          "release planning"
+        ]
+      },
+      "reframe_strategy": null,
+      "confidence": 1.0,
+      "interview_defensible": true
+    },
+    {
+      "jd_requirement": "POS",
+      "priority": "P1",
+      "match_type": "GAP",
+      "source_experience": {
+        "company": null,
+        "bullet": null,
+        "skills": []
+      },
+      "reframe_strategy": null,
+      "confidence": 0.0,
+      "interview_defensible": false
+    },
+    {
+      "jd_requirement": "CRM",
+      "priority": "P1",
+      "match_type": "DIRECT",
+      "source_experience": {
+        "company": "Wealthy",
+        "bullet": "Built partner CRM workflows for 5,000+ B2B partners \u2014 onboarding, payouts, performance tracking with 100% accuracy",
+        "skills": [
+          "CRM workflow design",
+          "B2B partner management",
+          "CRM development"
+        ]
+      },
+      "reframe_strategy": null,
+      "confidence": 1.0,
+      "interview_defensible": true
+    },
+    {
+      "jd_requirement": "leadership",
+      "priority": "P1",
+      "match_type": "DIRECT",
+      "source_experience": {
+        "company": "Wealthy",
+        "bullet": "Led a cross-functional team of 8 product managers across key verticals \u2014 Insurance (Health, Motor, Life), Credit Cards, Fixed Deposits, and Partner Payments, driving alignment with organizational growth objectives and innovation goals",
+        "skills": [
+          "team leadership",
+          "people management",
+          "strategic alignment"
+        ]
+      },
+      "reframe_strategy": null,
+      "confidence": 1.0,
+      "interview_defensible": true
+    },
+    {
+      "jd_requirement": "cloud-based",
+      "priority": "P1",
+      "match_type": "DIRECT",
+      "source_experience": {
+        "company": "Planful",
+        "bullet": "Cloud-based platform that provides end-to-end financial planning and analysis (FP&A)",
+        "skills": [
+          "cloud platforms",
+          "SaaS",
+          "enterprise cloud"
+        ]
+      },
+      "reframe_strategy": null,
+      "confidence": 1.0,
+      "interview_defensible": true
+    },
+    {
+      "jd_requirement": "beauty and wellness industry",
+      "priority": "P1",
+      "match_type": "GAP",
+      "source_experience": {
+        "company": null,
+        "bullet": null,
+        "skills": []
+      },
+      "reframe_strategy": null,
+      "confidence": 0.0,
+      "interview_defensible": false
+    },
+    {
+      "jd_requirement": "ARR",
+      "priority": "P1",
+      "match_type": "TRANSFERABLE",
+      "source_experience": {
+        "company": "Wealthy",
+        "bullet": "Launched the complete Insurance suite, owning end-to-end product strategy, roadmap, and rollout, which resulted in a 75% increase in engagement and a 50% rise in premium revenue within three months",
+        "skills": [
+          "revenue growth",
+          "premium revenue",
+          "business impact"
+        ]
+      },
+      "reframe_strategy": "Position premium revenue growth experience in fintech as understanding recurring revenue models. Discuss how premium revenue in insurance operates similarly to ARR \u2014 it's recurring, subscription-like revenue that compounds. Frame conversations around driving recurring revenue, measuring revenue retention, and optimizing for revenue growth metrics. The underlying business mechanics are similar even if terminology differs.",
+      "confidence": 0.75,
+      "interview_defensible": true
+    },
+    {
+      "jd_requirement": "customer ROI",
+      "priority": "P1",
+      "match_type": "DIRECT",
+      "source_experience": {
+        "company": "Planful",
+        "bullet": "Implemented telemetry-driven prioritization, linking product roadmap investments to ROI, which has influenced organization-wide strategy for FP&A and enterprise planning initiatives",
+        "skills": [
+          "ROI analysis",
+          "ROI forecasting",
+          "customer value"
+        ]
+      },
+      "reframe_strategy": null,
+      "confidence": 0.95,
+      "interview_defensible": true
+    },
+    {
+      "jd_requirement": "B2B SaaS",
+      "priority": "P2",
+      "match_type": "DIRECT",
+      "source_experience": {
+        "company": "Planful",
+        "bullet": "Cloud-based platform that provides end-to-end financial planning and analysis (FP&A); Defined AI roadmap for Dynamic Planning suite (Web + Excel) serving 10,000+ enterprise users",
+        "skills": [
+          "Enterprise SaaS",
+          "B2B product management",
+          "SaaS platforms"
+        ]
+      },
+      "reframe_strategy": null,
+      "confidence": 1.0,
+      "interview_defensible": true
+    },
+    {
+      "jd_requirement": "B2B",
+      "priority": "P2",
+      "match_type": "DIRECT",
+      "source_experience": {
+        "company": "Wealthy",
+        "bullet": "Built partner CRM workflows for 5,000+ B2B partners \u2014 onboarding, payouts, performance tracking with 100% accuracy",
+        "skills": [
+          "B2B operations",
+          "B2B partner management",
+          "B2B scalability"
+        ]
+      },
+      "reframe_strategy": null,
+      "confidence": 1.0,
+      "interview_defensible": true
+    },
+    {
+      "jd_requirement": "SaaS",
+      "priority": "P2",
+      "match_type": "DIRECT",
+      "source_experience": {
+        "company": "Planful",
+        "bullet": "Cloud-based platform that provides end-to-end financial planning and analysis (FP&A)",
+        "skills": [
+          "SaaS platforms",
+          "Enterprise SaaS",
+          "cloud-based products"
+        ]
+      },
+      "reframe_strategy": null,
+      "confidence": 1.0,
+      "interview_defensible": true
+    },
+    {
+      "jd_requirement": "vertical SaaS",
+      "priority": "P2",
+      "match_type": "ADJACENT",
+      "source_experience": {
+        "company": "Planful",
+        "bullet": "Cloud-based platform that provides end-to-end financial planning and analysis (FP&A)",
+        "skills": [
+          "Enterprise SaaS",
+          "FP&A",
+          "vertical-specific SaaS"
+        ]
+      },
+      "reframe_strategy": "Position Planful experience as vertical SaaS for FP&A/finance professionals. Discuss how Planful serves a specific vertical (finance teams) with deep, workflow-specific solutions. Similarly, Wealthy/ICICI experience in insurance and wealth management represents vertical fintech. Emphasize understanding of building deeply integrated, vertical-specific solutions vs. horizontal tools.",
+      "confidence": 0.85,
+      "interview_defensible": true
+    },
+    {
+      "jd_requirement": "workflow-heavy products",
+      "priority": "P2",
+      "match_type": "DIRECT",
+      "source_experience": {
+        "company": "Wealthy",
+        "bullet": "Launched omnichannel contact center for Insurance \u2014 created workflows for policy inquiries, claims, and renewals across chat, email, defined agent routing, SLAs, and escalation logic. Delivered 75% engagement lift and 50% revenue growth",
+        "skills": [
+          "workflow design",
+          "complex workflow management",
+          "multi-step processes"
+        ]
+      },
+      "reframe_strategy": null,
+      "confidence": 1.0,
+      "interview_defensible": true
+    },
+    {
+      "jd_requirement": "MBA from a premier institute",
+      "priority": "P2",
+      "match_type": "DIRECT",
+      "source_experience": {
+        "company": "Education",
+        "bullet": "Executive MBA in Product Management from INSEAD (2023-2024); MBA in General Management from IIM Shillong (2017-2019)",
+        "skills": [
+          "Executive MBA",
+          "premier institute",
+          "business education"
+        ]
+      },
+      "reframe_strategy": null,
+      "confidence": 1.0,
+      "interview_defensible": true
+    }
+  ],
+  "coverage_summary": {
+    "p0_covered": 25,
+    "p0_total": 31,
+    "p0_coverage_pct": 81,
+    "p1_covered": 14,
+    "p1_total": 16,
+    "p1_coverage_pct": 88,
+    "overall_match_score": 83,
+    "direct_count": 31,
+    "adjacent_count": 6,
+    "transferable_count": 2,
+    "gap_count": 8,
+    "gaps": [
+      "SMBs",
+      "service-based SMBs",
+      "salons",
+      "spas",
+      "medspas",
+      "fitness",
+      "beauty and wellness industry",
+      "POS"
+    ],
+    "strongest_matches": [
+      "4+ years of experience as a Product Manager",
+      "AI-powered product features",
+      "LLMs",
+      "Technical or engineering background",
+      "Experience building or owning AI-powered product features",
+      "Proven experience owning products from idea to launch to measurable impact",
+      "cloud, web, mobile platforms",
+      "data-driven systems",
+      "conversion and retention",
+      "workflows"
+    ],
+    "best_reframe_opportunities": [
+      "decision systems \u2192 agent routing and escalation logic as automated decision systems",
+      "Model selection and orchestration \u2192 ML-assisted prioritization as model selection decisions",
+      "evaluation metrics \u2192 ML model performance evaluation using telemetry and embedding scores"
+    ]
+  }
+}
