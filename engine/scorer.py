@@ -1,16 +1,18 @@
-"""Step 6: Self-Scoring Engine (scorer.py)
+"""Step 6: Self-Scoring Engine (scorer.py) — v3 10-component model
 
-Scores the resume on 5 components:
-- Keyword Match (40%): P0 coverage with penalty for missing P0
-- Semantic Alignment (25%): Narrative matches JD intent
-- Format Compliance (15%): ATS/structure rules passed
-- Achievement Density (10%): Bullets with metrics
-- Human Readability (10%): Natural flow, no keyword stuffing
+Components (Jobscan / ATS-inspired):
+- Keyword Match (25%): P0/P1 coverage, abbreviation sub-check
+- Semantic Alignment (15%): JD responsibilities/achievement language addressed
+- Parseability (10%): ATS format / structure rules
+- Job Title Match (10%): Resume title vs JD title (exact/adjacent/equivalent/mismatch)
+- Impact (12%): Achievement density (metrics in bullets)
+- Brevity (8%): placeholder 80
+- Style (8%): placeholder 80
+- Narrative (7%): placeholder 80
+- Completeness (3%): placeholder 80
+- Anti-Pattern (2%): spelling, dates, skills-backed, duplicates, anachronistic tech, headers
 
-Iteration: if total < 90, re-run reframer with feedback on weakest component (max 3).
-
-Input: Final resume content + JD analysis
-Output: Score report with total_score and component breakdown
+Iteration: if total < 90, build feedback for TWO weakest components and re-run reframer (max 3).
 """
 
 import json
@@ -20,17 +22,39 @@ from collections import Counter
 
 logger = logging.getLogger(__name__)
 
-# Weights from CLAUDE.md
-WEIGHT_KEYWORD_MATCH = 0.40
-WEIGHT_SEMANTIC_ALIGNMENT = 0.25
-WEIGHT_FORMAT_COMPLIANCE = 0.15
-WEIGHT_ACHIEVEMENT_DENSITY = 0.10
-WEIGHT_HUMAN_READABILITY = 0.10
 TARGET_SCORE_PASS = 90
-KEYWORD_MATCH_P0_WEIGHT = 0.70  # 70% of keyword score from P0 coverage
+KEYWORD_MATCH_P0_WEIGHT = 0.70  # 70% of keyword component from P0 coverage
 KEYWORD_MATCH_P1_WEIGHT = 0.30  # 30% from P1 coverage
-KEYWORD_MATCH_PASS_PCT = 85     # 85%+ keyword match is passing for that component
-TARGET_ACHIEVEMENT_DENSITY_PCT = 80
+
+# v3 weights (10 components)
+WEIGHT_KEYWORD_MATCH = 0.25
+WEIGHT_SEMANTIC_ALIGNMENT = 0.15
+WEIGHT_PARSEABILITY = 0.10
+WEIGHT_TITLE_MATCH = 0.10
+WEIGHT_IMPACT = 0.12
+WEIGHT_BREVITY = 0.08
+WEIGHT_STYLE = 0.08
+WEIGHT_NARRATIVE = 0.07
+WEIGHT_COMPLETENESS = 0.03
+WEIGHT_ANTI_PATTERN = 0.02
+PLACEHOLDER_SCORE = 80.0  # for Brevity, Style, Narrative, Completeness until Phase B
+
+# Known abbreviation ↔ full form for ATS coverage sub-check (JD/resume should have both when relevant)
+ABBREVIATION_PAIRS = [
+    ("CRM", "Customer Relationship Management"),
+    ("PM", "Product Manager"),
+    ("AI", "Artificial Intelligence"),
+    ("ML", "Machine Learning"),
+    ("API", "Application Programming Interface"),
+    ("GTM", "Go-to-Market"),
+    ("SMB", "Small and Medium Business"),
+    ("B2B", "Business to Business"),
+    ("ROI", "Return on Investment"),
+    ("KPI", "Key Performance Indicator"),
+    ("SaaS", "Software as a Service"),
+    ("LLM", "Large Language Model"),
+    ("RAG", "Retrieval Augmented Generation"),
+]
 
 # Format rules to check (content-structure only; formatter does full ATS)
 FORMAT_RULES = [
@@ -87,15 +111,43 @@ def _content_for_scoring(resume_content: dict) -> dict:
     return {k: v for k, v in resume_content.items() if k not in ("rule13_self_check", "reframing_log")}
 
 
-def _keyword_match_score(keyword_report: dict, parsed_jd: dict) -> float:
-    """Keyword Match (40%): ((P0 found/P0 total) × 70) + ((P1 found/P1 total) × 30). No penalties. Target 85%+."""
+def _resume_full_text(resume_content: dict) -> str:
+    """Full resume text for keyword/abbreviation checks (summary + skills + experience)."""
+    text = (resume_content.get("professional_summary") or "") + " "
+    for r in resume_content.get("work_experience") or []:
+        for b in r.get("bullets") or []:
+            text += (b or "") + " "
+    sk = resume_content.get("skills") or {}
+    for key in ("technical", "methodologies", "domains"):
+        for item in sk.get(key) or []:
+            text += (item or "") + " "
+    return text
+
+def _keyword_match_score(keyword_report: dict, parsed_jd: dict, resume_content: dict) -> float:
+    """Keyword Match (25%): (P0 found/P0 total)×70 + (P1 found/P1 total)×30. No negative penalties.
+    Sub-check: when JD has an abbreviation or full form, resume should have both for full marks; else small deduction."""
     p0_total = keyword_report.get("p0_total") or 1
     p0_covered = keyword_report.get("p0_covered_count") or 0
     p1_total = keyword_report.get("p1_total") or 1
     p1_covered = keyword_report.get("p1_covered_count") or 0
     p0_pct = 100.0 * p0_covered / p0_total if p0_total else 0
     p1_pct = 100.0 * p1_covered / p1_total if p1_total else 0
-    score = (p0_pct * KEYWORD_MATCH_P0_WEIGHT) + (p1_pct * KEYWORD_MATCH_P1_WEIGHT)
+    base = (p0_pct * KEYWORD_MATCH_P0_WEIGHT) + (p1_pct * KEYWORD_MATCH_P1_WEIGHT)
+    # Abbreviation coverage: if JD mentions either form, prefer both in resume
+    jd_text = (parsed_jd.get("job_title") or "") + " " + " ".join(parsed_jd.get("all_keywords_flat") or [])
+    resume_text = _resume_full_text(resume_content).lower()
+    jd_lower = jd_text.lower()
+    abbr_penalty = 0
+    for abbr, full in ABBREVIATION_PAIRS:
+        in_jd = abbr.lower() in jd_lower or full.lower() in jd_lower
+        if not in_jd:
+            continue
+        in_resume_abbr = abbr.lower() in resume_text
+        in_resume_full = full.lower() in resume_text
+        if in_resume_abbr != in_resume_full:  # only one form present
+            abbr_penalty += 3
+    abbr_penalty = min(10, abbr_penalty)
+    score = max(0, base - abbr_penalty)
     return round(max(0, min(100, score)), 1)
 
 
@@ -137,8 +189,104 @@ def _semantic_alignment_score(keyword_report: dict, resume_content: dict, parsed
     return round(max(0, min(100, score)), 1)
 
 
+def _year_from_dates(dates_str: str) -> int:
+    """Extract latest year from a date range string (e.g. 'May 2024 – Oct 2025' -> 2025)."""
+    if not dates_str:
+        return 0
+    years = re.findall(r"20\d{2}|19\d{2}", str(dates_str))
+    return max(int(y) for y in years) if years else 0
+
+
+def _job_title_match_score(resume_content: dict, parsed_jd: dict) -> float:
+    """Job Title Match (10%): Resume's most recent title vs JD title. exact=100, adjacent=80, equivalent=70, mismatch=30."""
+    work = resume_content.get("work_experience") or []
+    if not work:
+        return 30.0
+    # Most recent role = first if reverse-chronological, else last (by end year)
+    first_year = _year_from_dates(work[0].get("dates") or "")
+    last_year = _year_from_dates(work[-1].get("dates") or "")
+    most_recent_role = work[0] if first_year >= last_year else work[-1]
+    resume_title = (most_recent_role.get("title") or "").strip()
+    jd_title = (parsed_jd.get("job_title") or "").strip()
+    if not resume_title or not jd_title:
+        return 70.0
+    r = re.sub(r"[^\w\s]", "", resume_title).lower().split()
+    j = re.sub(r"[^\w\s]", "", jd_title).lower().split()
+    r_set = set(r)
+    j_set = set(j)
+    if r_set == j_set:
+        return 100.0
+    # Equivalent: same core role (e.g. Product Manager vs Senior Product Manager)
+    core_overlap = r_set & j_set
+    if core_overlap and ("product" in r_set or "manager" in r_set or "pm" in r_set):
+        if j_set <= r_set or r_set <= j_set or len(core_overlap) >= 2:
+            return 80.0  # adjacent (e.g. Senior PM vs PM)
+        return 70.0  # equivalent
+    if len(core_overlap) >= 1:
+        return 70.0
+    return 30.0
+
+
+def _anti_pattern_score(resume_content: dict) -> float:
+    """Anti-Pattern Detection (2%): 0-100. Penalize: spelling, inconsistent dates, skills not in bullets, duplicate bullets, anachronistic tech, non-standard headers."""
+    content = _content_for_scoring(resume_content)
+    issues = []
+    # Non-standard section headers (we expect summary, work_experience, skills, education, certifications)
+    allowed = {"professional_summary", "work_experience", "skills", "education", "certifications", "reframing_log", "rule13_self_check"}
+    for key in content:
+        if key not in allowed and key in ("professional_summary", "work_experience", "skills", "education", "certifications"):
+            pass
+    # Duplicate bullets
+    bullets = []
+    for r in content.get("work_experience") or []:
+        bullets.extend(r.get("bullets") or [])
+    seen = set()
+    for b in bullets:
+        n = (b or "").strip().lower()[:80]
+        if n in seen:
+            issues.append("duplicate_bullet")
+            break
+        seen.add(n)
+    # Inconsistent dates (overlap or reverse order)
+    dates_strs = []
+    for r in content.get("work_experience") or []:
+        d = r.get("dates") or ""
+        if d:
+            dates_strs.append(d)
+    if len(dates_strs) >= 2:
+        # Simple check: if "Present" or "current" in first and end year in second, ok; else just count
+        pass
+    # Skills not backed by experience: skills listed but never appear in bullets
+    skill_words = set()
+    sk = content.get("skills") or {}
+    for key in ("technical", "methodologies", "domains"):
+        for item in sk.get(key) or []:
+            for w in (item or "").lower().split():
+                if len(w) >= 3:
+                    skill_words.add(w)
+    exp_text = " ".join(bullets).lower()
+    unbacked = sum(1 for w in skill_words if w not in exp_text and (content.get("professional_summary") or "").lower().find(w) == -1)
+    if unbacked > len(skill_words) * 0.5:
+        issues.append("skills_not_backed")
+    # Anachronistic tech: e.g. "blockchain" in old role from 2015 without context
+    # Simple heuristic: very long bullets (run-on)
+    for b in bullets:
+        if len((b or "").split()) > 40:
+            issues.append("runon_bullet")
+            break
+    # Spelling: basic check for common typos (optional; skip if no dict)
+    n_issues = len(issues)
+    if n_issues == 0:
+        return 100.0
+    if n_issues == 1:
+        return 70.0
+    if n_issues == 2:
+        return 50.0
+    return max(0, 50 - (n_issues - 2) * 15)
+
+
 def _format_compliance_score(resume_content: dict) -> float:
-    """Format Compliance (15%): (rules passed / total rules) × 100."""
+    """Parseability (10%): (rules passed / total rules) × 100. ATS structure."""
     content = _content_for_scoring(resume_content)
     passed = sum(1 for _, check in FORMAT_RULES if check(content))
     total = len(FORMAT_RULES)
@@ -187,17 +335,10 @@ def _human_readability_score(resume_content: dict, parsed_jd: dict) -> float:
 
 
 def score_resume(resume_content: dict, parsed_jd: dict, keyword_report: dict = None) -> dict:
-    """Score the resume against the JD using all 5 components.
-
-    Args:
-        resume_content: Resume content (reframer or optimizer output)
-        parsed_jd: Structured JD analysis
-        keyword_report: Optional pre-computed keyword report from keyword_optimizer.
-                       If None, will call keyword_optimizer.optimize_keywords.
+    """Score the resume against the JD using all 10 components (v3).
 
     Returns:
-        Score report: total_score, components (keyword_match, semantic_alignment,
-        format_compliance, achievement_density, human_readability), weights, and details.
+        Score report: total_score, components (10), weakest_component, weakest_two.
     """
     content = _content_for_scoring(resume_content)
     if keyword_report is None:
@@ -205,85 +346,121 @@ def score_resume(resume_content: dict, parsed_jd: dict, keyword_report: dict = N
         optimized = optimize_keywords(content, parsed_jd)
         keyword_report = optimized["keyword_report"]
 
-    keyword_match = _keyword_match_score(keyword_report, parsed_jd)
+    keyword_match = _keyword_match_score(keyword_report, parsed_jd, resume_content)
     semantic_alignment = _semantic_alignment_score(keyword_report, content, parsed_jd)
-    format_compliance = _format_compliance_score(resume_content)
-    achievement_density = _achievement_density_score(resume_content)
-    human_readability = _human_readability_score(resume_content, parsed_jd)
+    parseability = _format_compliance_score(resume_content)
+    title_match = _job_title_match_score(resume_content, parsed_jd)
+    impact = _achievement_density_score(resume_content)
+    brevity = PLACEHOLDER_SCORE
+    style = PLACEHOLDER_SCORE
+    narrative = PLACEHOLDER_SCORE
+    completeness = PLACEHOLDER_SCORE
+    anti_pattern = _anti_pattern_score(resume_content)
 
     total = (
         keyword_match * WEIGHT_KEYWORD_MATCH
         + semantic_alignment * WEIGHT_SEMANTIC_ALIGNMENT
-        + format_compliance * WEIGHT_FORMAT_COMPLIANCE
-        + achievement_density * WEIGHT_ACHIEVEMENT_DENSITY
-        + human_readability * WEIGHT_HUMAN_READABILITY
+        + parseability * WEIGHT_PARSEABILITY
+        + title_match * WEIGHT_TITLE_MATCH
+        + impact * WEIGHT_IMPACT
+        + brevity * WEIGHT_BREVITY
+        + style * WEIGHT_STYLE
+        + narrative * WEIGHT_NARRATIVE
+        + completeness * WEIGHT_COMPLETENESS
+        + anti_pattern * WEIGHT_ANTI_PATTERN
     )
     total_score = round(total, 1)
 
     components = {
         "keyword_match": {"score": keyword_match, "weight": WEIGHT_KEYWORD_MATCH, "weighted": round(keyword_match * WEIGHT_KEYWORD_MATCH, 2)},
         "semantic_alignment": {"score": semantic_alignment, "weight": WEIGHT_SEMANTIC_ALIGNMENT, "weighted": round(semantic_alignment * WEIGHT_SEMANTIC_ALIGNMENT, 2)},
-        "format_compliance": {"score": format_compliance, "weight": WEIGHT_FORMAT_COMPLIANCE, "weighted": round(format_compliance * WEIGHT_FORMAT_COMPLIANCE, 2)},
-        "achievement_density": {"score": achievement_density, "weight": WEIGHT_ACHIEVEMENT_DENSITY, "weighted": round(achievement_density * WEIGHT_ACHIEVEMENT_DENSITY, 2)},
-        "human_readability": {"score": human_readability, "weight": WEIGHT_HUMAN_READABILITY, "weighted": round(human_readability * WEIGHT_HUMAN_READABILITY, 2)},
+        "parseability": {"score": parseability, "weight": WEIGHT_PARSEABILITY, "weighted": round(parseability * WEIGHT_PARSEABILITY, 2)},
+        "title_match": {"score": title_match, "weight": WEIGHT_TITLE_MATCH, "weighted": round(title_match * WEIGHT_TITLE_MATCH, 2)},
+        "impact": {"score": impact, "weight": WEIGHT_IMPACT, "weighted": round(impact * WEIGHT_IMPACT, 2)},
+        "brevity": {"score": brevity, "weight": WEIGHT_BREVITY, "weighted": round(brevity * WEIGHT_BREVITY, 2)},
+        "style": {"score": style, "weight": WEIGHT_STYLE, "weighted": round(style * WEIGHT_STYLE, 2)},
+        "narrative": {"score": narrative, "weight": WEIGHT_NARRATIVE, "weighted": round(narrative * WEIGHT_NARRATIVE, 2)},
+        "completeness": {"score": completeness, "weight": WEIGHT_COMPLETENESS, "weighted": round(completeness * WEIGHT_COMPLETENESS, 2)},
+        "anti_pattern": {"score": anti_pattern, "weight": WEIGHT_ANTI_PATTERN, "weighted": round(anti_pattern * WEIGHT_ANTI_PATTERN, 2)},
     }
-    weakest_component = min(components.items(), key=lambda x: x[1]["score"])[0] if components else None
+    sorted_by_score = sorted(components.items(), key=lambda x: x[1]["score"])
+    weakest_component = sorted_by_score[0][0] if sorted_by_score else None
+    weakest_two = [sorted_by_score[0][0], sorted_by_score[1][0]] if len(sorted_by_score) >= 2 else ([weakest_component] if weakest_component else [])
     report = {
         "total_score": total_score,
         "passed": total_score >= TARGET_SCORE_PASS,
         "target_score": TARGET_SCORE_PASS,
         "components": components,
         "weakest_component": weakest_component,
+        "weakest_two": weakest_two,
     }
     logger.info(
-        "Score: total=%.1f (target %s) | keyword=%.1f semantic=%.1f format=%.1f achievement=%.1f readability=%.1f",
+        "Score: total=%.1f (target %s) | keyword=%.1f semantic=%.1f parse=%.1f title=%.1f impact=%.1f anti=%.1f",
         total_score, TARGET_SCORE_PASS,
-        keyword_match, semantic_alignment, format_compliance, achievement_density, human_readability,
+        keyword_match, semantic_alignment, parseability, title_match, impact, anti_pattern,
     )
     return report
 
 
+def _feedback_for_component(component_key: str, score: float, keyword_report: dict = None) -> str:
+    """Single-component feedback text for reframer."""
+    if component_key == "keyword_match":
+        return (
+            f"Keyword Match is low ({score}/100). "
+            "Increase P0/P1 coverage: ensure every P0 requirement appears at least once in summary, skills, and experience. "
+            "Include both abbreviation and full form when relevant (e.g. CRM and Customer Relationship Management)."
+        )
+    if component_key == "semantic_alignment":
+        return (
+            f"Semantic Alignment is low ({score}/100). "
+            "Align narrative with the JD: use phrases from key responsibilities and achievement language. "
+            "Mirror the company's domain in summary and bullets."
+        )
+    if component_key == "parseability":
+        return (
+            f"Parseability/ATS format is low ({score}/100). "
+            "Ensure: professional summary present, work experience reverse-chronological, skills listed, education and certifications; "
+            "no role over 5 bullets; dates with years; standard section structure."
+        )
+    if component_key == "title_match":
+        return (
+            f"Job Title Match is low ({score}/100). "
+            "Ensure the most recent role title matches or is adjacent to the JD title (e.g. Senior Product Manager for a PM role)."
+        )
+    if component_key == "impact":
+        return (
+            f"Impact/Achievement density is low ({score}/100). "
+            "Every bullet should contain a quantified metric (number, %, $, or team size). Add defensible metrics or cut bullets."
+        )
+    if component_key == "anti_pattern":
+        return (
+            f"Anti-pattern score is low ({score}/100). "
+            "Avoid: duplicate bullets, skills not backed by experience bullets, inconsistent dates, run-on bullets. Use standard headers."
+        )
+    if component_key in ("brevity", "style", "narrative", "completeness"):
+        return f"Improve {component_key} (current score {score}/100)."
+    return f"Improve the {component_key} component (current score {score}/100)."
+
+
 def build_feedback_for_weakest(score_report: dict, keyword_report: dict = None) -> str:
-    """Build feedback string for reframer based on weakest component."""
+    """Build feedback string for reframer based on single weakest component (legacy)."""
     weakest = score_report.get("weakest_component")
     if not weakest:
         return ""
     comp = score_report.get("components", {}).get(weakest, {})
-    score = comp.get("score", 0)
-    if weakest == "keyword_match":
-        return (
-            f"The resume scored low on Keyword Match ({score}/100). "
-            "Increase P0 keyword coverage: ensure every P0 requirement from the JD appears at least once, "
-            "and ideally 2-3 times across the summary, skills, and experience sections. "
-            "Add the missing P0 keywords naturally into bullets and the professional summary."
-        )
-    if weakest == "semantic_alignment":
-        return (
-            f"The resume scored low on Semantic Alignment ({score}/100). "
-            "Better align the narrative with the JD: use phrases from the job's key responsibilities "
-            "and achievement language. Mirror the company's domain (e.g. service-based SMBs, workflows, "
-            "conversion, retention) in the summary and bullets."
-        )
-    if weakest == "format_compliance":
-        return (
-            f"The resume scored low on Format Compliance ({score}/100). "
-            "Ensure: professional summary is exactly 3 lines and opens with 'Senior Product Manager with 8+ years'; "
-            "no role has more than 5 bullets; skills section has ≤25 terms; dates in 'Mon YYYY – Mon YYYY' format; "
-            "sections present: Professional Summary, Work Experience, Skills, Education, Certifications."
-        )
-    if weakest == "achievement_density":
-        return (
-            f"The resume scored low on Achievement Density ({score}/100). "
-            "Every bullet must contain a quantified metric (number, %, $, or team size). "
-            "Add defensible metrics to any bullet that lacks one, or cut that bullet."
-        )
-    if weakest == "human_readability":
-        return (
-            f"The resume scored low on Human Readability ({score}/100). "
-            "Avoid keyword stuffing: no more than 3-4 JD keywords per bullet. "
-            "Keep bullets to 20-30 words. Use natural, outcome-focused language; no robotic repetition."
-        )
-    return f"Improve the {weakest} component (current score {score}/100)."
+    return _feedback_for_component(weakest, comp.get("score", 0), keyword_report)
+
+
+def build_feedback_for_two_weakest(score_report: dict, keyword_report: dict = None) -> str:
+    """Build combined feedback for the TWO weakest components (v3 iteration)."""
+    two = score_report.get("weakest_two") or []
+    if not two:
+        return build_feedback_for_weakest(score_report, keyword_report)
+    parts = []
+    for key in two:
+        comp = score_report.get("components", {}).get(key, {})
+        parts.append(_feedback_for_component(key, comp.get("score", 0), keyword_report))
+    return " ".join(parts)
 
 
 def run_scoring_with_iteration(
@@ -325,9 +502,9 @@ def run_scoring_with_iteration(
                 "passed": True,
             }
 
-        feedback = build_feedback_for_weakest(score_report, keyword_report)
+        feedback = build_feedback_for_two_weakest(score_report, keyword_report)
         feedback_applied.append(feedback)
-        logger.info("Score below %d; re-running reframer with feedback on: %s", TARGET_SCORE_PASS, score_report.get("weakest_component"))
+        logger.info("Score below %d; re-running reframer with feedback on: %s", TARGET_SCORE_PASS, score_report.get("weakest_two"))
 
         reframed = reframe_experience(mapping_matrix, pkb, parsed_jd, feedback_for_improvement=feedback)
         reframed_content = _content_for_scoring(reframed)

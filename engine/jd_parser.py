@@ -138,6 +138,9 @@ def parse_jd(jd_text: str) -> dict:
         logger.error(f"Response preview: {response_text[:500]}")
         raise ValueError("LLM returned invalid JSON for JD parsing.") from e
 
+    # Enforce P0 = 8-15: reclassify using raw JD text (title + requirements + repeated 2+ only)
+    parsed = reclassify_priorities_from_jd_text(parsed, jd_text, max_p0=15)
+
     # Validate required fields
     warnings = validate_parsed_jd(parsed)
     if warnings:
@@ -179,8 +182,8 @@ def validate_parsed_jd(parsed: dict) -> list:
     p0_count = len(parsed.get("p0_keywords", []))
     if p0_count < 5:
         warnings.append("Too few P0 keywords (< 5)")
-    if p0_count > 20:
-        warnings.append("Too many P0 keywords (> 20); typical is 8-15")
+    if p0_count > 15:
+        warnings.append("Too many P0 keywords (> 15); P0 must be 8-15 (title, requirements, or repeated 2+)")
 
     if len(parsed.get("all_keywords_flat", [])) < 10:
         warnings.append("Too few total keywords (< 10)")

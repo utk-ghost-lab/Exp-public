@@ -1,33 +1,62 @@
 {
-  "total_score": 76.6,
+  "total_score": 76.1,
   "passed": false,
   "target_score": 90,
   "components": {
     "keyword_match": {
-      "score": 59.7,
-      "weight": 0.4,
-      "weighted": 23.88
+      "score": 49.7,
+      "weight": 0.25,
+      "weighted": 12.43
     },
     "semantic_alignment": {
       "score": 76.5,
-      "weight": 0.25,
-      "weighted": 19.12
-    },
-    "format_compliance": {
-      "score": 100.0,
       "weight": 0.15,
-      "weighted": 15.0
+      "weighted": 11.47
     },
-    "achievement_density": {
+    "parseability": {
       "score": 100.0,
       "weight": 0.1,
       "weighted": 10.0
     },
-    "human_readability": {
-      "score": 85.7,
+    "title_match": {
+      "score": 80.0,
       "weight": 0.1,
-      "weighted": 8.57
+      "weighted": 8.0
+    },
+    "impact": {
+      "score": 100.0,
+      "weight": 0.12,
+      "weighted": 12.0
+    },
+    "brevity": {
+      "score": 80.0,
+      "weight": 0.08,
+      "weighted": 6.4
+    },
+    "style": {
+      "score": 80.0,
+      "weight": 0.08,
+      "weighted": 6.4
+    },
+    "narrative": {
+      "score": 80.0,
+      "weight": 0.07,
+      "weighted": 5.6
+    },
+    "completeness": {
+      "score": 80.0,
+      "weight": 0.03,
+      "weighted": 2.4
+    },
+    "anti_pattern": {
+      "score": 70.0,
+      "weight": 0.02,
+      "weighted": 1.4
     }
   },
-  "weakest_component": "keyword_match"
+  "weakest_component": "keyword_match",
+  "weakest_two": [
+    "keyword_match",
+    "anti_pattern"
+  ]
 }
