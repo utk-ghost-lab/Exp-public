@@ -440,7 +440,7 @@ pytest
 
 - [x] Step 0: Project setup, folder structure, dependencies
 - [x] Step 1: Profile Knowledge Base builder (profile_builder.py)
-- [ ] Step 2: JD Parser (jd_parser.py)
+- [x] Step 2: JD Parser (jd_parser.py)
 - [ ] Step 3: Profile Mapper (profile_mapper.py)
 - [ ] Step 4: Reframing Engine (reframer.py)
 - [ ] Step 5: Keyword Optimizer (keyword_optimizer.py)

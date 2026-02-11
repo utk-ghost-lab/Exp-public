@@ -1,0 +1,548 @@
+{
+  "job_title": "Product Manager",
+  "company": "Zenoti",
+  "location": "Not specified",
+  "hard_skills": [
+    {
+      "skill": "AI",
+      "priority": "P0",
+      "original_phrase": "own AI-powered, customer-facing products"
+    },
+    {
+      "skill": "AI-powered product features",
+      "priority": "P0",
+      "original_phrase": "Experience building or owning AI-powered product features"
+    },
+    {
+      "skill": "GenAI",
+      "priority": "P0",
+      "original_phrase": "Experience building or owning AI-powered product features (GenAI, ML, automation, decision systems)"
+    },
+    {
+      "skill": "ML",
+      "priority": "P0",
+      "original_phrase": "Experience building or owning AI-powered product features (GenAI, ML, automation, decision systems)"
+    },
+    {
+      "skill": "automation",
+      "priority": "P0",
+      "original_phrase": "Experience building or owning AI-powered product features (GenAI, ML, automation, decision systems)"
+    },
+    {
+      "skill": "decision systems",
+      "priority": "P0",
+      "original_phrase": "Experience building or owning AI-powered product features (GenAI, ML, automation, decision systems)"
+    },
+    {
+      "skill": "LLMs",
+      "priority": "P0",
+      "original_phrase": "Familiarity with modern AI tooling and workflows (LLMs, orchestration frameworks, RAG concepts, APIs)"
+    },
+    {
+      "skill": "orchestration frameworks",
+      "priority": "P0",
+      "original_phrase": "Familiarity with modern AI tooling and workflows (LLMs, orchestration frameworks, RAG concepts, APIs)"
+    },
+    {
+      "skill": "RAG concepts",
+      "priority": "P0",
+      "original_phrase": "Familiarity with modern AI tooling and workflows (LLMs, orchestration frameworks, RAG concepts, APIs)"
+    },
+    {
+      "skill": "APIs",
+      "priority": "P0",
+      "original_phrase": "Familiarity with modern AI tooling and workflows (LLMs, orchestration frameworks, RAG concepts, APIs)"
+    },
+    {
+      "skill": "Model selection and orchestration",
+      "priority": "P0",
+      "original_phrase": "Model selection and orchestration (build vs buy)"
+    },
+    {
+      "skill": "cloud",
+      "priority": "P0",
+      "original_phrase": "Strong grounding in cloud, web, mobile, and data-driven systems"
+    },
+    {
+      "skill": "web",
+      "priority": "P0",
+      "original_phrase": "Strong grounding in cloud, web, mobile, and data-driven systems"
+    },
+    {
+      "skill": "mobile",
+      "priority": "P0",
+      "original_phrase": "Strong grounding in cloud, web, mobile, and data-driven systems"
+    },
+    {
+      "skill": "data-driven systems",
+      "priority": "P0",
+      "original_phrase": "Strong grounding in cloud, web, mobile, and data-driven systems"
+    },
+    {
+      "skill": "product strategy",
+      "priority": "P1",
+      "original_phrase": "Translate customer problems into clear product strategy, success metrics, and execution plans"
+    },
+    {
+      "skill": "success metrics",
+      "priority": "P1",
+      "original_phrase": "Translate customer problems into clear product strategy, success metrics, and execution plans"
+    },
+    {
+      "skill": "execution plans",
+      "priority": "P1",
+      "original_phrase": "Translate customer problems into clear product strategy, success metrics, and execution plans"
+    },
+    {
+      "skill": "evaluation metrics",
+      "priority": "P1",
+      "original_phrase": "Design guardrails, evaluation metrics, and fallback experiences for AI features"
+    },
+    {
+      "skill": "data",
+      "priority": "P1",
+      "original_phrase": "Use data and experimentation to validate impact and iterate quickly"
+    },
+    {
+      "skill": "experimentation",
+      "priority": "P1",
+      "original_phrase": "Use data and experimentation to validate impact and iterate quickly"
+    },
+    {
+      "skill": "product backlogs",
+      "priority": "P1",
+      "original_phrase": "Build and maintain prioritized product backlogs aligned to outcomes"
+    },
+    {
+      "skill": "GTM",
+      "priority": "P1",
+      "original_phrase": "Lead product launches with clear GTM narratives tied to customer ROI"
+    },
+    {
+      "skill": "POS",
+      "priority": "P1",
+      "original_phrase": "online appointment bookings, POS, CRM, employee management, inventory management"
+    },
+    {
+      "skill": "CRM",
+      "priority": "P1",
+      "original_phrase": "online appointment bookings, POS, CRM, employee management, inventory management"
+    }
+  ],
+  "soft_skills": [
+    {
+      "skill": "product judgment",
+      "priority": "P0",
+      "original_phrase": "Strong product judgment with the ability to frame ambiguous problems into actionable plans"
+    },
+    {
+      "skill": "communication skills",
+      "priority": "P0",
+      "original_phrase": "Excellent communication skills with engineers, designers, GTM teams, customers, and executives"
+    },
+    {
+      "skill": "collaboration",
+      "priority": "P0",
+      "original_phrase": "You'll work closely with engineering, data science, design, GTM teams, and customers"
+    },
+    {
+      "skill": "leadership",
+      "priority": "P1",
+      "original_phrase": "Lead product launches with clear GTM narratives tied to customer ROI"
+    },
+    {
+      "skill": "hands-on execution",
+      "priority": "P0",
+      "original_phrase": "Ability to balance strategy with hands-on execution"
+    },
+    {
+      "skill": "cross-functional",
+      "priority": "P0",
+      "original_phrase": "Partner deeply with engineering and AI teams"
+    }
+  ],
+  "industry_terms": [
+    {
+      "term": "B2B SaaS",
+      "priority": "P2"
+    },
+    {
+      "term": "B2B",
+      "priority": "P2"
+    },
+    {
+      "term": "SaaS",
+      "priority": "P2"
+    },
+    {
+      "term": "vertical SaaS",
+      "priority": "P2"
+    },
+    {
+      "term": "cloud-based",
+      "priority": "P1"
+    },
+    {
+      "term": "SMBs",
+      "priority": "P0"
+    },
+    {
+      "term": "service-based SMBs",
+      "priority": "P0"
+    },
+    {
+      "term": "salons",
+      "priority": "P0"
+    },
+    {
+      "term": "spas",
+      "priority": "P0"
+    },
+    {
+      "term": "medspas",
+      "priority": "P0"
+    },
+    {
+      "term": "fitness",
+      "priority": "P0"
+    },
+    {
+      "term": "beauty and wellness industry",
+      "priority": "P1"
+    },
+    {
+      "term": "ARR",
+      "priority": "P1"
+    },
+    {
+      "term": "conversion",
+      "priority": "P0"
+    },
+    {
+      "term": "retention",
+      "priority": "P0"
+    },
+    {
+      "term": "operational efficiency",
+      "priority": "P0"
+    },
+    {
+      "term": "customer ROI",
+      "priority": "P1"
+    },
+    {
+      "term": "unicorn valuation",
+      "priority": "P1"
+    },
+    {
+      "term": "workflows",
+      "priority": "P0"
+    },
+    {
+      "term": "workflow-heavy products",
+      "priority": "P2"
+    },
+    {
+      "term": "product lifecycle",
+      "priority": "P0"
+    }
+  ],
+  "experience_requirements": [
+    {
+      "requirement": "4+ years of experience as a Product Manager or Technical Product Manager",
+      "priority": "P0"
+    },
+    {
+      "requirement": "Experience building or owning AI-powered product features (GenAI, ML, automation, decision systems)",
+      "priority": "P0"
+    },
+    {
+      "requirement": "Technical or engineering background strongly preferred",
+      "priority": "P0"
+    },
+    {
+      "requirement": "Experience in B2B SaaS, vertical SaaS, or workflow-heavy products is a plus",
+      "priority": "P2"
+    },
+    {
+      "requirement": "Proven experience owning products from idea to launch to measurable impact",
+      "priority": "P0"
+    }
+  ],
+  "education_requirements": [
+    {
+      "requirement": "MBA from a premier institute is a plus, but product judgment matters more",
+      "priority": "P2"
+    }
+  ],
+  "key_responsibilities": [
+    "Own AI-enabled product areas end-to-end, from problem definition to measurable business outcomes",
+    "Define when to use AI vs rules, heuristics, or workflow design based on customer value, cost, and reliability",
+    "Translate customer problems into clear product strategy, success metrics, and execution plans",
+    "Partner deeply with engineering and AI teams on Model selection and orchestration (build vs buy), Accuracy, latency, cost, and failure modes, Human-in-the-loop vs automated decisioning",
+    "Design guardrails, evaluation metrics, and fallback experiences for AI features",
+    "Build and maintain prioritized product backlogs aligned to outcomes (ARR, conversion, retention, productivity)",
+    "Lead product launches with clear GTM narratives tied to customer ROI",
+    "Use data and experimentation to validate impact and iterate quickly",
+    "Act as the voice of the customer, especially low-tech SMB operators and frontline staff"
+  ],
+  "achievement_language": [
+    "directly impact revenue, conversion, retention, and operational efficiency",
+    "shipping scalable solutions from concept to adoption",
+    "build products that move real business metrics",
+    "measurable business outcomes",
+    "measurable impact",
+    "validate impact and iterate quickly",
+    "outcomes (ARR, conversion, retention, productivity)",
+    "customer ROI"
+  ],
+  "company_context": "Zenoti provides an all-in-one, cloud-based software solution for the beauty and wellness industry (salons, spas, medspas, fitness studios). Unicorn company ($1 billion+ valuation), powers 30,000+ locations in 50+ countries, raised $80M from TPG, Great Place to Work Certified.",
+  "job_level": "Mid-level Product Manager (4+ years experience required)",
+  "cultural_signals": [
+    "data-driven",
+    "fast-moving, imperfect environments",
+    "move real business metrics, not just features",
+    "product judgment matters more",
+    "empowering people to feel good and find their greatness",
+    "Great Place to Work Certified",
+    "iterate quickly",
+    "customer-facing",
+    "voice of the customer"
+  ],
+  "all_keywords_flat": [
+    "Product Manager",
+    "AI",
+    "AI-powered",
+    "GenAI",
+    "ML",
+    "automation",
+    "decision systems",
+    "LLMs",
+    "orchestration frameworks",
+    "RAG concepts",
+    "APIs",
+    "Model selection and orchestration",
+    "build vs buy",
+    "cloud",
+    "web",
+    "mobile",
+    "data-driven systems",
+    "product strategy",
+    "success metrics",
+    "execution plans",
+    "evaluation metrics",
+    "data",
+    "experimentation",
+    "product backlogs",
+    "GTM",
+    "customer ROI",
+    "POS",
+    "CRM",
+    "product judgment",
+    "communication skills",
+    "collaboration",
+    "leadership",
+    "hands-on execution",
+    "cross-functional",
+    "B2B SaaS",
+    "B2B",
+    "SaaS",
+    "vertical SaaS",
+    "cloud-based",
+    "SMBs",
+    "service-based SMBs",
+    "salons",
+    "spas",
+    "medspas",
+    "fitness",
+    "beauty and wellness industry",
+    "ARR",
+    "conversion",
+    "retention",
+    "operational efficiency",
+    "workflows",
+    "workflow-heavy products",
+    "product lifecycle",
+    "4+ years of experience",
+    "Technical Product Manager",
+    "Technical or engineering background",
+    "revenue",
+    "scalable solutions",
+    "concept to adoption",
+    "engineering",
+    "data science",
+    "design",
+    "GTM teams",
+    "customers",
+    "discovery",
+    "solution design",
+    "AI trade-offs",
+    "execution",
+    "launch",
+    "measurement",
+    "iteration",
+    "rules",
+    "heuristics",
+    "workflow design",
+    "customer value",
+    "cost",
+    "reliability",
+    "Accuracy",
+    "latency",
+    "failure modes",
+    "Human-in-the-loop",
+    "automated decisioning",
+    "guardrails",
+    "fallback experiences",
+    "productivity",
+    "voice of the customer",
+    "low-tech SMB operators",
+    "frontline staff",
+    "ambiguous problems",
+    "actionable plans",
+    "idea to launch",
+    "measurable impact",
+    "strategy",
+    "engineers",
+    "designers",
+    "executives",
+    "fast-moving",
+    "imperfect environments",
+    "AI features",
+    "Model limitations",
+    "trade-offs",
+    "Accuracy vs cost vs latency",
+    "precision",
+    "lift",
+    "overrides",
+    "time saved",
+    "modern AI tooling",
+    "MBA",
+    "premier institute",
+    "unicorn valuation",
+    "empowering people",
+    "Great Place to Work",
+    "iterate quickly",
+    "customer-facing products",
+    "business metrics"
+  ],
+  "p0_keywords": [
+    "Product Manager",
+    "AI",
+    "AI-powered",
+    "GenAI",
+    "ML",
+    "automation",
+    "decision systems",
+    "LLMs",
+    "orchestration frameworks",
+    "RAG concepts",
+    "APIs",
+    "Model selection and orchestration",
+    "cloud",
+    "web",
+    "mobile",
+    "data-driven systems",
+    "product judgment",
+    "communication skills",
+    "collaboration",
+    "hands-on execution",
+    "cross-functional",
+    "SMBs",
+    "service-based SMBs",
+    "salons",
+    "spas",
+    "medspas",
+    "fitness",
+    "conversion",
+    "retention",
+    "operational efficiency",
+    "workflows",
+    "product lifecycle",
+    "4+ years of experience",
+    "Technical Product Manager",
+    "Technical or engineering background",
+    "Experience building or owning AI-powered product features",
+    "Proven experience owning products from idea to launch to measurable impact"
+  ],
+  "p1_keywords": [
+    "product strategy",
+    "success metrics",
+    "execution plans",
+    "evaluation metrics",
+    "data",
+    "experimentation",
+    "product backlogs",
+    "GTM",
+    "customer ROI",
+    "POS",
+    "CRM",
+    "leadership",
+    "cloud-based",
+    "beauty and wellness industry",
+    "ARR",
+    "revenue",
+    "scalable solutions",
+    "concept to adoption",
+    "engineering",
+    "data science",
+    "design",
+    "GTM teams",
+    "customers",
+    "discovery",
+    "solution design",
+    "AI trade-offs",
+    "execution",
+    "launch",
+    "measurement",
+    "iteration",
+    "rules",
+    "heuristics",
+    "workflow design",
+    "customer value",
+    "cost",
+    "reliability",
+    "Accuracy",
+    "latency",
+    "failure modes",
+    "Human-in-the-loop",
+    "automated decisioning",
+    "guardrails",
+    "fallback experiences",
+    "productivity",
+    "voice of the customer",
+    "low-tech SMB operators",
+    "frontline staff",
+    "ambiguous problems",
+    "actionable plans",
+    "measurable impact",
+    "strategy",
+    "engineers",
+    "designers",
+    "executives",
+    "fast-moving",
+    "imperfect environments",
+    "AI features",
+    "Model limitations",
+    "trade-offs",
+    "Accuracy vs cost vs latency",
+    "precision",
+    "lift",
+    "overrides",
+    "time saved",
+    "modern AI tooling",
+    "unicorn valuation",
+    "iterate quickly",
+    "customer-facing products",
+    "business metrics"
+  ],
+  "p2_keywords": [
+    "B2B SaaS",
+    "B2B",
+    "SaaS",
+    "vertical SaaS",
+    "workflow-heavy products",
+    "MBA",
+    "premier institute"
+  ]
+}
