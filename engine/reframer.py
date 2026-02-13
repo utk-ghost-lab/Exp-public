@@ -894,6 +894,22 @@ def _dedup_skills(result: dict) -> dict:
                 to_remove.add(item.lower())
         filtered = [item for item in items if item.lower() not in to_remove]
         sk[key] = filtered
+    # Remove near-duplicates: keep the more specific version
+    dedup_pairs = [
+        ("Product Management", "Digital Product Management"),  # keep Digital Product Management
+        ("Roadmap Development", "Strategic Roadmap"),  # keep Roadmap Development
+        ("Data Analysis", "Product Analytics"),  # keep Product Analytics
+    ]
+    seen_normalized = set()
+    for cat in ("technical", "methodologies", "domains"):
+        for s in (sk.get(cat) or []):
+            seen_normalized.add(s.strip().lower())
+    for shorter, longer in dedup_pairs:
+        if shorter.lower() in seen_normalized and longer.lower() in seen_normalized:
+            # Remove the shorter/less specific one
+            for cat in ("technical", "methodologies", "domains"):
+                items = sk.get(cat) or []
+                sk[cat] = [s for s in items if s.strip().lower() != shorter.lower()]
     result["skills"] = sk
     return result
 
@@ -976,35 +992,74 @@ def _fix_single_bullet_ending(bullet: str, jd_keywords: set) -> str:
 
 
 def _fix_incomplete_sentences(result: dict) -> dict:
-    """Part A Rule 8: Expanded dangling word detection for incomplete sentences."""
-    dangling = {
+    """Ensure no bullet ends with an incomplete phrase."""
+    # Words that signal an incomplete ending when they're the last word
+    dangling_single = {
+        # Prepositions
         "for", "to", "in", "of", "by", "with", "and", "or", "the",
         "a", "an", "at", "on", "as", "from", "into", "across", "through",
         "within", "between", "among", "toward", "towards", "during",
         "including", "such", "via", "using", "leveraging", "enabling",
         "driving", "enhancing", "improving", "ensuring", "supporting",
+        # Dangling adjectives
         "hypothesis-driven", "data-driven", "customer-focused",
         "competitive", "strategic", "innovative", "comprehensive",
         "manual", "significant", "measurable", "actionable",
+        "large-scale", "small-scale", "enterprise-wide",
+        # Dangling gerunds
         "demonstrating", "providing", "delivering", "achieving",
         "generating", "establishing", "maintaining", "coordinating",
+        # Dangling nouns that form fragments
+        "online", "program", "programs", "platform", "platforms",
+        "environment", "environments", "management", "development",
+        "collaboration", "execution", "integration",
     }
+
+    # Multi-word dangling phrases (check last 2-3 words)
+    dangling_phrases = {
+        "and online", "and program", "and programs", "and large-scale",
+        "and platform", "and collaboration", "and execution",
+        "and integration", "and development", "and management",
+        "across global", "with strong", "through competitive",
+        "through collaboration", "through stakeholder",
+        "demonstrating bias", "with customer empathy",
+        "in matrix environment", "in matrix",
+    }
+
     for role in result.get("work_experience", []):
         new_bullets = []
         for bullet in role.get("bullets") or []:
-            words = bullet.rstrip(".!?").split()
-            changed = False
-            while words and words[-1].lower().rstrip(".,;:") in dangling:
-                words.pop()
-                changed = True
-            # Remove trailing noise like "12 use" or "50 term"
-            if words and len(words) >= 2:
-                last = words[-1].lower().rstrip(".,;:")
-                if re.match(r'\d+\+?$', words[-2]) and last in {"use", "term", "type", "case", "mode"}:
-                    words.pop()
-                    changed = True
-            if changed and words:
-                bullet = " ".join(words)
+            stripped = bullet.rstrip(".!? ")
+            words = stripped.split()
+            changed = True
+            max_iterations = 5  # Safety limit
+
+            while changed and max_iterations > 0:
+                changed = False
+                max_iterations -= 1
+
+                # Check multi-word dangling phrases first
+                lower_tail = " ".join(words[-3:]).lower() if len(words) >= 3 else ""
+                lower_tail_2 = " ".join(words[-2:]).lower() if len(words) >= 2 else ""
+
+                for phrase in dangling_phrases:
+                    if lower_tail.endswith(phrase) or lower_tail_2.endswith(phrase):
+                        # Remove the dangling phrase
+                        phrase_words = len(phrase.split())
+                        words = words[:-phrase_words]
+                        changed = True
+                        break
+
+                # Check single dangling words
+                if not changed and words:
+                    last = words[-1].lower().rstrip(".,;:")
+                    if last in dangling_single:
+                        words.pop()
+                        changed = True
+
+            # Clean up trailing punctuation and reconstruct
+            if words:
+                bullet = " ".join(words).rstrip(".,;: ")
                 if not bullet.endswith((".", "!", "?")):
                     bullet += "."
             new_bullets.append(bullet)
@@ -1141,20 +1196,66 @@ def _enforce_summary_format(result: dict, parsed_jd: dict) -> dict:
     if not summary:
         return result
 
+    # Fix known grammar issues
+    # "across global in matrix" → "in matrix environments"
+    summary = re.sub(
+        r'across global\s+in\s+matrix\s+environment',
+        'in matrix environments',
+        summary,
+        flags=re.IGNORECASE
+    )
+
+    # "predictive analytics and predictive modeling" → "predictive modeling"
+    summary = re.sub(
+        r'predictive analytics and predictive modeling',
+        'predictive modeling',
+        summary,
+        flags=re.IGNORECASE
+    )
+
+    # Remove duplicate "and" patterns: "business case development and business plans"
+    summary = re.sub(
+        r'business case development and business plans',
+        'business case development',
+        summary,
+        flags=re.IGNORECASE
+    )
+
+    # Catch common broken phrases
+    bad_patterns = [
+        (r'across\s+global\s+in', 'across global teams in'),
+        (r'with\s+strong\s+communication\s+skills\s+across\s+global', 'with strong cross-functional communication skills'),
+        (r'and\s+online\.', '.'),
+        (r'and\s+program\.', '.'),
+        (r'and\s+large-scale\.', '.'),
+    ]
+    for pattern, replacement in bad_patterns:
+        summary = re.sub(pattern, replacement, summary, flags=re.IGNORECASE)
+
     # Count words
     word_count = len(summary.split())
 
     # Count sentences (rough)
     sentences = [s.strip() for s in re.split(r'(?<=[.!?])\s+', summary) if s.strip()]
 
-    # If summary is way too long (>60 words), truncate to 3 sentences
-    if word_count > 60 and len(sentences) > 3:
+    # If summary is way too long (>55 words), truncate to 3 sentences
+    if word_count > 55 and len(sentences) > 3:
         summary = " ".join(sentences[:3])
         if not summary.endswith("."):
             summary += "."
-        result["professional_summary"] = summary
         logger.info("Summary truncated to 3 sentences (%d -> %d words)", word_count, len(summary.split()))
+    elif word_count > 55:
+        # Even with 3 sentences, trim to 55 words
+        words = summary.split()
+        truncated = " ".join(words[:55])
+        last_period = truncated.rfind(".")
+        if last_period > len(truncated) * 0.6:
+            summary = truncated[:last_period + 1]
+        else:
+            summary = truncated.rstrip(".,;: ") + "."
+        logger.info("Summary trimmed to 55 words (%d -> %d words)", word_count, len(summary.split()))
 
+    result["professional_summary"] = summary
     return result
 
 
@@ -1275,6 +1376,27 @@ def _apply_programmatic_fixes(result: dict, parsed_jd: dict, pkb: dict) -> dict:
     result["subtitle"] = _generate_subtitle(result, parsed_jd)
     # Text fixes LAST: number spacing, currency symbols on ALL text (Fixes 4, 5)
     result = _apply_text_fixes(result)
+
+    # FINAL SPACING SAFETY NET — last chance before output
+    def _final_spacing_fix(text):
+        if not text:
+            return text
+        text = re.sub(r'(\d)([a-z])', r'\1 \2', text)
+        text = re.sub(r'(\d\.?\d*)([A-Z][a-z]{2,})', r'\1 \2', text)
+        text = re.sub(r'  +', ' ', text)
+        return text
+
+    if result.get("subtitle"):
+        result["subtitle"] = _final_spacing_fix(result["subtitle"])
+    if result.get("professional_summary"):
+        result["professional_summary"] = _final_spacing_fix(result["professional_summary"])
+    for role in result.get("work_experience", []):
+        role["bullets"] = [_final_spacing_fix(b) for b in (role.get("bullets") or [])]
+    sk = result.get("skills", {})
+    for key in ("technical", "methodologies", "domains"):
+        sk[key] = [_final_spacing_fix(s) for s in (sk.get(key) or [])]
+    result["awards"] = [_final_spacing_fix(a) for a in (result.get("awards") or [])]
+
     return result
 
 

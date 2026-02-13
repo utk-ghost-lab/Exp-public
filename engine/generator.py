@@ -39,6 +39,20 @@ from reportlab.platypus import (
 
 logger = logging.getLogger(__name__)
 
+
+import re as _re
+
+
+def _fix_sp(t):
+    """Nuclear spacing fix — applied to every text before PDF render."""
+    if not t:
+        return t
+    t = _re.sub(r'(\d)([a-z])', r'\1 \2', t)
+    t = _re.sub(r'(\d\.?\d*)([A-Z][a-z]{2,})', r'\1 \2', t)
+    t = _re.sub(r'  +', ' ', t)
+    return t
+
+
 # --- Page geometry ---
 PAGE_W, PAGE_H = A4  # 595.9 x 842.9
 MARGIN_LR = 0.54 * inch  # 38.7pt
@@ -356,8 +370,8 @@ def _two_col_table(left_text, left_style, right_text, right_style, col_widths=No
     """Create a two-column table for company/location or title/dates rows."""
     if col_widths is None:
         col_widths = [CONTENT_W * 0.7, CONTENT_W * 0.3]
-    left_para = Paragraph(left_text, left_style)
-    right_para = Paragraph(right_text, right_style)
+    left_para = Paragraph(_fix_sp(left_text), left_style)
+    right_para = Paragraph(_fix_sp(right_text), right_style)
     t = Table([[left_para, right_para]], colWidths=col_widths)
     t.setStyle(TableStyle([
         ("VALIGN", (0, 0), (-1, -1), "BOTTOM"),
@@ -422,14 +436,14 @@ def _generate_pdf(content: dict, pkb: dict, output_path: str):
     story = []
 
     # --- HEADER ---
-    story.append(Paragraph(_esc(name), styles["name"]))
+    story.append(Paragraph(_fix_sp(_esc(name)), styles["name"]))
 
     # Subtitle: use pre-generated tagline from reframer, or fallback
     subtitle = _clean_spacing(content.get("subtitle") or "Senior Product Manager | Enterprise Products | 8+ Years")
     summary_text = _clean_spacing((content.get("professional_summary") or "").strip())
     summary_lines = [l.strip() for l in summary_text.split("\n") if l.strip()]
 
-    story.append(Paragraph(_esc(subtitle), styles["subtitle"]))
+    story.append(Paragraph(_fix_sp(_esc(subtitle)), styles["subtitle"]))
 
     # Contact line 1: phone, email, linkedin (clean URL), location
     github = personal.get("github_url") or ""
@@ -444,7 +458,7 @@ def _generate_pdf(content: dict, pkb: dict, output_path: str):
     if location:
         contact_parts.append(location)
     contact_line = " \u2022 ".join(contact_parts)
-    story.append(Paragraph(_esc(contact_line), styles["contact"]))
+    story.append(Paragraph(_fix_sp(_esc(contact_line)), styles["contact"]))
     # Contact line 2: additional links (GitHub, portfolio) with clean URLs
     extra_links = []
     if github:
@@ -453,11 +467,11 @@ def _generate_pdf(content: dict, pkb: dict, output_path: str):
         extra_links.append(_clean_url(portfolio))
     if extra_links:
         extra_line = " \u2022 ".join(extra_links)
-        story.append(Paragraph(_esc(extra_line), styles["contact"]))
+        story.append(Paragraph(_fix_sp(_esc(extra_line)), styles["contact"]))
 
     # --- SUMMARY SECTION ---
     story.append(Spacer(1, SPACE_BEFORE_SECTION))
-    story.append(Paragraph("Summary", styles["section_header"]))
+    story.append(Paragraph(_fix_sp("Summary"), styles["section_header"]))
     story.append(HRLineFlowable(CONTENT_W))
     story.append(Spacer(1, 2))
 
@@ -467,13 +481,13 @@ def _generate_pdf(content: dict, pkb: dict, output_path: str):
         summary_xml = _bold_metrics(
             full_summary, SANS_FONT, SANS_FONT_BOLD, BULLET_SIZE, "#3E3E3E"
         )
-        story.append(Paragraph(summary_xml, styles["summary"]))
+        story.append(Paragraph(_fix_sp(summary_xml), styles["summary"]))
 
     # --- EXPERIENCE SECTION ---
     work = content.get("work_experience") or []
     if work:
         story.append(Spacer(1, SPACE_BEFORE_SECTION))
-        story.append(Paragraph("Experience", styles["section_header"]))
+        story.append(Paragraph(_fix_sp("Experience"), styles["section_header"]))
         story.append(HRLineFlowable(CONTENT_W))
         story.append(Spacer(1, 2))
 
@@ -508,7 +522,7 @@ def _generate_pdf(content: dict, pkb: dict, output_path: str):
                     f"{BULLET_CHAR}  {bt}",
                     SANS_FONT, SANS_FONT_BOLD, BULLET_SIZE, "#3E3E3E",
                 )
-                role_elements.append(Paragraph(bullet_xml, styles["bullet"]))
+                role_elements.append(Paragraph(_fix_sp(bullet_xml), styles["bullet"]))
 
             # KeepTogether: header + first 2 bullets stay on same page
             story.append(KeepTogether(role_elements))
@@ -520,7 +534,7 @@ def _generate_pdf(content: dict, pkb: dict, output_path: str):
                     f"{BULLET_CHAR}  {bt}",
                     SANS_FONT, SANS_FONT_BOLD, BULLET_SIZE, "#3E3E3E",
                 )
-                story.append(Paragraph(bullet_xml, styles["bullet"]))
+                story.append(Paragraph(_fix_sp(bullet_xml), styles["bullet"]))
 
     # --- SKILLS SECTION ---
     skills = content.get("skills") or {}
@@ -529,7 +543,7 @@ def _generate_pdf(content: dict, pkb: dict, output_path: str):
         all_skills.extend(skills.get(category) or [])
     if all_skills:
         story.append(Spacer(1, SPACE_BEFORE_SECTION))
-        story.append(Paragraph("Skills", styles["section_header"]))
+        story.append(Paragraph(_fix_sp("Skills"), styles["section_header"]))
         story.append(HRLineFlowable(CONTENT_W))
         story.append(Spacer(1, 2))
 
@@ -542,27 +556,27 @@ def _generate_pdf(content: dict, pkb: dict, output_path: str):
                 skill_parts.append(label + _esc(_clean_spacing("  |  ".join(items))))
 
         for part in skill_parts:
-            story.append(Paragraph(part, styles["skills"]))
+            story.append(Paragraph(_fix_sp(part), styles["skills"]))
             story.append(Spacer(1, 2))
 
     # --- AWARDS SECTION ---
     awards = content.get("awards") or []
     if awards:
         story.append(Spacer(1, SPACE_BEFORE_SECTION))
-        story.append(Paragraph("Awards &amp; Recognition", styles["section_header"]))
+        story.append(Paragraph(_fix_sp("Awards &amp; Recognition"), styles["section_header"]))
         story.append(HRLineFlowable(CONTENT_W))
         story.append(Spacer(1, 2))
 
         # Always render awards as simple bullet list (Part B Fix 6)
         for award in awards:
             clean = _clean_spacing((award or "").strip().lstrip("\u2022").lstrip("•").strip())
-            story.append(Paragraph(f'{BULLET_CHAR}  {_esc(clean)}', styles["bullet"]))
+            story.append(Paragraph(_fix_sp(f'{BULLET_CHAR}  {_esc(clean)}'), styles["bullet"]))
 
     # --- EDUCATION SECTION ---
     education = content.get("education") or []
     if education:
         story.append(Spacer(1, SPACE_BEFORE_SECTION))
-        story.append(Paragraph("Education", styles["section_header"]))
+        story.append(Paragraph(_fix_sp("Education"), styles["section_header"]))
         story.append(HRLineFlowable(CONTENT_W))
         story.append(Spacer(1, 2))
 
@@ -589,7 +603,7 @@ def _generate_pdf(content: dict, pkb: dict, output_path: str):
     certs = content.get("certifications") or []
     if certs:
         story.append(Spacer(1, SPACE_BEFORE_SECTION))
-        story.append(Paragraph("Certifications", styles["section_header"]))
+        story.append(Paragraph(_fix_sp("Certifications"), styles["section_header"]))
         story.append(HRLineFlowable(CONTENT_W))
         story.append(Spacer(1, 2))
 
@@ -597,7 +611,7 @@ def _generate_pdf(content: dict, pkb: dict, output_path: str):
         for cert in certs:
             cert_text = _format_cert(cert)
             story.append(Paragraph(
-                f'{BULLET_CHAR}  {_esc(cert_text)}', styles["cert"]
+                _fix_sp(f'{BULLET_CHAR}  {_esc(cert_text)}'), styles["cert"]
             ))
 
     # --- Build PDF ---
@@ -614,6 +628,15 @@ def _generate_pdf(content: dict, pkb: dict, output_path: str):
         topMargin=MARGIN_TOP, bottomMargin=MARGIN_BOTTOM,
     )
     doc.addPageTemplates([template])
+
+    # SPACING VERIFICATION — will print to console if any spacing bugs remain
+    for element in story:
+        if hasattr(element, 'text'):
+            txt = str(element.text) if element.text else ""
+            bugs = re.findall(r'\d[a-z]', txt)
+            if bugs:
+                print(f"⚠️ SPACING BUG IN PDF: '{txt[:80]}' — found: {bugs}")
+
     doc.build(story)
     logger.info("PDF generated: %s", output_path)
 
