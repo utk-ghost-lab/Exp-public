@@ -171,6 +171,10 @@ def _esc(text: str) -> str:
     """Escape text for reportlab Paragraph XML."""
     if not text:
         return ""
+    # Spacing fix for all text
+    text = re.sub(r'(\d)([a-z])', r'\1 \2', text)
+    text = re.sub(r'(\d\.?\d*)([A-Z][a-z]{2,})', r'\1 \2', text)
+    text = re.sub(r'  +', ' ', text)
     return (
         text.replace("&", "&amp;")
         .replace("<", "&lt;")
@@ -186,6 +190,12 @@ def _bold_metrics(text: str, font_name: str, bold_font_name: str,
     Bolds: numbers with %, $, x/×, standalone numbers >= 2 digits,
     and short metric phrases like '2.5× adoption'.
     """
+    # Nuclear spacing fix — runs on every text before PDF render
+    if text:
+        text = re.sub(r'(\d)([a-z])', r'\1 \2', text)
+        text = re.sub(r'(\d\.?\d*)([A-Z][a-z]{2,})', r'\1 \2', text)
+        text = re.sub(r'([a-zA-Z0-9])\(', r'\1 (', text)
+        text = re.sub(r'  +', ' ', text)
     if not text:
         return ""
     # Pattern: number with optional decimal + optional suffix (%, x, ×, +, K, M, B)

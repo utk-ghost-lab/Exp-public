@@ -871,13 +871,23 @@ def _dedup_skills(result: dict) -> dict:
                     to_remove.add(extra.lower())
         # Pass 3: remove single vague words
         vague_words = {
+            # Vague single words
             "tech", "data", "strategy", "technologies",
+            # Soft skills (NEVER in Technical)
             "growth mindset", "adaptability", "curiosity", "empathy",
             "customer empathy", "bias for action", "drive change",
             "collaboration", "teaching", "coaching", "communication",
             "strong communication skills", "quad", "email", "roadmaps",
             "use case maturity", "small businesses", "analytics",
             "analytics tools", "analytics platforms", "usage analytics",
+            # NEW: JD soft skills that LLM keeps dumping into Technical
+            "team player", "strategy development", "stakeholder management",
+            "relationship development", "negotiation", "matrix management",
+            "verbal communication", "written communication",
+            "interpersonal communication", "mentoring", "leadership",
+            "communication skills", "interpersonal skills",
+            "relationship building", "influencing", "peer mentor",
+            "team collaboration", "senior leadership",
         }
         for item in items:
             if item.lower().strip() in vague_words:
@@ -1149,12 +1159,10 @@ def _enforce_summary_format(result: dict, parsed_jd: dict) -> dict:
 
 
 def _generate_subtitle(result: dict, parsed_jd: dict) -> str:
-    """Part A Rule 4: Generate subtitle tagline 'Title | Domain | Years', max 60 chars."""
-    # Extract domain from JD
+    """Generate subtitle: 'Title | Domain | Years', max 60 chars."""
     jd_domain = ""
     industry_terms = parsed_jd.get("industry_terms") or []
     if industry_terms:
-        # Pick top 1-2 domain terms
         top_terms = []
         for term in industry_terms[:3]:
             t = term.get("term") or term if isinstance(term, str) else (term.get("term") or "")
@@ -1165,20 +1173,32 @@ def _generate_subtitle(result: dict, parsed_jd: dict) -> str:
         jd_domain = " & ".join(top_terms[:2])
 
     if not jd_domain:
-        # Fallback to company context
         ctx = parsed_jd.get("company_context") or ""
         if "saas" in ctx.lower():
             jd_domain = "SaaS"
-        elif "fintech" in ctx.lower():
+        elif "fintech" in ctx.lower() or "financial" in ctx.lower():
             jd_domain = "Fintech"
+        elif "banking" in ctx.lower():
+            jd_domain = "Banking & Financial Services"
         else:
             jd_domain = "Enterprise Products"
 
     subtitle = f"Senior Product Manager | {jd_domain} | 8+ Years"
 
-    # Cap at 60 chars
+    # If over 60 chars, shorten the domain — never truncate mid-word
     if len(subtitle) > 60:
-        subtitle = f"Senior Product Manager | {jd_domain[:20]} | 8+ Years"
+        # Try first term only
+        first_term = jd_domain.split(" & ")[0].split(",")[0].strip()
+        subtitle = f"Senior Product Manager | {first_term} | 8+ Years"
+
+    if len(subtitle) > 60:
+        subtitle = "Senior Product Manager | Enterprise Products | 8+ Years"
+
+    # Capitalize each word in domain portion
+    parts = subtitle.split(" | ")
+    if len(parts) == 3:
+        parts[1] = parts[1].title()
+        subtitle = " | ".join(parts)
 
     return subtitle
 
@@ -1232,6 +1252,15 @@ def _apply_programmatic_fixes(result: dict, parsed_jd: dict, pkb: dict) -> dict:
     result = _inject_awards_from_pkb(result, pkb)
     # Skills dedup: remove abbreviation+full form, near-synonyms, vague words (Rule 9)
     result = _dedup_skills(result)
+    # Force-clean Technical skills: remove any soft skill that slipped through
+    _soft_skill_words = {
+        "player", "communication", "negotiation", "mentoring", "coaching",
+        "leadership", "interpersonal", "relationship", "influencing",
+        "collaboration", "verbal", "written", "matrix management",
+    }
+    tech_skills = result.get("skills", {}).get("technical", [])
+    cleaned_tech = [s for s in tech_skills if not any(sw in s.lower() for sw in _soft_skill_words)]
+    result["skills"]["technical"] = cleaned_tech
     # Skills minimum: ensure 15-25 real tools from PKB (Part A Rule 5)
     result = _enforce_skills_minimum(result, pkb, parsed_jd)
     # Part A Rule 1: Fix bullet endings (metrics not methods)
