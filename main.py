@@ -48,8 +48,8 @@ def run_pipeline(jd_text: str):
     from engine.profile_mapper import map_profile_to_jd
     from engine.reframer import reframe_experience
     from engine.keyword_optimizer import optimize_keywords
-    from engine.formatter import format_for_ats
-    from engine.scorer import score_resume
+    from engine.formatter import format_resume
+    from engine.scorer import run_scoring_with_iteration
     from engine.generator import generate_output
 
     # Load PKB
@@ -69,8 +69,8 @@ def run_pipeline(jd_text: str):
     logger.info("Step 2: Mapping profile to JD requirements...")
     mapping = map_profile_to_jd(parsed_jd, pkb)
 
-    # Step 3: Reframe experience
-    logger.info("Step 3: Generating tailored resume content...")
+    # Step 3: Reframe experience from PKB only (no prior resume)
+    logger.info("Step 3: Generating tailored resume content from PKB...")
     resume_content = reframe_experience(mapping, pkb, parsed_jd)
     reframing_log = resume_content.get("reframing_log", [])
 
@@ -80,57 +80,74 @@ def run_pipeline(jd_text: str):
     resume_content = optimized["optimized_content"]
     keyword_report = optimized["keyword_report"]
 
-    # Step 5: Format for ATS
-    logger.info("Step 5: Applying ATS formatting...")
-    resume_content = format_for_ats(resume_content)
+    # Step 5: Format validation
+    logger.info("Step 5: Validating format rules...")
+    formatted = format_resume(resume_content, parsed_jd)
+    format_validation = formatted["format_validation"]
+    resume_content = formatted["validated_content"]
+    logger.info("  Format status: %s (%d errors, %d warnings)",
+                format_validation["status"],
+                len(format_validation.get("errors", [])),
+                len(format_validation.get("warnings", [])))
 
-    # Step 6: Score and iterate
-    logger.info("Step 6: Scoring resume...")
-    max_iterations = 3
-    for iteration in range(max_iterations):
-        score_report = score_resume(resume_content, parsed_jd)
-        total_score = score_report["total_score"]
-        logger.info(f"  Iteration {iteration + 1}: Score = {total_score}")
+    # Step 6: Score and iterate (uses patch mode for re-runs; first resume is always from PKB)
+    logger.info("Step 6: Scoring resume and iterating if below 90...")
+    result = run_scoring_with_iteration(resume_content, parsed_jd, mapping, pkb, max_iterations=3)
+    score_report = result["score_report"]
+    keyword_report = result["keyword_report"]
+    resume_content = result["resume_content"]
+    iteration_log = {
+        "iterations_used": result.get("iterations_used", 1),
+        "feedback_applied": result.get("feedback_applied", []),
+        "passed": result.get("passed", False),
+    }
+    logger.info("  Final score: %.1f (target 90)", score_report["total_score"])
 
-        if total_score >= 90:
-            break
-        elif total_score >= 80:
-            # One optimization pass on lowest component
-            logger.info("  Score 80-89, running optimization pass...")
-            optimized = optimize_keywords(resume_content, parsed_jd)
-            resume_content = optimized["optimized_content"]
-            break
-        else:
-            # Re-run Steps 3-5
-            logger.info("  Score < 80, re-running Steps 3-5...")
-            resume_content = reframe_experience(mapping, pkb, parsed_jd)
-            optimized = optimize_keywords(resume_content, parsed_jd)
-            resume_content = optimized["optimized_content"]
-            resume_content = format_for_ats(resume_content)
-
-    # Step 7: Generate output
-    logger.info("Step 7: Generating final output...")
+    # Step 7: Generate output (PDF + DOCX + 6 artifacts)
+    logger.info("Step 7: Generating final output package...")
     output_path = generate_output(
-        resume_content, score_report, keyword_report, reframing_log, parsed_jd
+        formatted_content=resume_content,
+        jd_analysis=parsed_jd,
+        score_report=score_report,
+        keyword_report=keyword_report,
+        reframing_log=reframing_log,
+        format_validation=format_validation,
+        iteration_log=iteration_log,
+        pkb=pkb,
     )
-    logger.info(f"Resume package saved to: {output_path}")
+    logger.info("Resume package saved to: %s", output_path)
     return output_path
 
 
 def main():
     parser = argparse.ArgumentParser(description="Placement Team — Resume Engine")
     parser.add_argument("--jd", type=str, help="Job description text")
+    parser.add_argument("--jd-file", type=str, help="Path to file containing job description text")
     parser.add_argument("--jd-url", type=str, help="URL to job posting")
     parser.add_argument(
         "--build-profile", action="store_true", help="Build Profile Knowledge Base"
     )
+    parser.add_argument("--verbose", action="store_true", help="Enable verbose/debug logging")
 
     args = parser.parse_args()
+
+    if args.verbose:
+        logging.getLogger().setLevel(logging.DEBUG)
 
     if args.build_profile:
         build_profile()
     elif args.jd:
         run_pipeline(args.jd)
+    elif args.jd_file:
+        if not os.path.exists(args.jd_file):
+            logger.error("JD file not found: %s", args.jd_file)
+            sys.exit(1)
+        with open(args.jd_file, "r") as f:
+            jd_text = f.read().strip()
+        if not jd_text:
+            logger.error("JD file is empty: %s", args.jd_file)
+            sys.exit(1)
+        run_pipeline(jd_text)
     elif args.jd_url:
         from engine.jd_parser import parse_jd_from_url
 

@@ -1,0 +1,31 @@
+About the job
+Overview
+
+The Office AI team is on a mission to bring a transformative, AI-forward Word, Excel, PowerPoint and the entire suite of Office apps from any platform, device or ecosystem for the millions of people using them every day across work, life, and school. You will have the opportunity to join a product-led, fast-paced and data-driven growth culture focused on helping users discover and leverage Copilot value in Word, Excel, PowerPoint and the rest of the apps in M365 suite for transforming their business and personal work.
+
+About the Role:
+
+We are looking for an experienced, data driven and a customer-focused Senior Product Manager who's passionate about building innovative, user-centric, and delightful systems and experiences for productivity at work for their personal life, work life or school. We are looking for someone who does not shy away from any level of details - be it product, technical, design or business. Basic understanding of how LLMs work and Experience in hypothesis-driven growth experiments, using LLMs for market insights, and conducting opportunity analysis based on business and competitive data is essential. A strong bias for action, a growth mindset, product-led principles and curiosity are key to collaborating effectively with partners across Office. Success in this role requires basic understanding of how AI technology works (and hunger to learn more), customer empathy, UX intuition, data-driven product reasoning, strategic planning and the ability to synthesize complex product and business areas with a strong point of view to drive decision making and collaborate effectively with a large and matrixed set of stakeholders.
+
+Responsibilities
+
+Work across the Quad (PM, Engineering, Design, Applied science) on features and platform investments to provide transformative value to Office users via Copilot
+Develop a deep understanding of the business, our customers, and the competitive landscape through market and customer research in order to drive clarity toward integrating AI into the product strategy with clear and measurable business and customer outcomes.
+Partner across engineering teams, design, marketing, applied and data science and user research to develop strategies, priorities, and roadmaps with the ability to drive clear decision making in building AI first features including rapid prototyping, Evals, ensuring Responsible AI principles and trade-offs in ambiguous environment and adapt with changing inputs and new information.
+Lead by example, contributing to growth of other PMs. Share ideas and partner toward solutions to improve our culture and ways of working.
+Lead team execution toward a product roadmap, with clear measures, projected impact and prioritization toward measurable outcomes leaning into new ways of working within and across teams given the AI-forward culture and transformation occurring within our products, team and world right now.
+
+Qualifications
+
+Required Qualifications:
+Bachelor's Degree AND 5+ years experience in product/service/program management or software development OR equivalent experience.
+Basic Fluency in AI/ML concepts. Knowledge about current state of the AI technology and industry is a plus.
+Good grasp of the Product Led Growth strategy and product development approach-from uncovering customer needs and pain points to understanding competitive landscape and strategy.
+Excellence in Project Management and Stakeholder management.
+Experience of building 1-2 products on a large scale.
+
+Preferred Qualifications:
+Bachelor's Degree AND 8+ years experience in product/service/program management or software development OR equivalent experience.
+2+ years experience taking a product, feature, or experience to market.
+4+ years experience improving product metrics for a product, feature, or experience in a market.
+4+ years experience disrupting a market for a product, feature, or experience.

@@ -1,0 +1,71 @@
+Nuvora Health — San Francisco, CA (Hybrid)
+
+Senior Product Manager, Clinical Workflow Platform
+
+About Nuvora Health
+
+Nuvora Health is a Series C health technology company transforming how healthcare providers manage clinical workflows. Our platform integrates with Electronic Health Record (EHR) systems to streamline care coordination, reduce clinician burnout, and improve patient outcomes across 400+ hospital systems and 12,000+ ambulatory clinics nationwide. We are backed by Andreessen Horowitz and GV, and are processing over 18 million clinical encounters per month.
+
+About the Role
+
+We are seeking a Senior Product Manager to own and drive the roadmap for our Clinical Workflow Orchestration module — the core engine that automates care team task assignment, clinical decision support alerts, and order management within hospital and ambulatory settings. You will work at the intersection of clinical operations, health IT standards, and product strategy to deliver tools that clinicians actually want to use.
+
+This role requires deep healthcare domain expertise. You will partner daily with Chief Medical Information Officers (CMIOs), clinical informaticists, registered nurses, and health system IT leaders. You must understand the regulatory landscape, interoperability standards, and the realities of clinical environments to ship products that are both compliant and clinically meaningful.
+
+Key Responsibilities
+
+- Own the end-to-end product roadmap for the Clinical Workflow Orchestration module, spanning inpatient and outpatient care settings
+- Define product requirements by conducting ethnographic research in clinical environments, including shadowing nurses, physicians, and care coordinators during rounds and shift handoffs
+- Partner with clinical advisory board members (practicing physicians and nurse informaticists) to validate product concepts and ensure clinical safety
+- Design and optimize CPOE (Computerized Provider Order Entry) workflows, clinical decision support (CDS) alert logic, and care plan automation rules
+- Ensure all product features comply with HIPAA Privacy and Security Rules, HITECH Act requirements, and state-specific health data regulations
+- Drive adoption of HL7 FHIR R4 and SMART on FHIR application standards for third-party integrations with EHR systems including Epic, Cerner (Oracle Health), MEDITECH, and athenahealth
+- Define and manage product requirements for CDS Hooks integration, enabling real-time clinical decision support within EHR workflows
+- Collaborate with engineering to build and maintain FHIR-based APIs for patient data exchange, clinical document sharing (C-CDA), and ADT (Admit-Discharge-Transfer) event notifications
+- Lead product strategy for FDA regulatory pathway assessment for any clinical decision support features that may qualify as Software as a Medical Device (SaMD) under the FDA's Digital Health framework
+- Develop and track OKRs tied to clinical outcomes: reduction in medication errors, decrease in alert fatigue (measured by CDS override rates), improvement in care plan adherence, and time-to-order completion
+- Partner with the Revenue Cycle team to ensure workflow products support accurate CPT/ICD-10 coding, prior authorization automation, and claims lifecycle optimization
+- Manage cross-functional delivery with engineering, clinical informatics, QA, regulatory affairs, and customer success teams across 3 agile squads
+- Present product roadmap and clinical impact data to health system C-suite stakeholders (CIOs, CMIOs, CNOs) during quarterly business reviews
+- Conduct competitive analysis across clinical workflow vendors including Rhapsody, InterSystems HealthShare, Olive AI, and Health Catalyst
+
+Required Qualifications
+
+- 7+ years of product management experience, with at least 5 years in healthcare technology, health IT, or clinical software
+- Deep working knowledge of EHR/EMR systems (Epic, Cerner/Oracle Health, MEDITECH, or athenahealth) — must have built products that integrate with or extend these platforms
+- Expert understanding of HL7 v2 messaging, HL7 FHIR R4, C-CDA, SMART on FHIR, and CDS Hooks interoperability standards
+- Strong understanding of HIPAA Privacy Rule, HIPAA Security Rule, HITECH Act, and 21st Century Cures Act information blocking rules
+- Experience with FDA Digital Health regulatory frameworks, including Software as a Medical Device (SaMD) classification and De Novo/510(k) regulatory pathways
+- Familiarity with clinical terminologies: SNOMED CT, LOINC, RxNorm, ICD-10-CM/PCS, CPT coding systems
+- Experience defining products for clinical end-users (physicians, nurses, pharmacists, care coordinators) in both inpatient and ambulatory care environments
+- Understanding of clinical workflow concepts: CPOE, clinical decision support, medication reconciliation, care transitions, discharge planning, and order sets
+- Experience with healthcare data platforms: data warehouses, clinical data repositories, OMOP Common Data Model, or similar
+- Proven ability to work within SOC 2 Type II, HITRUST CSF, and healthcare-specific compliance frameworks
+- Bachelor's degree required; Master's degree in Health Informatics, Biomedical Informatics, Public Health, or MBA with healthcare concentration preferred
+
+Preferred Qualifications
+
+- Clinical background (RN, PharmD, or other clinical licensure) in addition to product management experience
+- Experience with value-based care models, HEDIS quality measures, and CMS quality reporting programs (MIPS/APM)
+- Familiarity with patient safety standards from The Joint Commission and AHRQ Patient Safety Indicators
+- Experience building products for Accountable Care Organizations (ACOs) or Clinically Integrated Networks (CINs)
+- Knowledge of telehealth/RPM (Remote Patient Monitoring) product requirements and CMS reimbursement policies
+- Experience with natural language processing applied to clinical documentation (clinical NLP, computer-assisted coding)
+- Certification: Certified Professional in Healthcare Information and Management Systems (CPHIMS) or Project Management Professional (PMP)
+
+Tech Stack You Will Work With
+
+- EHR Integration: Epic App Orchard / Cerner Code, SMART on FHIR, CDS Hooks, HL7 FHIR R4 APIs
+- Data: Snowflake, dbt, OMOP CDM, clinical data lake on AWS
+- Infrastructure: AWS GovCloud (HIPAA-eligible), Kubernetes, Terraform
+- Monitoring: Datadog, PagerDuty, clinical uptime SLAs (99.99%)
+- Tools: Jira, Productboard, Looker, Miro, Confluence
+- Compliance: HITRUST CSF, SOC 2 Type II, HIPAA BAA management
+
+Compensation
+
+$185,000 - $230,000 base + equity + annual bonus. Comprehensive benefits including medical, dental, vision, 401(k) match, and continuing medical education (CME) stipend.
+
+Equal Opportunity
+
+Nuvora Health is an equal opportunity employer. We celebrate diversity and are committed to creating an inclusive environment for all employees.

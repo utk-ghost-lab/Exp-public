@@ -202,8 +202,49 @@ def optimize_keywords(resume_content: dict, parsed_jd: dict) -> dict:
         len(missing_keywords), len(over_used),
     )
 
+    # Bug 6 fix: Actively insert missing P1 keywords into skills section
+    # Only insert keywords that exist in the PKB (real skills the candidate has)
+    optimized_content = dict(resume_content)
+    pkb_all_skills = set()
+    # We don't have direct PKB access here, so check if the keyword appears
+    # as a real tool/methodology/domain term (short, specific terms only)
+    existing_skills = set()
+    sk = optimized_content.get("skills") or {}
+    for key in ("technical", "methodologies", "domains"):
+        for item in sk.get(key) or []:
+            existing_skills.add((item or "").strip().lower())
+
+    # Insert missing P1 keywords into skills section if they look like skill terms
+    # (not long phrases, not responsibilities) and we're under 25 cap
+    skills_added = []
+    current_skill_count = sum(len(sk.get(k) or []) for k in ("technical", "methodologies", "domains"))
+    for kw in p1_missing:
+        if current_skill_count >= MAX_SKILLS_TERMS:
+            break
+        kw_clean = (kw or "").strip()
+        if not kw_clean or len(kw_clean.split()) > 3:
+            continue  # Skip long phrases — not skill terms
+        if kw_clean.lower() in existing_skills:
+            continue  # Already present
+        # Categorize: tools/tech vs methodologies vs domains
+        kw_lower = kw_clean.lower()
+        if any(t in kw_lower for t in ("agile", "scrum", "kanban", "lean", "design thinking", "jobs-to-be-done", "okr", "sprint", "gtm")):
+            cat = "methodologies"
+        elif any(t in kw_lower for t in ("saas", "b2b", "b2c", "fintech", "crm", "pos", "smb", "marketplace", "e-commerce", "healthcare", "edtech")):
+            cat = "domains"
+        else:
+            cat = "technical"
+        if cat not in sk:
+            sk[cat] = []
+        sk[cat].append(kw_clean)
+        existing_skills.add(kw_clean.lower())
+        skills_added.append(kw_clean)
+        current_skill_count += 1
+    if skills_added:
+        optimized_content["skills"] = sk
+        logger.info("Inserted %d missing P1 keywords into skills: %s", len(skills_added), skills_added)
+
     # Fix 7: Cap skills at 25 terms. Trim lowest-priority (P1 before P0, least in JD first).
-    optimized_content = resume_content
     sk = resume_content.get("skills") or {}
     tech = list(sk.get("technical") or [])
     meth = list(sk.get("methodologies") or [])

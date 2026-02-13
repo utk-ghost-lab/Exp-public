@@ -527,10 +527,10 @@ pytest
 - [x] Step 3: Profile Mapper (profile_mapper.py)
 - [x] Step 4: Reframing Engine (reframer.py)
 - [x] Step 5: Keyword Optimizer (keyword_optimizer.py)
-- [ ] Step 6: Scorer (scorer.py)
-- [ ] Step 7: Formatter (formatter.py)
-- [ ] Step 8: Generator (generator.py)
-- [ ] Step 9: Orchestrator (main.py)
+- [x] Step 6: Scorer (scorer.py)
+- [x] Step 7: Formatter (formatter.py) — format validation with 9 permanent rules + auto-trim
+- [x] Step 8: Generator (generator.py) — PDF+DOCX+8 artifacts, exact template match
+- [x] Step 9: Orchestrator (main.py) — full pipeline wired with new formatter/generator
 - [ ] Step 10: Testing with 5 real JDs
 - [ ] Step 11: Iteration until 90+ consistent
 

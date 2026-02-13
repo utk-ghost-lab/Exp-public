@@ -1,0 +1,58 @@
+About the job
+Zenoti provides an all-in-one, cloud-based software solution for the beauty and wellness industry. Our solution allows users to seamlessly manage every aspect of the business in a comprehensive mobile solution: online appointment bookings, POS, CRM, employee management, inventory management, built-in marketing programs and more. Zenoti helps clients streamline their systems and reduce costs, while simultaneously improving customer retention and spending. Our platform is engineered for reliability and scale and harnesses the power of enterprise-level technology for businesses of all sizes
+
+Zenoti powers more than 30,000 salons, spas, medspas and fitness studios in over 50 countries. This includes a vast portfolio of global brands, such as European Wax Center, Hand & Stone, Massage Heights, Rush Hair & Beauty, Sono Bello, Profile by Sanford, Hair Cuttery, CorePower Yoga and TONI&GUY.
+
+Our recent accomplishments include surpassing a $1 billion unicorn valuation, being named Next Tech Titan by GeekWire, raising an $80 million investment from TPG, ranking as the 316th fastest-growing company in North America on Deloitte's 2020 Technology Fast 500™. We are also proud to be recognized as a Great Place to Work CertifiedTM for 2021-2022 as this reaffirms our commitment to empowering people to feel good and find their greatness. To learn more about Zenoti visit: https://www.zenoti.com
+
+What's the opportunity?
+
+As a Product Manager at Zenoti, you will own AI-powered, customer-facing products that directly impact revenue, conversion, retention, and operational efficiency for service-based SMBs (salons, spas, medspas, fitness).
+
+You will be responsible for identifying high-impact problems, deciding where AI meaningfully improves outcomes (and where it doesn't), and shipping scalable solutions from concept to adoption. This role sits at the intersection of AI, workflows, data, and GTM execution.
+
+You'll work closely with engineering, data science, design, GTM teams, and customers to build products that move real business metrics, not just features.
+
+Your charter spans the entire product lifecycle: discovery, solution design, AI trade-offs, execution, launch, measurement, and iteration.
+
+What will you do?
+
+Own AI-enabled product areas end-to-end, from problem definition to measurable business outcomes
+Define when to use AI vs rules, heuristics, or workflow design based on customer value, cost, and reliability
+Translate customer problems into clear product strategy, success metrics, and execution plans
+Partner deeply with engineering and AI teams on:
+Model selection and orchestration (build vs buy)
+Accuracy, latency, cost, and failure modes
+Human-in-the-loop vs automated decisioning
+Design guardrails, evaluation metrics, and fallback experiences for AI features
+Build and maintain prioritized product backlogs aligned to outcomes (ARR, conversion, retention, productivity)
+Lead product launches with clear GTM narratives tied to customer ROI
+Use data and experimentation to validate impact and iterate quickly
+Act as the voice of the customer, especially low-tech SMB operators and frontline staff
+What skills and experience do you need?
+
+Core Product Skills
+
+Strong product judgment with the ability to frame ambiguous problems into actionable plans
+Proven experience owning products from idea → launch → measurable impact
+Ability to balance strategy with hands-on execution
+Excellent communication skills with engineers, designers, GTM teams, customers, and executives
+Comfort operating in fast-moving, imperfect environments
+
+AI & Technical Expectations
+
+Experience building or owning AI-powered product features (GenAI, ML, automation, decision systems)
+Clear understanding of:
+Model limitations and trade-offs
+Accuracy vs cost vs latency considerations
+Evaluation metrics beyond adoption (precision, lift, overrides, time saved)
+Familiarity with modern AI tooling and workflows (LLMs, orchestration frameworks, RAG concepts, APIs)
+Strong grounding in cloud, web, mobile, and data-driven systems
+Experience
+
+4+ years of experience as a Product Manager or Technical Product Manager
+Technical or engineering background strongly preferred
+Experience in B2B SaaS, vertical SaaS, or workflow-heavy products is a plus
+MBA from a premier institute is a plus, but product judgment matters more
+
+Zenoti provides equal employment opportunities to all employees and applicants for employment and prohibits discrimination and harassment of any type without regard to race, color, religion, age, sex, national origin, disability status, genetics, protected veteran status, sexual orientation, gender identity or expression, or any other characteristic protected by federal, state, or local laws. This policy applies to all terms and conditions of employment, including recruiting, hiring, placement, promotion, termination, layoff, recall, transfer, leaves of absence, compensation and training.

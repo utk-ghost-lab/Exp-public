@@ -316,17 +316,21 @@ def _anti_pattern_score(resume_content: dict) -> float:
             issues.append("duplicate_bullet")
             break
         seen.add(n)
-    # Skills not backed by experience
+    # Skills not backed by experience or summary
+    # Note: keyword_optimizer intentionally injects target-domain ATS keywords
+    # into skills that may not appear in experience bullets (especially for
+    # domain-shifted resumes). Use a lenient threshold.
     skill_words = set()
     sk = content.get("skills") or {}
+    stop_words = {"and", "for", "the", "with", "from", "into", "based", "driven"}
     for key in ("technical", "methodologies", "domains"):
         for item in sk.get(key) or []:
             for w in (item or "").lower().split():
-                if len(w) >= 3:
+                if len(w) >= 3 and w not in stop_words:
                     skill_words.add(w)
-    exp_text = " ".join(bullets).lower()
-    unbacked = sum(1 for w in skill_words if w not in exp_text and (content.get("professional_summary") or "").lower().find(w) == -1)
-    if unbacked > len(skill_words) * 0.5:
+    full_text = " ".join(bullets).lower() + " " + (content.get("professional_summary") or "").lower()
+    unbacked = sum(1 for w in skill_words if w not in full_text)
+    if skill_words and unbacked > len(skill_words) * 0.7:
         issues.append("skills_not_backed")
     # Run-on bullet
     for b in bullets:
@@ -363,9 +367,9 @@ def _brevity_score(resume_content: dict) -> float:
     for r in content.get("work_experience") or []:
         bullets.extend(r.get("bullets") or [])
     if bullets:
-        in_range = sum(1 for b in bullets if 20 <= len((b or "").split()) <= 30)
+        in_range = sum(1 for b in bullets if 15 <= len((b or "").split()) <= 32)
         pct = 100.0 * in_range / len(bullets)
-        score = min(100, (score + pct) / 2)  # blend placeholder with bullet %
+        score = min(100, pct)  # direct percentage of bullets in acceptable range
     return round(max(0, min(100, score)), 1)
 
 
@@ -607,7 +611,7 @@ def run_scoring_with_iteration(
         iterations_used, feedback_applied (list of feedback strings used).
     """
     from engine.keyword_optimizer import optimize_keywords
-    from engine.reframer import reframe_experience
+    from engine.reframer import reframe_experience, _apply_programmatic_fixes
 
     content = _content_for_scoring(resume_content)
     optimized = optimize_keywords(content, parsed_jd)
@@ -615,12 +619,33 @@ def run_scoring_with_iteration(
     keyword_report = optimized["keyword_report"]
     feedback_applied = []
     iteration = 0
+    best_score = 0.0
+    best_content = current_content
+    best_keyword_report = keyword_report
+    best_score_report = None
 
     while iteration < max_iterations:
         iteration += 1
         score_report = score_resume(current_content, parsed_jd, keyword_report=keyword_report)
         total = score_report["total_score"]
         logger.info("Iteration %d: total score = %.1f (target %d)", iteration, total, TARGET_SCORE_PASS)
+
+        # Bug 5 fix: Track best score and revert if iteration made it worse
+        if total > best_score:
+            best_score = total
+            best_content = current_content
+            best_keyword_report = keyword_report
+            best_score_report = score_report
+        elif total < best_score:
+            logger.warning(
+                "Iteration %d score %.1f < previous best %.1f — reverting to best version",
+                iteration, total, best_score,
+            )
+            current_content = best_content
+            keyword_report = best_keyword_report
+            score_report = best_score_report
+            # Skip further iterations since patching is making it worse
+            break
 
         if total >= TARGET_SCORE_PASS:
             return {
@@ -643,12 +668,24 @@ def run_scoring_with_iteration(
             current_resume_content=current_content
         )
         reframed_content = _content_for_scoring(reframed)
+
+        # Bug 5 fix: Re-apply programmatic fixes after patch iteration
+        reframed_content = _apply_programmatic_fixes(reframed_content, parsed_jd, pkb)
+
         optimized = optimize_keywords(reframed_content, parsed_jd)
         current_content = optimized["optimized_content"]
         keyword_report = optimized["keyword_report"]
 
-    # Final score after max iterations
-    score_report = score_resume(current_content, parsed_jd, keyword_report=keyword_report)
+    # Final score after max iterations (use best version)
+    if best_score_report is None or current_content is not best_content:
+        score_report = score_resume(current_content, parsed_jd, keyword_report=keyword_report)
+        if score_report["total_score"] < best_score:
+            current_content = best_content
+            keyword_report = best_keyword_report
+            score_report = best_score_report
+    else:
+        score_report = best_score_report
+
     return {
         "score_report": score_report,
         "keyword_report": keyword_report,

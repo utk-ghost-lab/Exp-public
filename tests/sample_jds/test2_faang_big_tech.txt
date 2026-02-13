@@ -1,0 +1,63 @@
+Google — Senior Product Manager, Cloud Data Platform (L6)
+
+Location: Mountain View, CA (Hybrid) | New York, NY | Seattle, WA | Remote (US)
+
+About the Role
+
+Google Cloud is building the next generation of data and analytics infrastructure that powers some of the world's largest enterprises. As a Senior Product Manager on the Cloud Data Platform team, you will define and drive the product strategy for our managed data services — spanning real-time analytics, data pipelines, and governed data sharing across hybrid and multi-cloud environments. You will work at the intersection of deeply technical infrastructure and high-impact business outcomes, shaping products used by tens of thousands of enterprise customers.
+
+This is a high-ambiguity, high-impact role. You will navigate complex trade-offs across engineering, design, go-to-market, and executive stakeholders while maintaining a relentless focus on customer value and business growth.
+
+About Google Cloud
+
+Google Cloud accelerates every organization's ability to digitally transform its business. We deliver enterprise-grade solutions that leverage Google's cutting-edge technology, and tools that help developers build more sustainably. Customers in more than 200 countries and territories turn to Google Cloud as their trusted partner to enable growth and solve their most critical business problems.
+
+Responsibilities
+
+- Define and own the product roadmap for Cloud Data Platform services, balancing near-term customer needs with long-term platform vision
+- Drive product strategy from concept through launch, including writing product requirements documents (PRDs), defining success metrics, and leading executive reviews
+- Partner deeply with Engineering, UX, and SRE teams to ship high-quality products on aggressive timelines
+- Conduct rigorous competitive analysis and market research to identify opportunities in the enterprise data infrastructure landscape
+- Lead cross-functional initiatives spanning 5+ teams across multiple organizations, driving alignment on shared goals and dependencies
+- Define and track key product metrics (adoption, retention, NPS, revenue impact) and use data to inform prioritization decisions
+- Engage directly with strategic enterprise customers and channel partners to deeply understand pain points, validate solutions, and drive adoption
+- Collaborate with Developer Relations and Technical Writing to ensure world-class documentation, tutorials, and developer experience
+- Present product strategy and progress to VP and SVP-level leadership, translating technical depth into business impact narratives
+- Identify and drive platform-level investments that improve reliability, performance, and cost-efficiency for managed data services
+- Champion a culture of experimentation through A/B testing, controlled rollouts, and iterative development
+
+Minimum Qualifications
+
+1. Bachelor's degree in Computer Science, Engineering, a related technical field, or equivalent practical experience
+2. 8+ years of experience in product management, co-founder, or related technical role
+3. 3+ years of experience managing or leading cross-functional product teams in a cloud infrastructure, data platform, or enterprise SaaS environment
+4. Experience with SQL, data modeling, and familiarity with distributed systems concepts (e.g., MapReduce, pub/sub, stream processing)
+5. Track record of shipping 0-to-1 products or scaling existing products to significant adoption milestones
+6. Experience writing product requirements documents (PRDs) and driving alignment across engineering, design, and business stakeholders
+7. Demonstrated ability to influence without authority across organizational boundaries
+
+Preferred Qualifications
+
+8. Master's degree or MBA
+9. Experience with cloud-native data technologies (e.g., BigQuery, Snowflake, Databricks, Apache Spark, Apache Kafka, Dataflow)
+10. Experience building or managing products in the data governance, data mesh, or data catalog space
+11. Familiarity with machine learning pipelines and MLOps workflows
+12. Experience with pricing and packaging for enterprise/B2B SaaS products, including consumption-based and subscription models
+13. Strong understanding of the competitive landscape across AWS, Azure, and GCP data services
+14. Experience driving platform adoption with Fortune 500 customers and navigating complex enterprise sales cycles
+15. Demonstrated ability to operate effectively in ambiguous, rapidly evolving problem spaces with incomplete information
+16. Experience with API design and developer platform product management
+17. Track record of using A/B testing, experimentation frameworks, and data-driven decision-making to optimize product outcomes
+18. Excellent written and verbal communication skills, with experience presenting to executive leadership (VP+)
+
+Additional Information
+
+Google is proud to be an equal opportunity workplace and is an affirmative action employer. We are committed to equal employment opportunity regardless of race, color, ancestry, religion, sex, national origin, sexual orientation, age, citizenship, marital status, disability, gender identity or Veteran status.
+
+The US base salary range for this full-time position is $192,000 - $284,000 + bonus + equity + benefits. Our salary ranges are determined by role, level, and location. Within the range, individual pay is determined by work location and additional factors, including job-related skills, experience, and relevant education or training.
+
+Level: L6 (Senior)
+
+Team: Google Cloud — Data Analytics
+
+Job Type: Full-time

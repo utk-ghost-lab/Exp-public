@@ -192,17 +192,28 @@ def _word_count(text: str) -> int:
 
 
 def _shorten_bullet_to_max_words(bullet: str, max_words: int = MAX_WORDS_PER_BULLET) -> str:
-    """Shorten bullet to at most max_words; prefer cut at sentence or clause boundary."""
+    """Shorten bullet to at most max_words. Hard cap — no exceptions.
+
+    Tries to cut at a clause boundary first for readability, but always
+    enforces the word limit as an absolute ceiling.
+    """
     words = bullet.split()
     if len(words) <= max_words:
         return bullet
     truncated = " ".join(words[:max_words])
-    # Prefer cutting at last comma or period before max_words to avoid "word and." or "75% engagement."
-    for sep in (". ", ", ", "; ", "—", " "):
+    # Try cutting at last comma/period/semicolon for cleaner sentence
+    for sep in (". ", ", ", "; ", "—"):
         last_sep = truncated.rfind(sep)
         if last_sep > len(truncated) * 0.5:
-            truncated = truncated[: last_sep + len(sep)].rstrip()
-            break
+            candidate = truncated[: last_sep + len(sep)].rstrip()
+            # Only use clause cut if it doesn't exceed max_words
+            if len(candidate.split()) <= max_words:
+                truncated = candidate
+                break
+    # Hard cap: ensure we never exceed max_words
+    final_words = truncated.split()
+    if len(final_words) > max_words:
+        truncated = " ".join(final_words[:max_words])
     if not truncated.rstrip().endswith((".", "!", "?")):
         truncated = truncated.rstrip(".,;") + "."
     return truncated
@@ -895,6 +906,75 @@ def reframe_experience(
     result.setdefault("certifications", [])
     result.setdefault("reframing_log", [])
 
+    # Bug 1 fix: If work_experience is empty, retry once; if still empty, fallback to PKB
+    if not result.get("work_experience"):
+        logger.warning("work_experience is EMPTY after reframe — retrying once...")
+        try:
+            retry_message = client.messages.create(
+                model="claude-sonnet-4-5-20250929",
+                max_tokens=16000,
+                timeout=full_reframe_timeout,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": (
+                            f"{REFRAME_PROMPT}\n\n"
+                            f"{feedback_block}"
+                            "---\n\n"
+                            "JOB DESCRIPTION ANALYSIS:\n"
+                            f"{jd_json}\n\n"
+                            "---\n\n"
+                            "MAPPING MATRIX (JD requirements → candidate experience):\n"
+                            f"{mapping_json}\n\n"
+                            "---\n\n"
+                            "CANDIDATE PROFILE KNOWLEDGE BASE (PKB):\n"
+                            f"{pkb_json}\n\n"
+                            "CRITICAL: Your previous response had an EMPTY work_experience array. "
+                            "You MUST include all work experience roles with bullets. This is mandatory."
+                        ),
+                    }
+                ],
+            )
+            retry_text = retry_message.content[0].text.strip()
+            retry_json_str = _extract_json_from_response(retry_text)
+            retry_result = json.loads(retry_json_str)
+            if "resume" in retry_result and isinstance(retry_result["resume"], dict):
+                retry_result = retry_result["resume"]
+            if retry_result.get("work_experience"):
+                logger.info("Retry succeeded: got %d roles", len(retry_result["work_experience"]))
+                result["work_experience"] = retry_result["work_experience"]
+                if retry_result.get("professional_summary"):
+                    result["professional_summary"] = retry_result["professional_summary"]
+                if retry_result.get("skills"):
+                    result["skills"] = retry_result["skills"]
+                if retry_result.get("reframing_log"):
+                    result["reframing_log"] = retry_result["reframing_log"]
+            else:
+                logger.warning("Retry also returned empty work_experience")
+        except Exception as retry_err:
+            logger.warning("Retry failed: %s", retry_err)
+
+        # Final fallback: build minimal work_experience from PKB directly
+        if not result.get("work_experience"):
+            logger.warning("Falling back to PKB bullets for work_experience")
+            fallback_work = []
+            for w in (pkb.get("work_experience") or [])[:4]:
+                bullets = []
+                for b in (w.get("bullets") or [])[:5]:
+                    text = (b.get("original_text") or "") if isinstance(b, dict) else str(b)
+                    if text.strip():
+                        bullets.append(text.strip())
+                if bullets:
+                    fallback_work.append({
+                        "company": w.get("company", ""),
+                        "title": w.get("title", ""),
+                        "dates": _format_dates_from_pkb(w),
+                        "location": w.get("location", ""),
+                        "bullets": bullets,
+                    })
+            result["work_experience"] = fallback_work
+            logger.info("PKB fallback: %d roles with bullets", len(fallback_work))
+
     # Validate and normalize
     warnings = _validate_reframe_output(result, pkb)
     if warnings:
@@ -935,7 +1015,11 @@ def reframe_experience(
 
 
 def _normalize_work_experience_dates(work_experience: list, pkb: dict) -> list:
-    """Ensure each role has correct dates from PKB and is in reverse-chronological order."""
+    """Ensure each role has correct dates from PKB and is in reverse-chronological order.
+
+    Sorts by end date descending (most recent first). Internships and early-career
+    developer roles (Fidelity, Cognizant) are always pushed to the end.
+    """
     pkb_work = {w["company"]: w for w in pkb.get("work_experience", [])}
     for role in work_experience:
         company = role.get("company")
@@ -944,16 +1028,24 @@ def _normalize_work_experience_dates(work_experience: list, pkb: dict) -> list:
             formatted = _format_dates_from_pkb(pkb_work[company])
             if formatted:
                 role["dates"] = formatted
-    # Sort by end date descending if we have PKB (most recent first)
-    pkb_order = [w["company"] for w in pkb.get("work_experience", [])]
-    if pkb_order:
-        def sort_key(r):
-            company = r.get("company", "")
-            try:
-                return -pkb_order.index(company)
-            except ValueError:
-                return 0
-        work_experience.sort(key=sort_key)
+    # Sort by actual end year descending (most recent first)
+    # Internships and early-career developer roles always go last
+    def sort_key(r):
+        company = (r.get("company") or "").lower()
+        title = (r.get("title") or "").lower()
+        is_intern = "intern" in title or "fidelity" in company
+        is_early_dev = "cognizant" in company and ("developer" in title or "software" in title or "analyst" in title)
+        if is_intern:
+            return (2, 0)  # Push to very end
+        if is_early_dev:
+            return (1, 0)  # Push after main roles but before internships
+        end_year = _get_role_end_year(r, pkb)
+        # "Present" roles get year 9999 to sort first
+        dates_str = r.get("dates") or ""
+        if isinstance(dates_str, str) and "present" in dates_str.lower():
+            end_year = 9999
+        return (0, -end_year)
+    work_experience.sort(key=sort_key)
     return work_experience
 
 

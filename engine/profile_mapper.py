@@ -9,10 +9,15 @@ Output: Mapping matrix with reframe strategies and coverage summary
 
 import json
 import logging
+import re
+import time
 
 import anthropic
 
 logger = logging.getLogger(__name__)
+
+# Cap keywords to prevent token overflow (Bug 4 fix)
+MAX_P1_KEYWORDS_FOR_MAPPER = 50
 
 MAPPING_PROMPT = """You are an expert career strategist and resume optimization engine. Your job is to map job description requirements to a candidate's actual experience from their Profile Knowledge Base (PKB).
 
@@ -75,6 +80,59 @@ Map ALL P0 keywords, ALL P1 keywords, and important P2 keywords. Be exhaustive.
 Return ONLY the JSON object. No markdown, no explanation."""
 
 
+def _try_repair_json(text: str):
+    """Attempt to repair truncated JSON from LLM response.
+
+    Common truncation: response cut mid-string or mid-object.
+    Strategy: close open strings/arrays/objects progressively.
+    """
+    if not text or not text.strip():
+        return None
+    s = text.strip()
+    # Try parsing as-is first
+    try:
+        return json.loads(s)
+    except json.JSONDecodeError:
+        pass
+    # Count unclosed braces/brackets
+    open_braces = s.count("{") - s.count("}")
+    open_brackets = s.count("[") - s.count("]")
+    # Check if we're inside a string (odd number of unescaped quotes)
+    in_string = s.count('"') % 2 == 1
+    repaired = s
+    if in_string:
+        repaired += '"'
+    # Close any open value (if truncated mid-value after a colon)
+    if repaired.rstrip().endswith((",", ":")):
+        repaired = repaired.rstrip().rstrip(",:")
+    repaired += "]" * max(0, open_brackets + (1 if in_string else 0))
+    repaired += "}" * max(0, open_braces)
+    try:
+        result = json.loads(repaired)
+        logger.info("JSON repair succeeded (closed %d braces, %d brackets)", open_braces, open_brackets)
+        return result
+    except json.JSONDecodeError:
+        pass
+    # Last resort: find the last valid top-level object
+    for end_pos in range(len(s) - 1, max(0, len(s) // 2), -1):
+        candidate = s[:end_pos]
+        open_b = candidate.count("{") - candidate.count("}")
+        open_br = candidate.count("[") - candidate.count("]")
+        in_str = candidate.count('"') % 2 == 1
+        attempt = candidate
+        if in_str:
+            attempt += '"'
+        attempt += "]" * max(0, open_br)
+        attempt += "}" * max(0, open_b)
+        try:
+            result = json.loads(attempt)
+            logger.info("JSON repair succeeded by truncating to position %d", end_pos)
+            return result
+        except json.JSONDecodeError:
+            continue
+    return None
+
+
 def map_profile_to_jd(parsed_jd: dict, pkb: dict) -> dict:
     """Map JD requirements to user's experience in PKB.
 
@@ -86,6 +144,16 @@ def map_profile_to_jd(parsed_jd: dict, pkb: dict) -> dict:
         Mapping matrix with match types, reframe strategies, and coverage
     """
     client = anthropic.Anthropic()
+
+    # Bug 4 fix: Cap P1 keywords to prevent token overflow; drop P2 entirely
+    p0_keywords = parsed_jd.get("p0_keywords", [])
+    p1_keywords = parsed_jd.get("p1_keywords", [])[:MAX_P1_KEYWORDS_FOR_MAPPER]
+    p2_keywords = []  # Skip P2 to reduce payload
+    if len(parsed_jd.get("p1_keywords", [])) > MAX_P1_KEYWORDS_FOR_MAPPER:
+        logger.info(
+            "Capped P1 keywords from %d to %d for mapper (dropped P2 entirely)",
+            len(parsed_jd.get("p1_keywords", [])), MAX_P1_KEYWORDS_FOR_MAPPER,
+        )
 
     # Build a focused context with the JD keywords and PKB
     jd_summary = json.dumps({
@@ -100,30 +168,45 @@ def map_profile_to_jd(parsed_jd: dict, pkb: dict) -> dict:
         "achievement_language": parsed_jd.get("achievement_language", []),
         "cultural_signals": parsed_jd.get("cultural_signals", []),
         "job_level": parsed_jd.get("job_level"),
-        "p0_keywords": parsed_jd.get("p0_keywords", []),
-        "p1_keywords": parsed_jd.get("p1_keywords", []),
-        "p2_keywords": parsed_jd.get("p2_keywords", []),
+        "p0_keywords": p0_keywords,
+        "p1_keywords": p1_keywords,
+        "p2_keywords": p2_keywords,
     }, indent=2)
 
     pkb_summary = json.dumps(pkb, indent=2)
 
     logger.info("Mapping profile to JD requirements with Claude...")
-    message = client.messages.create(
-        model="claude-sonnet-4-5-20250929",
-        max_tokens=16000,
-        messages=[
-            {
-                "role": "user",
-                "content": (
-                    f"{MAPPING_PROMPT}\n\n"
-                    f"---\n\nJOB DESCRIPTION ANALYSIS:\n{jd_summary}\n\n"
-                    f"---\n\nCANDIDATE PROFILE KNOWLEDGE BASE:\n{pkb_summary}"
-                ),
-            }
-        ],
-    )
 
-    response_text = message.content[0].text.strip()
+    # Retry logic with JSON repair (Bug 4 fix)
+    max_retries = 2
+    last_error = None
+    response_text = ""
+    for attempt in range(max_retries + 1):
+        try:
+            message = client.messages.create(
+                model="claude-sonnet-4-5-20250929",
+                max_tokens=16000,
+                timeout=180.0,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": (
+                            f"{MAPPING_PROMPT}\n\n"
+                            f"---\n\nJOB DESCRIPTION ANALYSIS:\n{jd_summary}\n\n"
+                            f"---\n\nCANDIDATE PROFILE KNOWLEDGE BASE:\n{pkb_summary}"
+                        ),
+                    }
+                ],
+            )
+            response_text = message.content[0].text.strip()
+            break
+        except Exception as e:
+            last_error = e
+            logger.warning("Profile mapper attempt %d/%d failed: %s", attempt + 1, max_retries + 1, e)
+            if attempt < max_retries:
+                time.sleep(10)
+            else:
+                raise
 
     # Handle potential markdown wrapping
     if response_text.startswith("```"):
@@ -143,9 +226,11 @@ def map_profile_to_jd(parsed_jd: dict, pkb: dict) -> dict:
     try:
         mapping = json.loads(response_text)
     except json.JSONDecodeError as e:
-        logger.error(f"Failed to parse mapping as JSON: {e}")
-        logger.error(f"Response preview: {response_text[:500]}")
-        raise ValueError("LLM returned invalid JSON for profile mapping.") from e
+        logger.warning("Initial JSON parse failed: %s — attempting repair...", e)
+        mapping = _try_repair_json(response_text)
+        if mapping is None:
+            logger.error("JSON repair failed. Response preview: %s", response_text[:500])
+            raise ValueError("LLM returned invalid JSON for profile mapping.") from e
 
     # Validate
     warnings = validate_mapping(mapping)

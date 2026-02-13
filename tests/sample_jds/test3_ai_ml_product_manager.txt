@@ -1,0 +1,85 @@
+Senior Product Manager, AI Platform
+Nexus AI — San Francisco, CA (Hybrid)
+
+About Nexus AI
+
+Nexus AI is a Series C AI infrastructure company ($180M raised, $1.2B valuation) building the enterprise platform for deploying, evaluating, and monitoring production LLM applications. Our customers include Fortune 500 companies across financial services, healthcare, and e-commerce who rely on our platform to move generative AI from prototype to production. We are a team of 320 across San Francisco, New York, and London.
+
+About the Role
+
+We are looking for a Senior Product Manager to own our core AI Platform — the end-to-end system that enables enterprise customers to build, evaluate, deploy, and monitor LLM-powered applications at scale. You will define the product strategy for our model orchestration layer, RAG pipeline builder, evaluation framework, and MLOps infrastructure. This is a high-impact, high-visibility role reporting directly to the VP of Product.
+
+You will work at the intersection of cutting-edge AI research and enterprise product delivery, translating complex ML capabilities into intuitive workflows that non-ML engineers can use. You will partner closely with our ML research team, platform engineering, design, and go-to-market teams to ship products that drive measurable customer outcomes.
+
+Key Responsibilities
+
+- Own the product roadmap for the AI Platform, including LLM orchestration, retrieval-augmented generation (RAG), prompt management, model evaluation, and deployment infrastructure
+- Define and prioritize features based on customer research, usage data, competitive analysis, and alignment with company strategy
+- Drive the product strategy for our model evaluation framework — enabling customers to benchmark LLM performance across accuracy, latency, cost, and safety dimensions
+- Lead cross-functional initiatives spanning ML engineering, platform engineering, design, sales engineering, and customer success
+- Define success metrics and KPIs for platform adoption, activation, and retention; build dashboards and reporting to track progress
+- Conduct deep customer discovery with enterprise AI teams (ML engineers, data scientists, AI architects) to identify pain points and unmet needs
+- Partner with the ML research team to translate research breakthroughs (fine-tuning techniques, embedding models, agent architectures) into productized features
+- Own the developer experience for our SDK and API — ensuring documentation, onboarding, and time-to-first-value are world-class
+- Drive pricing and packaging decisions for platform tiers in partnership with finance and go-to-market teams
+- Present product strategy and roadmap to executive leadership, board, and key enterprise customers
+- Manage a backlog of 50+ features across 4 engineering squads, making hard prioritization tradeoffs weekly
+- Ship at a high cadence — we deploy to production multiple times per day and expect PMs to match that pace
+
+Requirements
+
+- 6+ years of product management experience, with at least 3 years on AI/ML, data infrastructure, or developer platform products
+- Deep technical understanding of large language models (LLMs), including transformer architecture, fine-tuning, prompt engineering, and inference optimization
+- Hands-on experience with RAG architectures — vector databases (Pinecone, Weaviate, Chroma), embedding models, chunking strategies, and retrieval evaluation
+- Strong understanding of MLOps and model lifecycle management — experiment tracking, model versioning, A/B testing in production, monitoring and observability for ML systems
+- Experience with LLM orchestration frameworks (LangChain, LlamaIndex, Semantic Kernel) and an opinion on where orchestration is heading
+- Proficiency in SQL and comfort working with product analytics tools (Amplitude, Mixpanel, or Looker) to drive data-informed decisions
+- Experience defining and tracking product metrics including adoption funnels, activation rates, retention cohorts, and usage-based revenue metrics
+- Proven ability to lead cross-functional teams of 20+ engineers, designers, and researchers without direct authority
+- Excellent written and verbal communication skills — you can write a crisp PRD, present to the C-suite, and debug a customer issue in the same day
+- Experience working directly with enterprise customers (Fortune 500 preferred), including running design partners, beta programs, and customer advisory boards
+
+Preferred Qualifications
+
+- Experience with model evaluation and benchmarking — designing evaluation harnesses, human-in-the-loop review systems, and automated quality scoring
+- Familiarity with AI safety and responsible AI practices — content filtering, bias detection, guardrails, and red-teaming
+- Experience building developer tools, SDKs, or API-first products with a strong developer experience focus
+- Background in or exposure to agentic AI systems — multi-agent orchestration, tool use, planning, and autonomous workflows
+- Technical degree (CS, ML, Data Science) or equivalent hands-on technical experience — you can read a research paper, review a PR, and prototype in Python
+- Experience at a high-growth startup (Series B-D) navigating ambiguity, wearing multiple hats, and scaling from 10 to 100 customers
+- Familiarity with GPU infrastructure, model serving (vLLM, TensorRT, Triton), and cost optimization for inference at scale
+- Prior experience with pricing and packaging for usage-based SaaS products
+- Published writing, talks, or thought leadership on AI/ML product management topics
+
+Tech Stack You Will Work With
+
+- LLM Providers: OpenAI GPT-4, Anthropic Claude, Meta Llama, Mistral, Cohere
+- Vector Databases: Pinecone, Weaviate, Chroma, pgvector
+- Orchestration: LangChain, LlamaIndex, custom orchestration layer
+- ML Infrastructure: MLflow, Weights & Biases, Ray, Kubernetes
+- Observability: Datadog, custom LLM monitoring dashboards
+- Languages: Python, TypeScript
+- Data: Snowflake, dbt, Amplitude
+- Deployment: AWS (SageMaker, Bedrock), GCP (Vertex AI), Azure (Azure OpenAI Service)
+
+Compensation & Benefits
+
+- Base salary: $185,000 - $230,000 (depending on experience and location)
+- Equity: Meaningful early-stage equity package (0.05% - 0.15%)
+- Annual bonus: 15-20% target
+- Benefits: Full medical/dental/vision, $2,000 annual learning budget, unlimited PTO, 16 weeks parental leave
+- Hybrid: 3 days/week in SF office (Tues/Wed/Thu)
+
+Our Values
+
+- Customer-obsessed: Every product decision starts with a customer problem
+- Data-driven: We measure everything and let data settle debates
+- Ship fast, learn faster: We bias toward action and iterate relentlessly
+- High-trust, high-candor: We give direct feedback and assume good intent
+- Technical depth: We believe the best PMs can go deep on the technology
+
+How to Apply
+
+Submit your resume and a brief note on: What is the hardest product problem in bringing LLMs to enterprise production, and how would you approach it?
+
+Nexus AI is an equal opportunity employer. We celebrate diversity and are committed to creating an inclusive environment for all employees.

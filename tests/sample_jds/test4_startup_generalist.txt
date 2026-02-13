@@ -1,0 +1,88 @@
+Product Manager, Core Platform
+Canopy Climate (Series A, $18M raised)
+New York, NY (Hybrid — 3 days/week in office)
+
+About Canopy Climate
+
+Canopy Climate is building the operating system for commercial building decarbonization. Our platform helps real estate owners and operators measure, reduce, and report on carbon emissions across their portfolios. We work with some of the largest REITs and property managers in North America, covering 400M+ sq ft of commercial real estate. We raised our $18M Series A led by Lowercarbon Capital with participation from Fifth Wall and Urban Innovation Fund. We are 38 people and growing fast.
+
+About the Role
+
+We're looking for our first dedicated Product Manager to own the core platform experience end-to-end. This is a generalist PM role at an early-stage company — you'll do everything from deep customer discovery interviews to writing SQL queries to pulling data for board decks. You will report directly to the CEO and work closely with a team of 8 engineers, 1 designer, and our Head of Customer Success.
+
+This is not a role where you write PRDs and hand them off. You will be in the code reviews, on the customer calls, in the data, and at the whiteboard. We need someone who can context-switch between strategy and execution multiple times a day.
+
+What You'll Do
+
+- Own the product roadmap for our core platform, balancing near-term customer requests with long-term platform vision
+- Conduct 8-10 customer discovery interviews per month to deeply understand pain points across building owners, facility managers, and sustainability directors
+- Define, prioritize, and scope features using a data-informed framework — we expect you to bring or build your own prioritization methodology
+- Write clear product specifications, user stories, and acceptance criteria that engineers can build from without ambiguity
+- Partner with engineering to break down epics into sprints, manage trade-offs, and unblock the team daily
+- Analyze product usage data using SQL, Mixpanel, and internal dashboards to identify drop-off points, underused features, and engagement trends
+- Design and run A/B tests and feature experiments to validate hypotheses before full investment
+- Own the onboarding experience — our activation rate is 62% and needs to be 80%+; you will diagnose why users drop off and fix it
+- Build and maintain a customer feedback loop — synthesize qualitative feedback from CS, Sales, and Support into actionable product insights
+- Partner with the Head of Customer Success to reduce churn by identifying at-risk accounts through product usage signals
+- Collaborate with the sales team on demo environments, feature positioning, and competitive differentiation materials
+- Define and track product KPIs: activation rate, time-to-value, feature adoption, NPS, and monthly active portfolio coverage
+- Lead sprint planning, sprint reviews, and retrospectives for the product engineering team
+- Create internal documentation for new features — help articles, release notes, and training materials for the CS team
+- Support fundraising efforts by preparing product metrics, roadmap slides, and market analysis for investor meetings
+- Present product strategy and progress to the full company at monthly all-hands meetings
+- Coordinate with our data engineering team on data pipeline reliability, data model changes, and reporting accuracy
+- Manage integrations with third-party building management systems (BMS), utility data providers, and ESG reporting frameworks
+- Contribute to GTM strategy for new verticals — help identify ICP, positioning, and launch plan for expansion into healthcare and hospitality real estate
+- Evaluate build-vs-buy decisions for new capabilities like benchmarking, automated reporting, and IoT sensor integration
+- Own the beta testing program — recruit beta users, collect structured feedback, and iterate before GA release
+- Work with design to conduct usability testing sessions and translate findings into UX improvements
+- Monitor competitive landscape — track what Measurabl, Aquicore, and JLL Technologies are shipping and identify gaps and opportunities
+- Triage and prioritize incoming bug reports, balancing severity with product roadmap commitments
+- Help define our API strategy for enterprise customers who need to integrate Canopy data into their own BI tools
+- Support SOC 2 and data security compliance efforts as they relate to product features and customer data handling
+- Assist in recruiting — interview PM and engineering candidates, help define role requirements, and contribute to building the product org
+- Build lightweight internal tools or automations (Zapier, Retool, scripts) to improve team efficiency when engineering bandwidth is constrained
+- Manage relationships with 2-3 design partners who get early access to features in exchange for deep feedback and case studies
+- Develop pricing and packaging recommendations as we move from flat-rate to usage-based pricing
+- Represent the product team in cross-functional leadership meetings, advocating for user needs while respecting business constraints
+
+What We're Looking For
+
+- 3-5 years of product management experience, ideally at a B2B SaaS company
+- Demonstrated experience shipping product from 0-to-1, not just iterating on existing products
+- Strong technical fluency — you can read a database schema, write SQL queries, and have meaningful conversations with backend engineers about system architecture
+- Experience with product analytics tools (Mixpanel, Amplitude, Heap, or similar)
+- Excellent written communication — you write specs that engineers love and executives understand
+- Comfort with ambiguity — you thrive when the answer isn't clear and you have to figure it out
+- Experience conducting customer interviews and translating qualitative insights into product decisions
+- Familiarity with Agile/Scrum methodologies and tools like Jira or Linear
+- Data-driven decision-making mindset — you default to evidence over opinion
+- Ability to manage multiple workstreams simultaneously without dropping balls
+- Strong collaboration skills — you've worked embedded with engineering teams, not just in a PMO
+- Experience with B2B onboarding optimization and activation metrics
+- Bonus: Experience in PropTech, ClimateTech, or real estate technology
+- Bonus: Familiarity with ESG reporting frameworks (GRI, TCFD, CDP, GRESB)
+- Bonus: Experience with enterprise sales cycles and complex procurement processes
+- Bonus: Background in data visualization or BI tools (Tableau, Looker, Metabase)
+- Bonus: You've worked at a company with fewer than 50 people before
+- Bonus: Experience with API product management or platform/developer experience
+- Bonus: MBA or equivalent business training
+- Bonus: Familiarity with building management systems, utility data, or IoT platforms
+
+Compensation & Benefits
+
+- Base salary: $130,000 - $160,000
+- Equity: 0.15% - 0.30% (early employee grant)
+- Health, dental, and vision insurance (100% employee, 50% dependents)
+- Unlimited PTO (minimum 15 days enforced)
+- $1,500/year learning and development budget
+- Commuter benefits
+- Company offsites twice per year
+
+Our Interview Process
+
+1. Recruiter screen (30 min)
+2. Hiring manager conversation with CEO (45 min)
+3. Product case study — take-home (2 hours max)
+4. On-site: Technical deep dive with engineering, cross-functional session with CS and Sales, product strategy presentation
+5. References and offer
