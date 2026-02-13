@@ -268,11 +268,28 @@ def _job_title_match_score(resume_content: dict, parsed_jd: dict) -> float:
     return 30.0
 
 
-def _anti_pattern_score(resume_content: dict) -> float:
-    """Anti-Pattern Detection (2%): 0-100. Penalize: years <8, bullet counts, pre-2023 tech, skills >25, banned verbs, duplicates, etc."""
+def _anti_pattern_score(resume_content: dict, pkb: dict = None) -> float:
+    """Anti-Pattern Detection (2%): 0-100. Penalize: title fabrication, years <8, bullet counts, pre-2023 tech, skills >25, banned verbs, duplicates, etc."""
     content = _content_for_scoring(resume_content)
     issues = []
     summary = (content.get("professional_summary") or "").strip().lower()
+
+    # CRITICAL: Title fabrication check
+    if pkb:
+        pkb_titles = {}
+        for w in pkb.get("work_experience", []):
+            company = (w.get("company") or "").strip().lower()
+            title = (w.get("title") or "").strip().lower()
+            if company and title:
+                pkb_titles[company] = title
+        for role in content.get("work_experience") or []:
+            company = (role.get("company") or "").strip().lower()
+            current_title = (role.get("title") or "").strip().lower()
+            if company in pkb_titles and current_title != pkb_titles[company]:
+                logger.warning("TITLE FABRICATION: %s has '%s' but PKB says '%s'", company, current_title, pkb_titles[company])
+                issues.append("title_fabrication")
+                break
+
     # Fix 1: Summary must open with 8+ years — flag 5+, 6+, 7+
     if "5+ years" in summary or "6+ years" in summary or "7+ years" in summary:
         issues.append("years_under_8")
@@ -337,7 +354,9 @@ def _anti_pattern_score(resume_content: dict) -> float:
         if len((b or "").split()) > 40:
             issues.append("runon_bullet")
             break
-    # Critical: pre-2023 anachronistic tech → 0
+    # Critical: title fabrication or pre-2023 anachronistic tech → 0
+    if "title_fabrication" in issues:
+        return 0.0
     if "pre_2023_anachronistic_tech" in issues:
         return 0.0
     n_issues = len(issues)
@@ -468,7 +487,7 @@ def _human_readability_score(resume_content: dict, parsed_jd: dict) -> float:
     return round(max(0, min(100, sum(scores) / len(scores))), 1)
 
 
-def score_resume(resume_content: dict, parsed_jd: dict, keyword_report: dict = None) -> dict:
+def score_resume(resume_content: dict, parsed_jd: dict, keyword_report: dict = None, pkb: dict = None) -> dict:
     """Score the resume against the JD using all 10 components (v3).
 
     Returns:
@@ -489,7 +508,7 @@ def score_resume(resume_content: dict, parsed_jd: dict, keyword_report: dict = N
     style = _style_score(resume_content)
     narrative = PLACEHOLDER_SCORE
     completeness = _completeness_score(resume_content)
-    anti_pattern = _anti_pattern_score(resume_content)
+    anti_pattern = _anti_pattern_score(resume_content, pkb=pkb)
 
     total = (
         keyword_match * WEIGHT_KEYWORD_MATCH
@@ -626,7 +645,7 @@ def run_scoring_with_iteration(
 
     while iteration < max_iterations:
         iteration += 1
-        score_report = score_resume(current_content, parsed_jd, keyword_report=keyword_report)
+        score_report = score_resume(current_content, parsed_jd, keyword_report=keyword_report, pkb=pkb)
         total = score_report["total_score"]
         logger.info("Iteration %d: total score = %.1f (target %d)", iteration, total, TARGET_SCORE_PASS)
 
@@ -678,7 +697,7 @@ def run_scoring_with_iteration(
 
     # Final score after max iterations (use best version)
     if best_score_report is None or current_content is not best_content:
-        score_report = score_resume(current_content, parsed_jd, keyword_report=keyword_report)
+        score_report = score_resume(current_content, parsed_jd, keyword_report=keyword_report, pkb=pkb)
         if score_report["total_score"] < best_score:
             current_content = best_content
             keyword_report = best_keyword_report

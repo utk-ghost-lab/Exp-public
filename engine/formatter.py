@@ -311,7 +311,58 @@ def format_resume(resume_content: dict, jd_analysis: dict) -> dict:
                     })
                     break
 
-    # --- CHECK 9: Page length estimate + auto-trim ---
+    # --- CHECK 9: Bullet endings (metrics not methods) ---
+    method_endings = {
+        "strategy", "strategies", "vision", "roadmap", "planning", "alignment",
+        "collaboration", "empathy", "engagement", "framework", "methodology",
+        "initiatives", "optimization", "innovation", "transformation",
+        "stakeholders", "cross-functional", "leadership", "prioritization",
+    }
+    for role in work:
+        for j, bullet in enumerate(role.get("bullets") or []):
+            last_word = (bullet or "").rstrip(".!?").split()[-1:][0].lower() if bullet else ""
+            if last_word in method_endings:
+                warnings.append({
+                    "rule": "bullet_ending",
+                    "severity": "WARN",
+                    "message": f"{role.get('company', '')} bullet {j+1} ends with method word '{last_word}' instead of a metric.",
+                })
+
+    # --- CHECK 10: Summary format (3 sentences, 45-60 words) ---
+    if summary:
+        summary_words = _word_count(summary)
+        if summary_words > 60:
+            warnings.append({
+                "rule": "summary_length",
+                "severity": "WARN",
+                "message": f"Summary is {summary_words} words (target 45-55, max 60).",
+            })
+        summary_sentences = [s.strip() for s in re.split(r'(?<=[.!?])\s+', summary) if s.strip()]
+        if len(summary_sentences) > 4:
+            warnings.append({
+                "rule": "summary_sentences",
+                "severity": "WARN",
+                "message": f"Summary has {len(summary_sentences)} sentences (max 3-4).",
+            })
+
+    # --- CHECK 11: Subtitle format ---
+    subtitle = content.get("subtitle") or ""
+    if subtitle and len(subtitle) > 60:
+        warnings.append({
+            "rule": "subtitle_length",
+            "severity": "WARN",
+            "message": f"Subtitle is {len(subtitle)} chars (max 60): '{subtitle}'",
+        })
+
+    # --- CHECK 12: Skills minimum ---
+    if total_skills < 15:
+        warnings.append({
+            "rule": "skills_minimum",
+            "severity": "WARN",
+            "message": f"Skills section has only {total_skills} terms (minimum 15).",
+        })
+
+    # --- CHECK 13: Page length estimate + auto-trim ---
     est_pages = _estimate_page_length(content)
     if est_pages > 2.0:
         warnings.append({

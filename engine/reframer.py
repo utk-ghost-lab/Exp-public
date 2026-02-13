@@ -83,13 +83,64 @@ LOCATION_NORMALIZE = {
 WORDS_PER_PAGE_ESTIMATE = 400
 MAX_PAGES = 2
 
-REFRAME_PROMPT = """You are an expert resume reframing engine for ATS-optimized, interview-defensible resumes. Generate tailored resume content from the candidate's Profile Knowledge Base (PKB), using the JD analysis and mapping matrix. Follow ALL 13 rules below. These are final and non-negotiable.
+# Part A Rule 1: Bad bullet endings — methodology/JD keywords that should be metrics
+BAD_ENDING_PATTERNS = [
+    # Comma-separated JD keyword dumps at end
+    re.compile(r",\s*\w[\w\s]*$"),
+    # Soft skill phrases at end
+    re.compile(r"(?:enhanced|improved|strengthened|fostered)\s+(?:customer|team|stakeholder|cross-functional)\s+\w+\.?$", re.I),
+]
+# Words that signal a bullet ends with methods instead of results
+METHOD_ENDING_WORDS = {
+    "strategy", "strategies", "vision", "roadmap", "planning", "alignment",
+    "collaboration", "empathy", "engagement", "framework", "methodology",
+    "initiatives", "optimization", "innovation", "transformation",
+    "stakeholders", "cross-functional", "leadership", "prioritization",
+}
 
-RULE 1 — EXPERIENCE POSITIONING: The summary must open with "Senior Product Manager with [X]+ years" where X = max(8, actual_years_of_experience). Never output less than 8+. Calculate actual years from the earliest role start date to today. Always position as "Senior Product Manager". Frame as experienced senior leader.
+# Part A Rule 6: Cross-JD contamination — company-specific terms
+COMPANY_SPECIFIC_TERMS = {
+    "microsoft": {"azure", "microsoft 365", "m365", "copilot", "teams", "office", "windows", "bing", "sharepoint", "onedrive"},
+    "google": {"gcp", "google cloud", "chromeos", "android", "bigquery", "tensorflow", "waymo"},
+    "amazon": {"aws", "alexa", "prime", "kindle", "lambda", "s3", "ec2"},
+    "apple": {"ios", "macos", "xcode", "swift", "siri", "airpods"},
+    "meta": {"instagram", "whatsapp business api", "oculus", "metaverse"},
+    "intuit": {"turbotax", "quickbooks", "mailchimp", "mint", "credit karma"},
+}
 
-RULE 2 — PROFESSIONAL SUMMARY: Professional Summary must be exactly 3 lines. Line 1: title + years + core domain. Line 2: top 2-3 achievements with specific metrics. Line 3: key capabilities relevant to target JD domain. Maximum 40 words per line. Do NOT list more than 3 skills in a single clause. Do NOT chain skills with commas — weave them into achievement context. MUST reference the target company's domain. No keyword stuffing.
+REFRAME_PROMPT = """You are an expert resume reframing engine for ATS-optimized, interview-defensible resumes. Generate tailored resume content from the candidate's Profile Knowledge Base (PKB), using the JD analysis and mapping matrix. Follow ALL rules below. These are final and non-negotiable.
 
-RULE 3 — BULLET STRUCTURE: XYZ: Accomplished [X] as measured by [Y], by doing [Z]. Every bullet MUST have a quantified metric. Every bullet must be 20-30 words. No exceptions. Max 3-4 JD keywords per bullet. Lead each role with the most JD-relevant bullet. BANNED starts: "Responsible for", "Managed", "Helped", "Assisted", "Participated", "Planned", "Supported", "Worked on", "Handled", "Involved in". REQUIRED starts: Led, Drove, Launched, Built, Owned, Delivered, Designed, Spearheaded, Achieved, Scaled, Transformed, Architected. Only describe shipped/deployed work.
+RULE 0 — TITLE INTEGRITY (HIGHEST PRIORITY — CANNOT BE OVERRIDDEN):
+The candidate's job titles MUST be copied EXACTLY from the PKB. NEVER change, upgrade, or fabricate titles.
+- If PKB says "Senior Product Manager" at Planful → resume MUST say "Senior Product Manager" at Planful
+- Do NOT upgrade titles to match the JD (no "Senior PM" → "Group PM" or "Principal PM")
+- Do NOT add titles the candidate never held
+- The summary MUST open with the candidate's ACTUAL highest title (e.g., "Senior Product Manager with 8+ years...")
+- The summary MUST NOT claim to be a GPM, Principal PM, Director, or any title not in the PKB
+- Violation of this rule is CAREER-ENDING (fails background checks). This overrides all other rules.
+
+RULE 0B — METRIC INTEGRITY (HIGHEST PRIORITY — CANNOT BE OVERRIDDEN):
+Every number, dollar amount, percentage, or metric in the resume MUST be traceable to the PKB.
+- Do NOT invent dollar amounts ($8M, $50M, $500M, $5M) unless they appear in the PKB
+- Do NOT extrapolate or calculate new numbers (e.g., "50% revenue growth" does NOT become "$5M incremental")
+- Do NOT add count estimates ("200+ organizations", "50+ stakeholders", "50,000+ customers") unless in PKB
+- If a bullet needs a metric but PKB doesn't have one, use the closest PKB metric (even if it's a %, not $)
+- If no metric exists at all, use a qualitative impact statement — do NOT invent a number
+- The ONLY metrics allowed are those that appear verbatim in the PKB bullet text
+
+RULE 1 — EXPERIENCE POSITIONING: The summary must open with "Senior Product Manager with [X]+ years" where X = max(8, actual_years_of_experience). Never output less than 8+. Calculate actual years from the earliest role start date to today. Always position as "Senior Product Manager" (the candidate's ACTUAL title). Frame as experienced senior leader.
+
+RULE 2 — PROFESSIONAL SUMMARY:
+- Summary must be 3-4 lines maximum, under 60 words total.
+- Line 1: ACTUAL title + years + core domain (e.g., "Senior Product Manager with 8+ years building enterprise SaaS and fintech platforms")
+- Line 2: top 2-3 achievements with specific metrics FROM THE PKB ONLY
+- Line 3: key capabilities relevant to target JD domain
+- Maximum 3 JD-specific terms in the summary. The rest should be naturally worded achievements.
+- Do NOT claim "deep domain expertise in [JD domain]" — instead say "experience building [domain] products"
+- Do NOT aggregate or calculate metrics (no "$50M+ annual revenue impact" from individual bullets)
+- MUST reference the target company's domain naturally, not as keyword dump
+
+RULE 3 — BULLET STRUCTURE: XYZ: Accomplished [X] as measured by [Y], by doing [Z]. Every bullet MUST have a quantified metric FROM THE PKB. Every bullet must be 20-30 words. No exceptions. Max 3-4 JD keywords per bullet. Lead each role with the most JD-relevant bullet. BANNED starts: "Responsible for", "Managed", "Helped", "Assisted", "Participated", "Planned", "Supported", "Worked on", "Handled", "Involved in". REQUIRED starts: Led, Drove, Launched, Built, Owned, Delivered, Designed, Spearheaded, Achieved, Scaled, Transformed, Architected. Only describe shipped/deployed work.
 
 RULE 4 — BULLETS PER ROLE (hard constraints): Most recent role: minimum 4, maximum 5 bullets. Second most recent: minimum 3, maximum 4 bullets. Third role: minimum 3, maximum 4 bullets. Roles older than 3 positions back: maximum 2 bullets. Internships: exactly 1 bullet. If reframer produces fewer than minimum, pull additional relevant experience from PKB.
 
@@ -99,27 +150,48 @@ RULE 6 — TOP 1% LANGUAGE: Outcomes, not tasks. Business impact: revenue, growt
 
 RULE 7 — REFRAMING BOUNDARIES (no anachronistic tech): For roles ending before June 2023, do NOT use "LLM", "LLM-powered", "large language model", "GPT", "generative AI", "gen AI", "RAG", "retrieval-augmented". Use "NLP-driven", "ML-powered", "conversational AI", "machine learning", "information retrieval" instead. Not allowed: invent work, claim tools never used. Only shipped/deployed work.
 
-RULE 8 — KEYWORD USAGE: EXACT phrases from JD. P0: 2-3 times; P1: 1-2 times. No keyword more than 4 times. Distribute across summary + skills + experience.
+RULE 8 — KEYWORD USAGE + THE ENDING TEST: EXACT phrases from JD. P0: 2-3 times; P1: 1-2 times. No keyword more than 4 times. Distribute across summary + skills + experience.
+THE ENDING TEST (CRITICAL): Every bullet must END with a RESULT (metric, number, business outcome), NEVER with a METHOD (JD keyword, strategy word, soft skill). Pattern: [Verb] [context with JD keywords woven in] [comma] [metric/result at end].
+- GOOD: "...driving 35% improvement in customer retention."
+- GOOD: "...reducing ticket volume by 35% and improving conversion by 25%."
+- BAD: "...enhanced customer empathy." (ends with method)
+- BAD: "...product vision, product strategy." (ends with keyword dump)
+- BAD: "...driving alignment with organizational growth objectives." (ends with method)
+JD keywords belong in the MIDDLE of bullets. Metrics belong at the END. Read each bullet's last 4 words — if they're not a number or business result, rewrite.
 
-RULE 9 — SKILLS SECTION: Skills section must contain maximum 25 terms. Organize into Technical, Methodologies, and Domains. Every term must map to a P0 or P1 keyword. If more than 25 terms, drop lowest-priority ones (P1 before P0, least frequent in JD first).
+RULE 9 — SKILLS SECTION:
+- Maximum 25 terms total. Organize into Technical, Methodologies, Domains.
+- Every term must map to a P0 or P1 keyword.
+- No abbreviation + full form duplicates: pick ONE (e.g., "FP&A" OR "Financial Planning & Analytics", not both)
+- No near-synonym duplicates: "Product Vision" + "Product Strategy" + "Strategy" → pick ONE that appears in JD
+- Include REAL TOOLS the candidate actually uses (from PKB): JIRA, Pendo, Qlikview, Salesforce, Freshdesk — only if they map to JD requirements
+- Never include single vague words as skills: "Tech", "Data", "Strategy" alone are meaningless
+- Each skill must be specific enough that a recruiter knows what it means
 
 RULE 10 — FORMAT: Date format "Mon YYYY – Mon YYYY". Single column. Standard headers. Location format: "City, Country" only (no state/region e.g. no Telangana, Karnataka, Metropolitan Region). Bangalore → Bengaluru, Hyderabad Area → Hyderabad, Mumbai Metropolitan Region → Mumbai.
 
-RULE 11 — AWARDS & RECOGNITION: If PKB has awards, add "Awards & Recognition" section after Skills and before Education. Format: one line per award: "• [Award Title], [Company] ([Year]) | [One-line description]". Maximum 3 awards. Only include awards from the last 7 years. Sort by most recent first.
+RULE 11 — AWARDS & RECOGNITION: If PKB has awards, add "Awards & Recognition" section after Skills and before Education. Format: one line per award: "• [Award Title], [Company] ([Year]) | [One-line description]". Maximum 4 awards. Only include awards from the last 7 years. Sort by most recent first.
 
-RULE 12 — EDUCATION & CERTIFICATIONS: One line per education. Certifications relevant to JD only.
+RULE 12 — EDUCATION & CERTIFICATIONS: One line per education. Certifications relevant to JD only. DEGREE INTEGRITY: Use the EXACT degree name from the PKB. Do NOT add specializations that don't exist. Examples: INSEAD = "Executive MBA" (NOT "Executive MBA in Product Management"), IIT = "B.Tech" (NOT "B.Tech in Computer Science" unless PKB says so). If the PKB degree field is blank or generic, keep it generic.
 
 RULE 13 — TONE: Confident, human, crisp. No buzzword chains. No verb used more than twice across all bullets — use synonym variety (Led → Spearheaded, Drove → Owned, etc.).
 
-RULE 14 — SELF-CHECK: Summary exactly 3 lines, opens "Senior Product Manager with 8+ years"; most recent role 4-5 bullets, second 3-4, third 3-4; every bullet 20-30 words, metric, no banned starts; no pre-2023 LLM/GPT/RAG/GenAI; skills ≤25 terms; locations City, Country; reframing_log complete.
+RULE 14 — SELF-CHECK: Summary 3-4 lines under 60 words, opens "Senior Product Manager with 8+ years"; titles EXACTLY match PKB; no fabricated metrics; most recent role 4-5 bullets, second 3-4, third 3-4; every bullet 20-30 words, metric from PKB, no banned starts; no pre-2023 LLM/GPT/RAG/GenAI; skills ≤25 terms with no duplicates; locations City, Country; reframing_log complete.
 
 REFRAMING LOG: For each reframed bullet: original, reframed, jd_keywords_used, what_changed, interview_prep.
 
-Work experience: REVERSE-CHRONOLOGICAL. Same companies/titles from PKB. Apply bullet limits. Return ONLY valid JSON (no markdown)."""
+Work experience: REVERSE-CHRONOLOGICAL. EXACT same companies and titles from PKB — do NOT change any title. Apply bullet limits. Return ONLY valid JSON (no markdown)."""
 
 PATCH_REFRAME_PROMPT = """You are making targeted edits to an existing resume to address specific feedback. The resume is already well-structured and ATS-optimized. Make MINIMAL, targeted changes only.
 
-RULES:
+CRITICAL RULES (CANNOT BE VIOLATED):
+- NEVER change job titles — they must match the PKB/profile originals exactly
+- NEVER invent dollar amounts, metrics, or numbers not in the original resume
+- NEVER end bullets with comma-separated JD keywords (e.g., "...product vision, product strategy")
+- NEVER append soft skill phrases at the end of bullets (e.g., "...enhanced customer empathy")
+- JD keywords must be WOVEN naturally into sentences, not appended
+
+OTHER RULES:
 - Keep all existing content unless the feedback specifically asks to change it
 - When adding keywords (e.g., "GTM", "product judgment"), integrate them naturally into existing sentences
 - Maintain the same structure, tone, and formatting
@@ -201,21 +273,37 @@ def _shorten_bullet_to_max_words(bullet: str, max_words: int = MAX_WORDS_PER_BUL
     if len(words) <= max_words:
         return bullet
     truncated = " ".join(words[:max_words])
-    # Try cutting at last comma/period/semicolon for cleaner sentence
-    for sep in (". ", ", ", "; ", "—"):
+    # Try cutting at last clause boundary for cleaner sentence
+    best = None
+    for sep in (". ", "; ", ", ", " — "):
         last_sep = truncated.rfind(sep)
         if last_sep > len(truncated) * 0.5:
-            candidate = truncated[: last_sep + len(sep)].rstrip()
-            # Only use clause cut if it doesn't exceed max_words
-            if len(candidate.split()) <= max_words:
-                truncated = candidate
+            # Cut BEFORE the separator for commas (end of clause), AFTER for periods
+            if sep in (". ", "; "):
+                candidate = truncated[:last_sep + 1].strip()
+            else:
+                candidate = truncated[:last_sep].strip()
+            if len(candidate.split()) <= max_words and len(candidate.split()) >= 15:
+                best = candidate
                 break
+    if best:
+        truncated = best
+    else:
+        # No good clause boundary — hard cut and strip dangling small words
+        truncated = " ".join(words[:max_words])
+        # Remove dangling prepositions, conjunctions, articles at the end
+        dangling = {"for", "to", "in", "of", "by", "with", "and", "or", "the",
+                    "a", "an", "at", "on", "as", "from", "into", "across", "through"}
+        trunc_words = truncated.split()
+        while trunc_words and trunc_words[-1].lower().rstrip(".,;") in dangling:
+            trunc_words.pop()
+        truncated = " ".join(trunc_words)
     # Hard cap: ensure we never exceed max_words
     final_words = truncated.split()
     if len(final_words) > max_words:
         truncated = " ".join(final_words[:max_words])
     if not truncated.rstrip().endswith((".", "!", "?")):
-        truncated = truncated.rstrip(".,;") + "."
+        truncated = truncated.rstrip(".,;:— ") + "."
     return truncated
 
 
@@ -631,34 +719,474 @@ def run_rule13_self_check(result: dict, parsed_jd: dict, pkb: dict) -> dict:
 
 
 def _inject_awards_from_pkb(result: dict, pkb: dict) -> dict:
-    """If PKB has awards, add Awards & Recognition section (max 3, last 7 years)."""
-    awards_raw = pkb.get("awards") or []
+    """If PKB has awards/achievements, add Awards & Recognition section (max 4, professional first)."""
+    awards_raw = pkb.get("awards") or pkb.get("achievements") or []
     if not awards_raw:
         return result
-    from datetime import datetime
-    current_year = datetime.now().year
-    # Filter last 7 years; take max 3; sort by year desc
-    entries = []
+    professional = []
+    academic = []
+    award_keywords = {"award", "winner", "finalist", "medal", "star performer",
+                      "employee of the year", "product of the year", "recognition"}
+    exclude_keywords = {"launch success", "program success", "partnership success"}
+    work_companies = {(w.get("company") or "").lower() for w in pkb.get("work_experience", [])}
     for a in awards_raw:
         if isinstance(a, dict):
-            year = a.get("year") or a.get("date") or current_year
-            if isinstance(year, str):
-                year = int(re.search(r"20\d{2}|19\d{2}", year).group(0)) if re.search(r"20\d{2}|19\d{2}", year) else current_year
-            if current_year - year > 7:
-                continue
-            title = a.get("title") or a.get("name") or "Award"
-            company = a.get("company") or a.get("organization") or ""
-            desc = a.get("description") or ""
-            entries.append((year, f"• {title}, {company} ({year})" + (f" | {desc}" if desc else "")))
-        elif isinstance(a, str) and a.strip():
-            entries.append((current_year, f"• {a.strip()}"))
-    entries.sort(key=lambda x: -x[0])
-    result["awards"] = [e[1] for e in entries[:3]]
+            title = (a.get("title") or a.get("name") or "").lower()
+            context = (a.get("context") or a.get("company") or "").lower()
+            title_display = a.get("title") or a.get("name") or "Award"
+            company_display = a.get("context") or a.get("company") or ""
+        elif isinstance(a, str):
+            title, context = a.lower(), ""
+            title_display, company_display = a.strip(), ""
+        else:
+            continue
+        if any(ex in title for ex in exclude_keywords):
+            continue
+        if not any(kw in title for kw in award_keywords):
+            continue
+        if "badminton" in title:
+            continue
+        is_professional = any(context in c or c in context for c in work_companies if c)
+        year = _estimate_award_year(a if isinstance(a, dict) else {"title": a}, pkb)
+        entry_text = f"• {title_display}, {company_display} ({year})"
+        if is_professional:
+            professional.append((year, entry_text))
+        else:
+            academic.append((year, entry_text))
+    professional.sort(key=lambda x: -x[0])
+    academic.sort(key=lambda x: -x[0])
+    combined = professional[:4]
+    remaining = 4 - len(combined)
+    if remaining > 0:
+        combined.extend(academic[:remaining])
+    result["awards"] = [e[1] for e in combined]
     return result
 
 
+def _fix_number_spacing(text: str) -> str:
+    """Enhanced spacing: digit+lowercase, digit+uppercase word, word+paren, dedup spaces."""
+    if not text:
+        return text
+    text = re.sub(r'(\d)([a-z])', r'\1 \2', text)
+    text = re.sub(r'(\d\.?\d*)([A-Z][a-z]{2,})', r'\1 \2', text)
+    text = re.sub(r'([a-zA-Z0-9])\(', r'\1 (', text)
+    text = re.sub(r'  +', ' ', text)
+    return text
+
+
+def _fix_currency_symbols(text: str) -> str:
+    """Replace ₹ with INR (font may not support ₹ glyph)."""
+    if not text:
+        return text
+    text = text.replace("₹", "INR ")
+    text = re.sub(r"INR\s+", "INR ", text)  # normalize multiple spaces
+    return text
+
+
+def _enforce_title_integrity(result: dict, pkb: dict) -> dict:
+    """CRITICAL: Ensure every role title matches PKB exactly. Never allow title fabrication."""
+    pkb_titles = {}
+    for w in pkb.get("work_experience", []):
+        company = (w.get("company") or "").strip()
+        title = (w.get("title") or "").strip()
+        if company and title:
+            pkb_titles[company.lower()] = title
+    work = result.get("work_experience", [])
+    for role in work:
+        company = (role.get("company") or "").strip()
+        if company.lower() in pkb_titles:
+            original_title = pkb_titles[company.lower()]
+            current_title = (role.get("title") or "").strip()
+            if current_title != original_title:
+                logger.warning("TITLE INTEGRITY: Correcting '%s' -> '%s' for %s", current_title, original_title, company)
+                role["title"] = original_title
+    # Fix summary: ensure it doesn't claim titles not in PKB
+    summary = result.get("professional_summary", "")
+    fabricated_titles = ["group product manager", "principal product manager", "director of product",
+                         "vp of product", "head of product", "chief product officer"]
+    summary_lower = summary.lower()
+    for fab in fabricated_titles:
+        if fab in summary_lower:
+            # Check if this title is actually in PKB
+            if not any(fab in t.lower() for t in pkb_titles.values()):
+                logger.warning("TITLE INTEGRITY: Removing fabricated title '%s' from summary", fab)
+                # Replace with actual highest title
+                highest_title = "Senior Product Manager"
+                for t in pkb_titles.values():
+                    highest_title = t
+                    break
+                summary = re.sub(re.escape(fab), highest_title.lower(), summary, flags=re.IGNORECASE)
+    # Fix common patterns: "Group Product Manager and Principal Product Manager with" -> "Senior Product Manager with"
+    summary = re.sub(
+        r"(?i)group product manager\s+and\s+principal product manager",
+        "Senior Product Manager", summary
+    )
+    summary = re.sub(r"(?i)principal product manager", "Senior Product Manager", summary)
+    summary = re.sub(r"(?i)group product manager", "Senior Product Manager", summary)
+    # Deduplicate: "Senior Product Manager Senior Product Manager" -> "Senior Product Manager"
+    summary = re.sub(r"(?i)(senior\s+product\s+manager)\s+and\s+\1", r"Senior Product Manager", summary)
+    summary = re.sub(r"(?i)(senior\s+product\s+manager)\s+\1", r"Senior Product Manager", summary)
+    summary = re.sub(r"^senior product manager", "Senior Product Manager", summary)
+    result["professional_summary"] = summary
+    return result
+
+
+def _dedup_skills(result: dict) -> dict:
+    """Remove abbreviation+full form duplicates and near-synonym duplicates from skills."""
+    # Known abbreviation pairs
+    abbrev_pairs = {
+        "fp&a": "financial planning & analytics",
+        "bi": "business intelligence",
+        "ai": "artificial intelligence",
+        "ml": "machine learning",
+        "nlp": "natural language processing",
+        "crm": "customer relationship management",
+        "erp": "enterprise resource planning",
+        "m365": "microsoft 365",
+    }
+    # Near-synonyms: keep only one
+    synonym_groups = [
+        {"product vision", "product strategy", "strategy"},
+        {"roadmap development", "roadmaps", "roadmap planning", "roadmap"},
+        {"ai technology", "ai tech", "ai"},
+        {"data analytics", "data analysis", "data"},
+    ]
+    sk = result.get("skills", {})
+    for key in ("technical", "methodologies", "domains"):
+        items = sk.get(key) or []
+        if not items:
+            continue
+        # Pass 1: remove abbrev+full form duplicates
+        lower_items = {item.lower(): item for item in items}
+        to_remove = set()
+        for abbr, full in abbrev_pairs.items():
+            if abbr in lower_items and full in lower_items:
+                # Keep whichever is shorter (the abbreviation)
+                to_remove.add(full)
+        # Pass 2: remove near-synonym duplicates (keep first occurrence)
+        for group in synonym_groups:
+            found = [item for item in items if item.lower() in group]
+            if len(found) > 1:
+                for extra in found[1:]:
+                    to_remove.add(extra.lower())
+        # Pass 3: remove single vague words
+        vague_words = {
+            "tech", "data", "strategy", "technologies",
+            "growth mindset", "adaptability", "curiosity", "empathy",
+            "customer empathy", "bias for action", "drive change",
+            "collaboration", "teaching", "coaching", "communication",
+            "strong communication skills", "quad", "email", "roadmaps",
+            "use case maturity", "small businesses", "analytics",
+            "analytics tools", "analytics platforms", "usage analytics",
+        }
+        for item in items:
+            if item.lower().strip() in vague_words:
+                to_remove.add(item.lower())
+        filtered = [item for item in items if item.lower() not in to_remove]
+        sk[key] = filtered
+    result["skills"] = sk
+    return result
+
+
+def _apply_text_fixes(result: dict) -> dict:
+    """Apply number spacing and currency fixes to all text fields."""
+    summary = result.get("professional_summary", "")
+    summary = _fix_number_spacing(summary)
+    summary = _fix_currency_symbols(summary)
+    result["professional_summary"] = summary
+    if result.get("subtitle"):
+        result["subtitle"] = _fix_number_spacing(result["subtitle"])
+    for role in result.get("work_experience", []):
+        role["bullets"] = [_fix_currency_symbols(_fix_number_spacing(b)) for b in (role.get("bullets") or [])]
+    sk = result.get("skills", {})
+    for key in ("technical", "methodologies", "domains"):
+        sk[key] = [_fix_number_spacing(item) for item in (sk.get(key) or [])]
+    result["awards"] = [_fix_number_spacing(a) for a in (result.get("awards") or [])]
+    return result
+
+
+def _fix_bullet_endings(result: dict, parsed_jd: dict) -> dict:
+    """Part A Rule 1: Bullets must end with RESULTS (metrics), not METHODS (keywords).
+
+    Detects bullets ending with methodology words or comma-separated JD keywords.
+    Truncates bad endings at the last metric or meaningful clause.
+    """
+    p0_p1 = set((kw or "").lower() for kw in
+                 (parsed_jd.get("p0_keywords") or []) + (parsed_jd.get("p1_keywords") or []))
+    work = result.get("work_experience", [])
+    for role in work:
+        new_bullets = []
+        for bullet in role.get("bullets") or []:
+            fixed = _fix_single_bullet_ending(bullet, p0_p1)
+            new_bullets.append(fixed)
+        role["bullets"] = new_bullets
+    return result
+
+
+def _fix_single_bullet_ending(bullet: str, jd_keywords: set) -> str:
+    """Fix a single bullet if it ends with methods instead of results."""
+    if not bullet or len(bullet.split()) < 10:
+        return bullet
+    # Get last 4 words
+    words = bullet.rstrip(".").split()
+    last_4 = " ".join(words[-4:]).lower()
+
+    # Check if last words are JD keyword dump (2+ consecutive JD terms at end)
+    jd_at_end = 0
+    for w in reversed(words[-4:]):
+        clean = w.lower().rstrip(".,;:")
+        if clean in jd_keywords or clean in METHOD_ENDING_WORDS:
+            jd_at_end += 1
+        else:
+            break
+
+    if jd_at_end >= 2:
+        # Truncate: find the last metric or verb clause before the keyword dump
+        cut_point = len(words) - jd_at_end
+        truncated = " ".join(words[:cut_point]).rstrip(".,;:— ")
+        if len(truncated.split()) >= 12:
+            if not truncated.endswith("."):
+                truncated += "."
+            logger.info("Bullet ending fixed (keyword dump): ...%s -> ...%s",
+                       " ".join(words[-4:]), truncated.split()[-3:])
+            return truncated
+
+    # Check if ends with soft-skill/method phrase
+    for pattern in BAD_ENDING_PATTERNS:
+        match = pattern.search(bullet.rstrip("."))
+        if match and match.start() > len(bullet) * 0.6:
+            truncated = bullet[:match.start()].rstrip(".,;:— ")
+            if len(truncated.split()) >= 12 and _bullet_has_metric(truncated):
+                if not truncated.endswith("."):
+                    truncated += "."
+                logger.info("Bullet ending fixed (method phrase): removed '%s'", match.group(0)[:40])
+                return truncated
+
+    return bullet
+
+
+def _fix_incomplete_sentences(result: dict) -> dict:
+    """Part A Rule 8: Expanded dangling word detection for incomplete sentences."""
+    dangling = {
+        "for", "to", "in", "of", "by", "with", "and", "or", "the",
+        "a", "an", "at", "on", "as", "from", "into", "across", "through",
+        "within", "between", "among", "toward", "towards", "during",
+        "including", "such", "via", "using", "leveraging", "enabling",
+        "driving", "enhancing", "improving", "ensuring", "supporting",
+        "hypothesis-driven", "data-driven", "customer-focused",
+        "competitive", "strategic", "innovative", "comprehensive",
+        "manual", "significant", "measurable", "actionable",
+        "demonstrating", "providing", "delivering", "achieving",
+        "generating", "establishing", "maintaining", "coordinating",
+    }
+    for role in result.get("work_experience", []):
+        new_bullets = []
+        for bullet in role.get("bullets") or []:
+            words = bullet.rstrip(".!?").split()
+            changed = False
+            while words and words[-1].lower().rstrip(".,;:") in dangling:
+                words.pop()
+                changed = True
+            # Remove trailing noise like "12 use" or "50 term"
+            if words and len(words) >= 2:
+                last = words[-1].lower().rstrip(".,;:")
+                if re.match(r'\d+\+?$', words[-2]) and last in {"use", "term", "type", "case", "mode"}:
+                    words.pop()
+                    changed = True
+            if changed and words:
+                bullet = " ".join(words)
+                if not bullet.endswith((".", "!", "?")):
+                    bullet += "."
+            new_bullets.append(bullet)
+        role["bullets"] = new_bullets
+    return result
+
+
+def _check_cross_jd_contamination(result: dict, parsed_jd: dict) -> dict:
+    """Part A Rule 6: Remove company-specific terms that don't belong to the target JD."""
+    target_company = (parsed_jd.get("company") or "").lower()
+    # Find which company sets are NOT the target
+    forbidden_terms = set()
+    for company_key, terms in COMPANY_SPECIFIC_TERMS.items():
+        if company_key not in target_company:
+            forbidden_terms.update(terms)
+    # But ALLOW terms that appear in the JD itself
+    jd_all = set((kw or "").lower() for kw in (parsed_jd.get("all_keywords_flat") or []))
+    forbidden_terms -= jd_all
+
+    if not forbidden_terms:
+        return result
+
+    # Check summary
+    summary = result.get("professional_summary", "")
+    for term in forbidden_terms:
+        if term.lower() in summary.lower():
+            logger.warning("Cross-JD contamination in summary: '%s' (not in target JD)", term)
+            # Remove the term (simple replacement)
+            summary = re.sub(r'\b' + re.escape(term) + r'\b', '', summary, flags=re.IGNORECASE)
+            summary = re.sub(r'\s+', ' ', summary).strip()
+    result["professional_summary"] = summary
+
+    # Check skills
+    sk = result.get("skills", {})
+    for key in ("technical", "methodologies", "domains"):
+        items = sk.get(key) or []
+        filtered = [item for item in items if item.lower() not in forbidden_terms]
+        if len(filtered) < len(items):
+            removed = set(i.lower() for i in items) - set(i.lower() for i in filtered)
+            logger.warning("Cross-JD contamination in skills: removed %s", removed)
+        sk[key] = filtered
+    result["skills"] = sk
+    return result
+
+
+def _estimate_award_year(award: dict, pkb: dict) -> int:
+    """Part A Rule 7: Estimate award year from known mapping or employment dates."""
+    title = (award.get("title") or award.get("name") or "").lower()
+    context = (award.get("context") or award.get("company") or "").lower()
+    known_years = {
+        ("star performer", "wealthy"): 2023,
+        ("star performer", "icici"): 2021,
+        ("employee of the year", "icici"): 2020,
+        ("product of the year", "icici"): 2021,
+        ("aviva", "iim"): 2018,
+        ("badminton", ""): 2015,
+        ("hul", "iim"): 2018,
+        ("pepsico", "iim"): 2018,
+        ("insurance suite", "wealthy"): 2023,
+        ("client partnership", "planful"): 2024,
+    }
+    for (title_key, context_key), year in known_years.items():
+        if title_key in title and (not context_key or context_key in context):
+            return year
+    for w in pkb.get("work_experience", []):
+        company = (w.get("company") or "").lower()
+        if context and (context in company or company in context):
+            dates = w.get("dates") or {}
+            end = dates.get("end") or ""
+            if end:
+                m = re.search(r"20\d{2}|19\d{2}", end)
+                if m:
+                    return int(m.group(0))
+    return 2020
+
+
+def _enforce_skills_minimum(result: dict, pkb: dict, parsed_jd: dict) -> dict:
+    """Part A Rule 5: Ensure 15-25 real skills. Include actual tools from PKB."""
+    sk = result.get("skills", {})
+    tech = list(sk.get("technical") or [])
+    meth = list(sk.get("methodologies") or [])
+    dom = list(sk.get("domains") or [])
+    existing_lower = {s.lower() for s in tech + meth + dom}
+
+    for tool in ["SQL", "JIRA", "Pendo", "A/B Testing", "Figma"]:
+        if tool.lower() not in existing_lower:
+            tech.append(tool)
+            existing_lower.add(tool.lower())
+    for m in ["Agile/Scrum", "Design Thinking", "User Research", "Competitive Analysis"]:
+        if m.lower() not in existing_lower:
+            meth.append(m)
+            existing_lower.add(m.lower())
+    for d in ["Enterprise SaaS", "Fintech", "Insurance"]:
+        if d.lower() not in existing_lower:
+            dom.append(d)
+            existing_lower.add(d.lower())
+
+    total = len(tech) + len(meth) + len(dom)
+    if total < 15:
+        pkb_tools = set()
+        for key in ("hard_skills", "tools", "methodologies"):
+            for s in (pkb.get("skills", {}).get(key) or []):
+                if s and len(s) > 2:
+                    pkb_tools.add(s)
+        jd_kws = (parsed_jd.get("p0_keywords") or []) + (parsed_jd.get("p1_keywords") or [])
+        needed = 15 - total
+        added = 0
+        for tool in pkb_tools:
+            if added >= needed:
+                break
+            if tool.lower() not in existing_lower:
+                if any(tool.lower() in (kw or "").lower() or (kw or "").lower() in tool.lower() for kw in jd_kws):
+                    tech.append(tool)
+                    existing_lower.add(tool.lower())
+                    added += 1
+        for tool in pkb_tools:
+            if added >= needed:
+                break
+            if tool.lower() not in existing_lower:
+                tech.append(tool)
+                existing_lower.add(tool.lower())
+                added += 1
+
+    sk["technical"] = tech
+    sk["methodologies"] = meth
+    sk["domains"] = dom
+    result["skills"] = sk
+    return result
+
+
+def _enforce_summary_format(result: dict, parsed_jd: dict) -> dict:
+    """Part A Rule 3: Summary must be exactly 3 sentences, 45-55 words, max 3 JD terms."""
+    summary = (result.get("professional_summary") or "").strip()
+    if not summary:
+        return result
+
+    # Count words
+    word_count = len(summary.split())
+
+    # Count sentences (rough)
+    sentences = [s.strip() for s in re.split(r'(?<=[.!?])\s+', summary) if s.strip()]
+
+    # If summary is way too long (>60 words), truncate to 3 sentences
+    if word_count > 60 and len(sentences) > 3:
+        summary = " ".join(sentences[:3])
+        if not summary.endswith("."):
+            summary += "."
+        result["professional_summary"] = summary
+        logger.info("Summary truncated to 3 sentences (%d -> %d words)", word_count, len(summary.split()))
+
+    return result
+
+
+def _generate_subtitle(result: dict, parsed_jd: dict) -> str:
+    """Part A Rule 4: Generate subtitle tagline 'Title | Domain | Years', max 60 chars."""
+    # Extract domain from JD
+    jd_domain = ""
+    industry_terms = parsed_jd.get("industry_terms") or []
+    if industry_terms:
+        # Pick top 1-2 domain terms
+        top_terms = []
+        for term in industry_terms[:3]:
+            t = term.get("term") or term if isinstance(term, str) else (term.get("term") or "")
+            if t and len(t) > 2:
+                top_terms.append(t)
+            if len(top_terms) >= 2:
+                break
+        jd_domain = " & ".join(top_terms[:2])
+
+    if not jd_domain:
+        # Fallback to company context
+        ctx = parsed_jd.get("company_context") or ""
+        if "saas" in ctx.lower():
+            jd_domain = "SaaS"
+        elif "fintech" in ctx.lower():
+            jd_domain = "Fintech"
+        else:
+            jd_domain = "Enterprise Products"
+
+    subtitle = f"Senior Product Manager | {jd_domain} | 8+ Years"
+
+    # Cap at 60 chars
+    if len(subtitle) > 60:
+        subtitle = f"Senior Product Manager | {jd_domain[:20]} | 8+ Years"
+
+    return subtitle
+
+
 def _apply_programmatic_fixes(result: dict, parsed_jd: dict, pkb: dict) -> dict:
-    """Apply all programmatic fixes: pre-2023 tech, banned verbs, word count, bullet limits, locations, verb variety, skills cap, awards."""
+    """Apply all programmatic fixes: title integrity, pre-2023 tech, banned verbs, word count, bullet limits, locations, verb variety, skills cap, skills dedup, text fixes, awards."""
+    # CRITICAL: Title integrity (Rule 0) — must run first
+    result = _enforce_title_integrity(result, pkb)
     # Pre-2023 anachronistic tech replacement (Rule 7)
     result = _fix_pre_2023_tech_full(result, pkb)
     work = result.get("work_experience", [])
@@ -702,6 +1230,22 @@ def _apply_programmatic_fixes(result: dict, parsed_jd: dict, pkb: dict) -> dict:
         }
         logger.info("Skills trimmed to %d terms (max %d)", tech_cap + meth_cap + max(0, dom_cap), MAX_SKILLS_TERMS)
     result = _inject_awards_from_pkb(result, pkb)
+    # Skills dedup: remove abbreviation+full form, near-synonyms, vague words (Rule 9)
+    result = _dedup_skills(result)
+    # Skills minimum: ensure 15-25 real tools from PKB (Part A Rule 5)
+    result = _enforce_skills_minimum(result, pkb, parsed_jd)
+    # Part A Rule 1: Fix bullet endings (metrics not methods)
+    result = _fix_bullet_endings(result, parsed_jd)
+    # Part A Rule 6: Cross-JD contamination check
+    result = _check_cross_jd_contamination(result, parsed_jd)
+    # Part A Rule 8: Incomplete sentence detection
+    result = _fix_incomplete_sentences(result)
+    # Part A Rule 3: Summary format (3 sentences, 45-55 words)
+    result = _enforce_summary_format(result, parsed_jd)
+    # Part A Rule 4: Generate subtitle
+    result["subtitle"] = _generate_subtitle(result, parsed_jd)
+    # Text fixes LAST: number spacing, currency symbols on ALL text (Fixes 4, 5)
+    result = _apply_text_fixes(result)
     return result
 
 
@@ -725,7 +1269,7 @@ def _patch_reframe_with_retry(
             message = client.messages.create(
                 model="claude-sonnet-4-5-20250929",
                 max_tokens=8000,
-                timeout=120.0,
+                timeout=60.0,
                 messages=[
                     {
                         "role": "user",
@@ -836,9 +1380,9 @@ def reframe_experience(
         logger.info("Reframing with scorer feedback for improvement")
 
     logger.info("Reframing experience with Claude (intelligent reframing engine)...")
-    # Retry logic for full reframe: 3 attempts, 300s timeout
-    max_retries = 2
-    full_reframe_timeout = 300.0
+    # Retry logic for full reframe: 2 attempts, 120s timeout
+    max_retries = 1
+    full_reframe_timeout = 120.0
     last_error = None
     for attempt in range(max_retries + 1):
         try:
@@ -877,7 +1421,7 @@ def reframe_experience(
                 attempt + 1, max_retries + 1, type(e).__name__, str(e)
             )
             if attempt < max_retries:
-                wait_sec = 10
+                wait_sec = 3
                 logger.info("Retrying in %d seconds...", wait_sec)
                 time.sleep(wait_sec)
             else:

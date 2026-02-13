@@ -17,7 +17,7 @@ import anthropic
 logger = logging.getLogger(__name__)
 
 # Cap keywords to prevent token overflow (Bug 4 fix)
-MAX_P1_KEYWORDS_FOR_MAPPER = 50
+MAX_P1_KEYWORDS_FOR_MAPPER = 25
 
 MAPPING_PROMPT = """You are an expert career strategist and resume optimization engine. Your job is to map job description requirements to a candidate's actual experience from their Profile Knowledge Base (PKB).
 
@@ -75,7 +75,7 @@ Return this EXACT JSON structure:
   }
 }
 
-Map ALL P0 keywords, ALL P1 keywords, and important P2 keywords. Be exhaustive.
+Map ALL P0 keywords and ALL P1 keywords. Skip P2. Be concise — keep reframe_strategy to 1 sentence max.
 
 Return ONLY the JSON object. No markdown, no explanation."""
 
@@ -173,20 +173,40 @@ def map_profile_to_jd(parsed_jd: dict, pkb: dict) -> dict:
         "p2_keywords": p2_keywords,
     }, indent=2)
 
-    pkb_summary = json.dumps(pkb, indent=2)
+    # Condense PKB: only send bullet text (max 6 per role), skills, and company/title/dates
+    condensed_pkb = {
+        "personal_info": {"name": (pkb.get("personal_info") or {}).get("name", "")},
+        "work_experience": [],
+        "skills": pkb.get("skills") or {},
+    }
+    for w in pkb.get("work_experience") or []:
+        bullets = []
+        for b in (w.get("bullets") or [])[:6]:  # cap at 6 bullets per role
+            text = (b.get("original_text") or "") if isinstance(b, dict) else str(b)
+            if text.strip():
+                bullets.append(text.strip())
+        condensed_pkb["work_experience"].append({
+            "company": w.get("company"),
+            "title": w.get("title"),
+            "dates": w.get("dates"),
+            "bullets": bullets,
+            "industry": w.get("industry", ""),
+        })
+    pkb_summary = json.dumps(condensed_pkb, indent=2)
+    logger.info("Condensed PKB for mapper: %d chars", len(pkb_summary))
 
     logger.info("Mapping profile to JD requirements with Claude...")
 
     # Retry logic with JSON repair (Bug 4 fix)
-    max_retries = 2
+    max_retries = 1
     last_error = None
     response_text = ""
     for attempt in range(max_retries + 1):
         try:
             message = client.messages.create(
                 model="claude-sonnet-4-5-20250929",
-                max_tokens=16000,
-                timeout=180.0,
+                max_tokens=8000,
+                timeout=90.0,
                 messages=[
                     {
                         "role": "user",
@@ -204,7 +224,7 @@ def map_profile_to_jd(parsed_jd: dict, pkb: dict) -> dict:
             last_error = e
             logger.warning("Profile mapper attempt %d/%d failed: %s", attempt + 1, max_retries + 1, e)
             if attempt < max_retries:
-                time.sleep(10)
+                time.sleep(3)
             else:
                 raise
 

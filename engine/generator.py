@@ -20,7 +20,7 @@ import re
 from datetime import datetime
 
 from reportlab.lib.colors import HexColor
-from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
+from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY, TA_LEFT, TA_RIGHT
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import inch
@@ -29,6 +29,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import (
     BaseDocTemplate,
     Frame,
+    KeepTogether,
     PageTemplate,
     Paragraph,
     Spacer,
@@ -257,7 +258,7 @@ def _build_styles():
     )
     styles["bullet"] = ParagraphStyle(
         "bullet", fontName=SANS_FONT, fontSize=BULLET_SIZE,
-        textColor=GRAY, alignment=TA_LEFT, leading=BULLET_SIZE + 4.5,
+        textColor=GRAY, alignment=TA_JUSTIFY, leading=BULLET_SIZE + 4.5,
         leftIndent=BULLET_INDENT, firstLineIndent=-BULLET_INDENT + 2.5,
         spaceBefore=0, spaceAfter=SPACE_BETWEEN_BULLETS,
     )
@@ -267,7 +268,7 @@ def _build_styles():
     )
     styles["summary"] = ParagraphStyle(
         "summary", fontName=SANS_FONT, fontSize=BULLET_SIZE,
-        textColor=GRAY, alignment=TA_LEFT, leading=BULLET_SIZE + 4.5,
+        textColor=GRAY, alignment=TA_JUSTIFY, leading=BULLET_SIZE + 4.5,
     )
     styles["edu_institution"] = ParagraphStyle(
         "edu_institution", fontName=SANS_FONT, fontSize=COMPANY_SIZE,
@@ -358,6 +359,38 @@ def _two_col_table(left_text, left_style, right_text, right_style, col_widths=No
     return t
 
 
+def _clean_url(url: str) -> str:
+    """Remove https:// and trailing slash for display: 'https://linkedin.com/in/foo/' -> 'linkedin.com/in/foo'."""
+    if not url:
+        return ""
+    url = re.sub(r'^https?://', '', url)
+    return url.rstrip("/")
+
+
+def _clean_spacing(text: str) -> str:
+    """Collapse multiple spaces into one and strip leading/trailing whitespace."""
+    if not text:
+        return text
+    return re.sub(r'  +', ' ', text).strip()
+
+
+def _format_cert(cert) -> str:
+    """Format a certification entry to 'Name — Issuer (Year)' string."""
+    if isinstance(cert, str):
+        return cert
+    if isinstance(cert, dict):
+        name = cert.get("name", "")
+        issuer = cert.get("issuer", "")
+        year = cert.get("year", "")
+        parts = [name]
+        if issuer:
+            parts.append(f"— {issuer}")
+        if year:
+            parts.append(f"({year})")
+        return " ".join(parts) if name else str(cert)
+    return str(cert)
+
+
 def _generate_pdf(content: dict, pkb: dict, output_path: str):
     """Generate the pixel-perfect resume PDF using reportlab."""
     _register_fonts()
@@ -381,36 +414,36 @@ def _generate_pdf(content: dict, pkb: dict, output_path: str):
     # --- HEADER ---
     story.append(Paragraph(_esc(name), styles["name"]))
 
-    # Subtitle from summary first line pattern
-    summary_text = (content.get("professional_summary") or "").strip()
+    # Subtitle: use pre-generated tagline from reframer, or fallback
+    subtitle = _clean_spacing(content.get("subtitle") or "Senior Product Manager | Enterprise Products | 8+ Years")
+    summary_text = _clean_spacing((content.get("professional_summary") or "").strip())
     summary_lines = [l.strip() for l in summary_text.split("\n") if l.strip()]
-
-    # Build subtitle from first few words of summary or default
-    subtitle = "Senior Product Manager"
-    if summary_lines:
-        first = summary_lines[0]
-        # Extract role descriptor after "Senior Product Manager with 8+ years"
-        m = re.search(r"Senior Product Manager with \d\+? years?\s*(.*)", first, re.I)
-        if m and m.group(1):
-            rest = m.group(1).strip().rstrip(".")
-            # Take meaningful domain phrases
-            if rest:
-                subtitle = f"Senior Product Manager \u2013 {rest[:80]}"
 
     story.append(Paragraph(_esc(subtitle), styles["subtitle"]))
 
-    # Contact line
+    # Contact line 1: phone, email, linkedin (clean URL), location
+    github = personal.get("github_url") or ""
+    portfolio = personal.get("portfolio_url") or ""
     contact_parts = []
     if phone:
         contact_parts.append(phone)
     if email:
         contact_parts.append(email)
     if linkedin:
-        contact_parts.append(linkedin)
+        contact_parts.append(_clean_url(linkedin))
     if location:
         contact_parts.append(location)
     contact_line = " \u2022 ".join(contact_parts)
     story.append(Paragraph(_esc(contact_line), styles["contact"]))
+    # Contact line 2: additional links (GitHub, portfolio) with clean URLs
+    extra_links = []
+    if github:
+        extra_links.append(_clean_url(github))
+    if portfolio:
+        extra_links.append(_clean_url(portfolio))
+    if extra_links:
+        extra_line = " \u2022 ".join(extra_links)
+        story.append(Paragraph(_esc(extra_line), styles["contact"]))
 
     # --- SUMMARY SECTION ---
     story.append(Spacer(1, SPACE_BEFORE_SECTION))
@@ -420,7 +453,7 @@ def _generate_pdf(content: dict, pkb: dict, output_path: str):
 
     # Render summary with bold metrics
     if summary_lines:
-        full_summary = " ".join(summary_lines)
+        full_summary = _clean_spacing(" ".join(summary_lines))
         summary_xml = _bold_metrics(
             full_summary, SANS_FONT, SANS_FONT_BOLD, BULLET_SIZE, "#3E3E3E"
         )
@@ -435,9 +468,6 @@ def _generate_pdf(content: dict, pkb: dict, output_path: str):
         story.append(Spacer(1, 2))
 
         for idx, role in enumerate(work):
-            if idx > 0:
-                story.append(Spacer(1, SPACE_BETWEEN_ROLES))
-
             company = role.get("company") or ""
             loc = role.get("location") or ""
             title = role.get("title") or ""
@@ -445,20 +475,39 @@ def _generate_pdf(content: dict, pkb: dict, output_path: str):
             if isinstance(dates, dict):
                 dates = f"{dates.get('start', '')} \u2013 {dates.get('end', '')}"
 
+            # Build role elements, then wrap in KeepTogether for widow/orphan control
+            role_elements = []
+            if idx > 0:
+                role_elements.append(Spacer(1, SPACE_BETWEEN_ROLES))
+
             # Company + Location row
             company_xml = f'<font name="{SANS_FONT}" size="{COMPANY_SIZE}" color="#1CAD62">{_esc(company)}</font>'
             loc_xml = f'<font name="{SANS_FONT}" size="{LOCATION_SIZE}" color="#3E3E3E">{_esc(loc)}</font>'
-            story.append(_two_col_table(company_xml, styles["company"], loc_xml, styles["location"]))
+            role_elements.append(_two_col_table(company_xml, styles["company"], loc_xml, styles["location"]))
 
             # Title + Dates row
             title_xml = f'<font name="{SANS_FONT}" size="{TITLE_SIZE}" color="#000000">{_esc(title)}</font>'
             dates_xml = f'<font name="{SANS_FONT}" size="{DATES_SIZE}" color="#3E3E3E">{_esc(dates)}</font>'
-            story.append(_two_col_table(title_xml, styles["job_title"], dates_xml, styles["dates"]))
+            role_elements.append(_two_col_table(title_xml, styles["job_title"], dates_xml, styles["dates"]))
 
-            # Bullets
-            for bullet_text in (role.get("bullets") or []):
+            # First 2 bullets kept with header (widow/orphan prevention)
+            bullets = role.get("bullets") or []
+            for bi in range(min(2, len(bullets))):
+                bt = _clean_spacing(bullets[bi])
                 bullet_xml = _bold_metrics(
-                    f"{BULLET_CHAR}  {bullet_text}",
+                    f"{BULLET_CHAR}  {bt}",
+                    SANS_FONT, SANS_FONT_BOLD, BULLET_SIZE, "#3E3E3E",
+                )
+                role_elements.append(Paragraph(bullet_xml, styles["bullet"]))
+
+            # KeepTogether: header + first 2 bullets stay on same page
+            story.append(KeepTogether(role_elements))
+
+            # Remaining bullets
+            for bullet_text in bullets[2:]:
+                bt = _clean_spacing(bullet_text)
+                bullet_xml = _bold_metrics(
+                    f"{BULLET_CHAR}  {bt}",
                     SANS_FONT, SANS_FONT_BOLD, BULLET_SIZE, "#3E3E3E",
                 )
                 story.append(Paragraph(bullet_xml, styles["bullet"]))
@@ -480,7 +529,7 @@ def _generate_pdf(content: dict, pkb: dict, output_path: str):
             items = skills.get(cat_key) or []
             if items:
                 label = f'<b><font name="{SANS_FONT_BOLD}" size="{SKILLS_SIZE}">{cat_name}:</font></b> '
-                skill_parts.append(label + _esc("  |  ".join(items)))
+                skill_parts.append(label + _esc(_clean_spacing("  |  ".join(items))))
 
         for part in skill_parts:
             story.append(Paragraph(part, styles["skills"]))
@@ -494,50 +543,10 @@ def _generate_pdf(content: dict, pkb: dict, output_path: str):
         story.append(HRLineFlowable(CONTENT_W))
         story.append(Spacer(1, 2))
 
-        # Parse awards — each may be "• Title (Year) | Description" or plain text
-        award_data = []
+        # Always render awards as simple bullet list (Part B Fix 6)
         for award in awards:
-            clean = (award or "").strip().lstrip("\u2022").lstrip("•").strip()
-            if "|" in clean:
-                parts = clean.split("|", 1)
-                award_data.append({"title": parts[0].strip(), "desc": parts[1].strip()})
-            else:
-                award_data.append({"title": clean, "desc": ""})
-
-        # Render as 3-column grid if 3+ awards, else list
-        if len(award_data) >= 3:
-            rows = []
-            for i in range(0, len(award_data), 3):
-                row = []
-                for j in range(3):
-                    if i + j < len(award_data):
-                        a = award_data[i + j]
-                        cell_xml = (
-                            f'<b><font name="{SANS_FONT_BOLD}" size="{TITLE_SIZE}" color="#3E3E3E">'
-                            f'{_esc(a["title"])}</font></b>'
-                        )
-                        if a["desc"]:
-                            cell_xml += f'<br/><font name="{SANS_FONT}" size="{BULLET_SIZE}" color="#3E3E3E">{_esc(a["desc"])}</font>'
-                        row.append(Paragraph(cell_xml, styles["award_desc"]))
-                    else:
-                        row.append(Paragraph("", styles["award_desc"]))
-                rows.append(row)
-            col_w = CONTENT_W / 3
-            t = Table(rows, colWidths=[col_w] * 3)
-            t.setStyle(TableStyle([
-                ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                ("LEFTPADDING", (0, 0), (-1, -1), 0),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 4),
-                ("TOPPADDING", (0, 0), (-1, -1), 0),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-            ]))
-            story.append(t)
-        else:
-            for a in award_data:
-                txt = f'{BULLET_CHAR}  {a["title"]}'
-                if a["desc"]:
-                    txt += f' \u2014 {a["desc"]}'
-                story.append(Paragraph(_esc(txt), styles["bullet"]))
+            clean = _clean_spacing((award or "").strip().lstrip("\u2022").lstrip("•").strip())
+            story.append(Paragraph(f'{BULLET_CHAR}  {_esc(clean)}', styles["bullet"]))
 
     # --- EDUCATION SECTION ---
     education = content.get("education") or []
@@ -576,7 +585,7 @@ def _generate_pdf(content: dict, pkb: dict, output_path: str):
 
         # Render each cert on its own line
         for cert in certs:
-            cert_text = cert if isinstance(cert, str) else (cert.get("name") or str(cert))
+            cert_text = _format_cert(cert)
             story.append(Paragraph(
                 f'{BULLET_CHAR}  {_esc(cert_text)}', styles["cert"]
             ))
@@ -632,19 +641,23 @@ def _generate_docx(content: dict, pkb: dict, output_path: str):
     run.font.color.rgb = black_rgb
     run.font.name = "Georgia"
 
-    # Subtitle
+    # Subtitle (use generated tagline from content)
+    subtitle = content.get("subtitle") or "Senior Product Manager | Enterprise Products | 8+ Years"
     p = doc.add_paragraph()
     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    run = p.add_run("Senior Product Manager")
+    run = p.add_run(subtitle)
     run.font.size = Pt(12.7)
     run.font.color.rgb = green_rgb
     run.font.name = "Arial"
 
-    # Contact
+    # Contact (clean URLs)
     contact_parts = []
     for key in ("phone", "email", "linkedin_url", "location"):
         val = personal.get(key)
         if val:
+            # Clean URLs for display
+            if "url" in key:
+                val = re.sub(r'^https?://', '', str(val)).rstrip("/")
             contact_parts.append(str(val))
     p = doc.add_paragraph()
     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -652,6 +665,19 @@ def _generate_docx(content: dict, pkb: dict, output_path: str):
     run.font.size = Pt(8.9)
     run.font.color.rgb = gray_rgb
     run.font.name = "Arial"
+    # Extra contact links (GitHub, portfolio) with clean URLs
+    extra_links = []
+    for key in ("github_url", "portfolio_url"):
+        val = personal.get(key)
+        if val:
+            extra_links.append(re.sub(r'^https?://', '', str(val)).rstrip("/"))
+    if extra_links:
+        p = doc.add_paragraph()
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        run = p.add_run(" \u2022 ".join(extra_links))
+        run.font.size = Pt(8.9)
+        run.font.color.rgb = gray_rgb
+        run.font.name = "Arial"
 
     def add_section_header(title):
         p = doc.add_paragraph()
@@ -719,9 +745,10 @@ def _generate_docx(content: dict, pkb: dict, output_path: str):
                 run.font.color.rgb = gray_rgb
                 run.font.name = "Arial"
 
-            # Bullets
+            # Bullets (justified alignment)
             for bullet in role.get("bullets") or []:
                 p = doc.add_paragraph(style="List Bullet")
+                p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
                 run = p.add_run(bullet)
                 run.font.size = Pt(9.5)
                 run.font.color.rgb = gray_rgb
@@ -794,7 +821,7 @@ def _generate_docx(content: dict, pkb: dict, output_path: str):
     if certs:
         add_section_header("Certifications")
         for cert in certs:
-            cert_text = cert if isinstance(cert, str) else str(cert)
+            cert_text = _format_cert(cert)
             p = doc.add_paragraph(style="List Bullet")
             run = p.add_run(cert_text)
             run.font.size = Pt(10.1)

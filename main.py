@@ -20,6 +20,7 @@ import json
 import logging
 import os
 import sys
+import time
 
 from dotenv import load_dotenv
 
@@ -61,26 +62,37 @@ def run_pipeline(jd_text: str):
     with open(pkb_path, "r") as f:
         pkb = json.load(f)
 
+    pipeline_start = time.time()
+
     # Step 1: Parse JD
+    t0 = time.time()
     logger.info("Step 1: Parsing job description...")
     parsed_jd = parse_jd(jd_text)
+    logger.info("  Step 1 done in %.1fs", time.time() - t0)
 
     # Step 2: Map profile to JD
+    t0 = time.time()
     logger.info("Step 2: Mapping profile to JD requirements...")
     mapping = map_profile_to_jd(parsed_jd, pkb)
+    logger.info("  Step 2 done in %.1fs", time.time() - t0)
 
     # Step 3: Reframe experience from PKB only (no prior resume)
+    t0 = time.time()
     logger.info("Step 3: Generating tailored resume content from PKB...")
     resume_content = reframe_experience(mapping, pkb, parsed_jd)
     reframing_log = resume_content.get("reframing_log", [])
+    logger.info("  Step 3 done in %.1fs", time.time() - t0)
 
     # Step 4: Optimize keywords
+    t0 = time.time()
     logger.info("Step 4: Optimizing keyword density...")
     optimized = optimize_keywords(resume_content, parsed_jd)
     resume_content = optimized["optimized_content"]
     keyword_report = optimized["keyword_report"]
+    logger.info("  Step 4 done in %.1fs", time.time() - t0)
 
     # Step 5: Format validation
+    t0 = time.time()
     logger.info("Step 5: Validating format rules...")
     formatted = format_resume(resume_content, parsed_jd)
     format_validation = formatted["format_validation"]
@@ -89,10 +101,12 @@ def run_pipeline(jd_text: str):
                 format_validation["status"],
                 len(format_validation.get("errors", [])),
                 len(format_validation.get("warnings", [])))
+    logger.info("  Step 5 done in %.1fs", time.time() - t0)
 
     # Step 6: Score and iterate (uses patch mode for re-runs; first resume is always from PKB)
+    t0 = time.time()
     logger.info("Step 6: Scoring resume and iterating if below 90...")
-    result = run_scoring_with_iteration(resume_content, parsed_jd, mapping, pkb, max_iterations=3)
+    result = run_scoring_with_iteration(resume_content, parsed_jd, mapping, pkb, max_iterations=2)
     score_report = result["score_report"]
     keyword_report = result["keyword_report"]
     resume_content = result["resume_content"]
@@ -102,8 +116,10 @@ def run_pipeline(jd_text: str):
         "passed": result.get("passed", False),
     }
     logger.info("  Final score: %.1f (target 90)", score_report["total_score"])
+    logger.info("  Step 6 done in %.1fs (%d iterations)", time.time() - t0, iteration_log["iterations_used"])
 
     # Step 7: Generate output (PDF + DOCX + 6 artifacts)
+    t0 = time.time()
     logger.info("Step 7: Generating final output package...")
     output_path = generate_output(
         formatted_content=resume_content,
@@ -115,6 +131,12 @@ def run_pipeline(jd_text: str):
         iteration_log=iteration_log,
         pkb=pkb,
     )
+    logger.info("  Step 7 done in %.1fs", time.time() - t0)
+
+    total = time.time() - pipeline_start
+    logger.info("=" * 50)
+    logger.info("TOTAL PIPELINE TIME: %.1fs (%.1f minutes)", total, total / 60)
+    logger.info("=" * 50)
     logger.info("Resume package saved to: %s", output_path)
     return output_path
 

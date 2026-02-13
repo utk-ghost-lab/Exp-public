@@ -104,8 +104,9 @@ def parse_jd(jd_text: str) -> dict:
 
     logger.info("Parsing job description with Claude...")
     message = client.messages.create(
-        model="claude-sonnet-4-5-20250929",
+        model="claude-haiku-4-5-20251001",
         max_tokens=8000,
+        timeout=60.0,
         messages=[
             {
                 "role": "user",
