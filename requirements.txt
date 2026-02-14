@@ -6,3 +6,7 @@ requests
 reportlab
 pytest
 python-dotenv
+fastapi
+python-multipart
+uvicorn[standard]
+jinja2

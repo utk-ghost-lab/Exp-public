@@ -268,8 +268,8 @@ def _job_title_match_score(resume_content: dict, parsed_jd: dict) -> float:
     return 30.0
 
 
-def _anti_pattern_score(resume_content: dict, pkb: dict = None) -> float:
-    """Anti-Pattern Detection (2%): 0-100. Penalize: title fabrication, years <8, bullet counts, pre-2023 tech, skills >25, banned verbs, duplicates, etc."""
+def _get_anti_pattern_issues(resume_content: dict, pkb: dict = None) -> list:
+    """Return list of anti-pattern issue codes (e.g. years_under_8, banned_verb_start)."""
     content = _content_for_scoring(resume_content)
     issues = []
     summary = (content.get("professional_summary") or "").strip().lower()
@@ -354,7 +354,12 @@ def _anti_pattern_score(resume_content: dict, pkb: dict = None) -> float:
         if len((b or "").split()) > 40:
             issues.append("runon_bullet")
             break
-    # Critical: title fabrication or pre-2023 anachronistic tech → 0
+    return issues
+
+
+def _anti_pattern_score(resume_content: dict, pkb: dict = None) -> float:
+    """Anti-Pattern Detection (2%): 0-100. Penalize: title fabrication, years <8, bullet counts, pre-2023 tech, skills >25, banned verbs, duplicates, etc."""
+    issues = _get_anti_pattern_issues(resume_content, pkb)
     if "title_fabrication" in issues:
         return 0.0
     if "pre_2023_anachronistic_tech" in issues:
@@ -509,6 +514,7 @@ def score_resume(resume_content: dict, parsed_jd: dict, keyword_report: dict = N
     narrative = PLACEHOLDER_SCORE
     completeness = _completeness_score(resume_content)
     anti_pattern = _anti_pattern_score(resume_content, pkb=pkb)
+    anti_pattern_issues = _get_anti_pattern_issues(resume_content, pkb=pkb) if anti_pattern < 100 else []
 
     total = (
         keyword_match * WEIGHT_KEYWORD_MATCH
@@ -539,6 +545,15 @@ def score_resume(resume_content: dict, parsed_jd: dict, keyword_report: dict = N
     sorted_by_score = sorted(components.items(), key=lambda x: x[1]["score"])
     weakest_component = sorted_by_score[0][0] if sorted_by_score else None
     weakest_two = [sorted_by_score[0][0], sorted_by_score[1][0]] if len(sorted_by_score) >= 2 else ([weakest_component] if weakest_component else [])
+    # Rule 13 self-check (from reframer) for iteration feedback and output
+    rule13_checks = {}
+    if pkb:
+        try:
+            from engine.reframer import run_rule13_self_check
+            rule13_checks = run_rule13_self_check(resume_content, parsed_jd, pkb)
+        except Exception as e:
+            logger.warning("Rule 13 self-check failed: %s", e)
+
     report = {
         "total_score": total_score,
         "passed": total_score >= TARGET_SCORE_PASS,
@@ -546,6 +561,8 @@ def score_resume(resume_content: dict, parsed_jd: dict, keyword_report: dict = N
         "components": components,
         "weakest_component": weakest_component,
         "weakest_two": weakest_two,
+        "anti_pattern_issues": anti_pattern_issues,
+        "rule13_checks": {k: {"passed": v["passed"], "message": v["message"]} for k, v in rule13_checks.items()},
     }
     logger.info(
         "Score: total=%.1f (target %s) | keyword=%.1f semantic=%.1f parse=%.1f title=%.1f impact=%.1f anti=%.1f",
@@ -604,16 +621,48 @@ def build_feedback_for_weakest(score_report: dict, keyword_report: dict = None) 
     return _feedback_for_component(weakest, comp.get("score", 0), keyword_report)
 
 
-def build_feedback_for_two_weakest(score_report: dict, keyword_report: dict = None) -> str:
-    """Build combined feedback for the TWO weakest components (v3 iteration)."""
-    two = score_report.get("weakest_two") or []
-    if not two:
-        return build_feedback_for_weakest(score_report, keyword_report)
-    parts = []
-    for key in two:
-        comp = score_report.get("components", {}).get(key, {})
-        parts.append(_feedback_for_component(key, comp.get("score", 0), keyword_report))
+CRITICAL_RULE13_CHECKS = (
+    "summary_opens_8_years",
+    "every_bullet_has_metric",
+    "no_banned_verb_starts",
+    "no_pre_2023_llm_powered",
+)
+
+
+def _build_rule13_feedback(rule13_checks: dict) -> str:
+    """Build feedback string for failed Rule 13 checks (for reframer iteration)."""
+    if not rule13_checks:
+        return ""
+    failed = [
+        (k, v.get("message", ""))
+        for k, v in rule13_checks.items()
+        if isinstance(v, dict) and not v.get("passed", True) and k in CRITICAL_RULE13_CHECKS
+    ]
+    if not failed:
+        return ""
+    parts = [f"Rule 13 failures (must fix): {'; '.join(m for _, m in failed)}"]
     return " ".join(parts)
+
+
+def build_feedback_for_two_weakest(score_report: dict, keyword_report: dict = None) -> str:
+    """Build combined feedback for the TWO weakest components (v3 iteration).
+    Includes Rule 13 failures and anti-pattern issues when relevant."""
+    two = score_report.get("weakest_two") or []
+    parts = []
+    if two:
+        for key in two:
+            comp = score_report.get("components", {}).get(key, {})
+            fb = _feedback_for_component(key, comp.get("score", 0), keyword_report)
+            if key == "anti_pattern" and score_report.get("anti_pattern_issues"):
+                fb += f" Specific issues: {', '.join(score_report['anti_pattern_issues'])}."
+            parts.append(fb)
+    else:
+        parts.append(build_feedback_for_weakest(score_report, keyword_report))
+    feedback = " ".join(parts)
+    rule13_fb = _build_rule13_feedback(score_report.get("rule13_checks") or {})
+    if rule13_fb:
+        feedback = rule13_fb + " " + feedback
+    return feedback
 
 
 def run_scoring_with_iteration(
@@ -622,8 +671,12 @@ def run_scoring_with_iteration(
     mapping_matrix: dict,
     pkb: dict,
     max_iterations: int = 3,
+    user_preferences_from_edits: str = None,
+    skip_patch_improvement: bool = False,
 ) -> dict:
     """Score resume and optionally re-run reframer + keyword optimizer if score < 90 (max iterations).
+
+    When skip_patch_improvement is True, score once and return without calling reframer for patch.
 
     Returns:
         Dict with: score_report (latest), keyword_report (latest), resume_content (latest),
@@ -643,6 +696,7 @@ def run_scoring_with_iteration(
     best_keyword_report = keyword_report
     best_score_report = None
 
+    anti_pattern_extra_done = False
     while iteration < max_iterations:
         iteration += 1
         score_report = score_resume(current_content, parsed_jd, keyword_report=keyword_report, pkb=pkb)
@@ -676,6 +730,18 @@ def run_scoring_with_iteration(
                 "passed": True,
             }
 
+        # One extra iteration when anti_pattern=0 (quality gate)
+        ap_score = score_report.get("components", {}).get("anti_pattern", {}).get("score", 100)
+        if ap_score == 0 and not anti_pattern_extra_done and iteration >= max_iterations:
+            max_iterations += 1
+            anti_pattern_extra_done = True
+            logger.info("Anti-pattern score 0 — triggering one extra patch iteration")
+
+        if skip_patch_improvement:
+            logger.info("Score below %d; skipping patch improvement (--fast-no-improve)", TARGET_SCORE_PASS)
+            break
+
+        # When anti_pattern=0, include specific issues and optionally trigger extra focus
         feedback = build_feedback_for_two_weakest(score_report, keyword_report)
         feedback_applied.append(feedback)
         logger.info("Score below %d; re-running reframer with feedback on: %s", TARGET_SCORE_PASS, score_report.get("weakest_two"))
@@ -684,7 +750,8 @@ def run_scoring_with_iteration(
         reframed = reframe_experience(
             mapping_matrix, pkb, parsed_jd,
             feedback_for_improvement=feedback,
-            current_resume_content=current_content
+            current_resume_content=current_content,
+            user_preferences_from_edits=user_preferences_from_edits,
         )
         reframed_content = _content_for_scoring(reframed)
 

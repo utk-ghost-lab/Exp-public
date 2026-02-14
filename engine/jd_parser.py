@@ -10,6 +10,8 @@ import json
 import logging
 
 import anthropic
+
+from engine.api_utils import messages_create_with_retry
 import requests
 from bs4 import BeautifulSoup
 
@@ -103,7 +105,8 @@ def parse_jd(jd_text: str) -> dict:
     client = anthropic.Anthropic()
 
     logger.info("Parsing job description with Claude...")
-    message = client.messages.create(
+    message = messages_create_with_retry(
+        client,
         model="claude-haiku-4-5-20251001",
         max_tokens=8000,
         timeout=60.0,

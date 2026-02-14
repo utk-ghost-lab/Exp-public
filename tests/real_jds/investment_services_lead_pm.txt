@@ -1,0 +1,39 @@
+Lead Tech, Product Management (Investment Services Tech - MCA / ManR
+Product Management
+Hyderabad, Bengaluru or Gurugram
+We are seeking an enthusiastic, analytical, and resourceful product manager to join our Investment Services Technology team in Hyderabad, Bengaluru, or Gurugram. This team handles technology for finance and operations, such as post-trade activities, portfolio and fund accounting, and investor relations. The role offers a dynamic environment. We aim to improve our technology for better efficiency and scalability. The ideal candidate should understand financial markets and have experience in product management and process optimization.
+
+Home
+Who We Are
+What We Do
+How To Join
+Career Development
+Work with Us
+Interviewing
+Campus
+Internships
+Application FAQ
+Explore
+News
+Library
+Contact
+What you'll do day-to-day
+You will work closely with Management Reporting and Management Company Accounting stakeholders, engineering teams, and delivery partners to design and deliver technology solutions that modernize reporting and accounting workflows. You will serve as a key point of coordination across initiatives focused on improving end to end processes, reducing reliance on manual and spreadsheet based execution, and delivering secure, well governed platforms. You will lead structured discovery and process mapping efforts, translate leadership and operational needs into clear product visions, requirements, and roadmaps, and own backlog prioritization and scope alignment across cross functional dependencies. You will partner with engineering through solution design, sprint planning, and release execution, while proactively identifying opportunities for automation, data integrity improvements, operational resilience, and enhanced reporting—using metrics and user feedback to measure outcomes and continuously improve delivered solutions.
+
+Who we're looking for
+The ideal candidate should hold-
+Basic qualifications:
+
+A bachelor's degree in computer science, information technology, a related field, or an MBA, with 6 to 8 years of product management experience
+Excellent written and verbal communication and stakeholder management skills, with the ability to convey complex, data-intensive concepts, balance competing interests, and drive alignment with senior and executive stakeholders
+Robust analytical and data-driven product discovery skills, including facilitating workshops, developing process maps, defining success metrics, documenting requirements, and translating workflows into epics and features with clear acceptance criteria
+Proven ability to operate effectively in fast-paced, dynamic environments, balancing changing priorities through excellent delivery and project management discipline
+Experience collaborating with cross-functional teams to translate business needs into clear requirements, structured roadmaps, and prioritized product backlogs, while coordinating dependencies across business and engineering teams to deliver outcomes on established timelines
+High attention to detail and robust problem-solving abilities, with experience driving workflow automation and process optimization to transform manual processes into scalable, well-governed systems where data quality, controls, and auditability are critical
+Hands-on experience with Agile methodologies and iterative delivery practices
+A demonstrated track record of end-to-end product ownership, spanning discovery, roadmap strategy, delivery execution, launch, and post-launch iteration
+
+Preferred qualifications:
+
+Exposure to investment management or fund accounting domain
+Experience supporting management reporting, corporate or management company accounting, leadership reporting, compensation or payroll-adjacent workflows, or similarly control- and data-intensive operational domains

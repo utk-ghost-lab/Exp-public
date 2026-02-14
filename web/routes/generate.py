@@ -249,9 +249,19 @@ async def post_finalize(request: Request):
             output_suffix=job_id[:8] if job_id else None,
         )
     except QualityGateBlockedError as e:
-        logger.warning("Quality gate blocked PDF: %s", e.blocked_reason)
+        failures = e.rule13_failures or []
+        msg_map = {
+            "title_fabrication": "Resume title doesn't match your profile.",
+            "pre_2023_anachronistic_tech": "Pre-2023 role mentions LLM/GPT (not available then).",
+            "no_pre_2023_llm_powered": "Pre-2023 work claims LLM-powered.",
+            "no_banned_verb_starts": "A bullet starts with a weak verb (Managed, Helped, etc.).",
+            "every_bullet_has_metric": "Some bullets lack numbers or metrics.",
+        }
+        details = [msg_map.get(f, f) for f in failures]
+        detail_msg = "Quality check failed: " + "; ".join(details) if details else "Quality check failed. Please try again or contact support."
+        logger.warning("Quality gate blocked PDF: %s — %s", e.blocked_reason, failures)
         return JSONResponse(
-            {"detail": "Quality check failed. Please try again or contact support.", "blocked_reason": e.blocked_reason, "rule13_failures": e.rule13_failures},
+            {"detail": detail_msg, "blocked_reason": e.blocked_reason, "rule13_failures": failures},
             status_code=400,
         )
     if edit_record:

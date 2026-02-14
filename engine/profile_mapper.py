@@ -14,6 +14,8 @@ import time
 
 import anthropic
 
+from engine.api_utils import messages_create_with_retry
+
 logger = logging.getLogger(__name__)
 
 # Cap keywords to prevent token overflow (Bug 4 fix)
@@ -203,10 +205,11 @@ def map_profile_to_jd(parsed_jd: dict, pkb: dict) -> dict:
     response_text = ""
     for attempt in range(max_retries + 1):
         try:
-            message = client.messages.create(
-                model="claude-sonnet-4-5-20250929",
+            message = messages_create_with_retry(
+                client,
+                model="claude-haiku-4-5-20251001",
                 max_tokens=8000,
-                timeout=90.0,
+                timeout=60.0,
                 messages=[
                     {
                         "role": "user",

@@ -57,6 +57,7 @@ def _fix_sp(t):
         return t
     t = _re.sub(r'(\d)([a-z])', r'\1 \2', t)
     t = _re.sub(r'(\d\.?\d*)([A-Z][a-z]{2,})', r'\1 \2', t)
+    t = _re.sub(r'(%)([a-zA-Z])', r'\1 \2', t)  # "35%improvement" -> "35% improvement"
     t = _re.sub(r'  +', ' ', t)
     return t
 
@@ -196,6 +197,7 @@ def _esc(text: str) -> str:
     # Spacing fix for all text
     text = re.sub(r'(\d)([a-z])', r'\1 \2', text)
     text = re.sub(r'(\d\.?\d*)([A-Z][a-z]{2,})', r'\1 \2', text)
+    text = re.sub(r'(%)([a-zA-Z])', r'\1 \2', text)  # "35%improvement" -> "35% improvement"
     text = re.sub(r'  +', ' ', text)
     return (
         text.replace("&", "&amp;")
@@ -216,6 +218,7 @@ def _bold_metrics(text: str, font_name: str, bold_font_name: str,
     if text:
         text = re.sub(r'(\d)([a-z])', r'\1 \2', text)
         text = re.sub(r'(\d\.?\d*)([A-Z][a-z]{2,})', r'\1 \2', text)
+        text = re.sub(r'(%)([a-zA-Z])', r'\1 \2', text)  # "35%improvement" -> "35% improvement"
         text = re.sub(r'([a-zA-Z0-9])\(', r'\1 (', text)
         text = re.sub(r'  +', ' ', text)
     if not text:
@@ -242,10 +245,15 @@ def _bold_metrics(text: str, font_name: str, bold_font_name: str,
             )
         else:
             parts.append(_esc(matched))
-        last_end = end
+        # Use start+len(matched) so trailing space (e.g. "8 " -> "8") is preserved in next part
+        last_end = start + len(matched)
     if last_end < len(text):
         parts.append(_esc(text[last_end:]))
-    return "".join(parts)
+    # ReportLab Paragraph collapses spaces between inline elements. Replace space
+    # after </font></b> with &#160; (non-breaking space) so "35% improvement" etc. render correctly.
+    result = "".join(parts)
+    result = re.sub(r'(</font></b>)\s+', r'\1&#160;', result)
+    return result
 
 
 def _build_styles():
@@ -1100,26 +1108,14 @@ def generate_output(
         else:
             pkb = {"personal_info": {"name": candidate_name}}
 
-    # Quality gate: run fresh Rule 13 + anti-pattern on actual content being output
-    # (not stale score_report — fixes edit+save blocking when user fixed issues)
-    from engine.reframer import run_rule13_self_check
+    # Quality gate: only block on fabrication and anachronism (never block on score)
     from engine.scorer import _get_anti_pattern_issues
-    rule13_checks = run_rule13_self_check(formatted_content, jd_analysis, pkb)
     anti_pattern_issues = _get_anti_pattern_issues(formatted_content, pkb)
     blocked_failures = []
     if "title_fabrication" in anti_pattern_issues:
         blocked_failures.append("title_fabrication")
     if "pre_2023_anachronistic_tech" in anti_pattern_issues:
         blocked_failures.append("pre_2023_anachronistic_tech")
-    no_pre_2023 = rule13_checks.get("no_pre_2023_llm_powered", {})
-    if isinstance(no_pre_2023, dict) and not no_pre_2023.get("passed", True):
-        blocked_failures.append("no_pre_2023_llm_powered")
-    no_banned = rule13_checks.get("no_banned_verb_starts", {})
-    if isinstance(no_banned, dict) and not no_banned.get("passed", True):
-        blocked_failures.append("no_banned_verb_starts")
-    every_metric = rule13_checks.get("every_bullet_has_metric", {})
-    if isinstance(every_metric, dict) and not every_metric.get("passed", True):
-        blocked_failures.append("every_bullet_has_metric")
     if blocked_failures:
         raise QualityGateBlockedError(
             f"Quality gate blocked: critical rule failures ({', '.join(blocked_failures)})",

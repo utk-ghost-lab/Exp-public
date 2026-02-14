@@ -19,6 +19,8 @@ import time
 
 import anthropic
 
+from engine.api_utils import messages_create_with_retry
+
 # Load .env so ANTHROPIC_API_KEY is available when run from CLI/Composer
 try:
     from dotenv import load_dotenv
@@ -146,7 +148,7 @@ RULE 4 — BULLETS PER ROLE (hard constraints): Most recent role: minimum 4, max
 
 RULE 5 — ONLY RELEVANT POINTERS: Every bullet must map to P0 or P1 JD requirement. Does this help get shortlisted for THIS job? If no, cut it. 4 perfect bullets beat 8 mediocre ones.
 
-RULE 6 — TOP 1% LANGUAGE: Outcomes, not tasks. Business impact: revenue, growth, retention, efficiency. Show WHY it mattered and the RESULT. Think: how would a VP describe this in a board presentation?
+RULE 6 — TOP 1% LANGUAGE: Outcomes, not tasks. Business impact: revenue, growth, retention, efficiency. Show WHY it mattered and the RESULT. Think: how would a VP describe this in a board presentation? Every bullet must pass: "Would a VP use this in a board deck?" and "Could I say this naturally in an interview?"
 
 RULE 7 — REFRAMING BOUNDARIES (no anachronistic tech): For roles ending before June 2023, do NOT use "LLM", "LLM-powered", "large language model", "GPT", "generative AI", "gen AI", "RAG", "retrieval-augmented". Use "NLP-driven", "ML-powered", "conversational AI", "machine learning", "information retrieval" instead. Not allowed: invent work, claim tools never used. Only shipped/deployed work.
 
@@ -174,9 +176,16 @@ RULE 11 — AWARDS & RECOGNITION: If PKB has awards, add "Awards & Recognition" 
 
 RULE 12 — EDUCATION & CERTIFICATIONS: One line per education. Certifications relevant to JD only. DEGREE INTEGRITY: Use the EXACT degree name from the PKB. Do NOT add specializations that don't exist. Examples: INSEAD = "Executive MBA" (NOT "Executive MBA in Product Management"), IIT = "B.Tech" (NOT "B.Tech in Computer Science" unless PKB says so). If the PKB degree field is blank or generic, keep it generic.
 
-RULE 13 — TONE: Confident, human, crisp. No buzzword chains. No verb used more than twice across all bullets — use synonym variety (Led → Spearheaded, Drove → Owned, etc.).
+RULE 13 — TONE: Confident, human, crisp. No buzzword chains. No verb used more than twice across all bullets — use synonym variety (Led → Spearheaded, Drove → Owned, etc.). Banned: AI-sounding phrases like "leveraged", "synergized", "drove alignment", "stakeholder engagement" without a concrete outcome. Use: Led, Built, Delivered, Scaled + specific result.
 
-RULE 14 — SELF-CHECK: Summary 3-4 lines under 60 words, opens "Senior Product Manager with 8+ years"; titles EXACTLY match PKB; no fabricated metrics; most recent role 4-5 bullets, second 3-4, third 3-4; every bullet 20-30 words, metric from PKB, no banned starts; no pre-2023 LLM/GPT/RAG/GenAI; skills ≤25 terms with no duplicates; locations City, Country; reframing_log complete.
+RULE 14 — SELF-CHECK: Summary 3-4 lines under 60 words, opens "Senior Product Manager with 8+ years"; summary has one standout metric in first 2 lines; no bullet sounds robotic when read aloud; titles EXACTLY match PKB; no fabricated metrics; most recent role 4-5 bullets, second 3-4, third 3-4; every bullet 20-30 words, metric from PKB, no banned starts; no pre-2023 LLM/GPT/RAG/GenAI; skills ≤25 terms with no duplicates; locations City, Country; reframing_log complete.
+
+RULE 15 — 6-SECOND RECRUITER SCAN (CRITICAL): A recruiter spends ~6 seconds on the first pass. Your resume MUST pass:
+- TITLE CLARITY: First line of summary + most recent title = instant "I know what they do"
+- SENIORITY: "8+ years" or equivalent signals right level
+- ONE NUMBER THAT JUMPS OUT: Put the strongest metric (%, $, scale) in the summary's first 2 lines — e.g. "driving 35% retention improvement" or "serving 30,000+ businesses"
+- NARRATIVE PULL: Summary should make a recruiter think "I need to call this person"
+- HUMAN-LIKE: Read every bullet out loud. If it sounds robotic, keyword-stuffed, or AI-generated, rewrite it. Top 1% PMs write crisp, specific, outcome-focused bullets — never buzzword chains.
 
 REFRAMING LOG: For each reframed bullet: original, reframed, jd_keywords_used, what_changed, interview_prep.
 
@@ -202,13 +211,18 @@ OTHER RULES:
 Return ONLY valid JSON (no markdown)."""
 
 
+# Max bullets per role sent to reframer API (reduces payload; programmatic fixes can add more)
+MAX_BULLETS_PER_ROLE_FOR_API = 5
+
+
 def _condensed_pkb_for_api(pkb: dict) -> dict:
     """Build a smaller PKB for the API call to reduce payload and avoid timeouts.
-    Keeps only fields needed for resume generation; full pkb is used for post-processing."""
+    Keeps only fields needed for resume generation; full pkb is used for post-processing.
+    Caps bullets per role to MAX_BULLETS_PER_ROLE_FOR_API."""
     work = []
     for w in pkb.get("work_experience") or []:
         bullets = []
-        for b in w.get("bullets") or []:
+        for b in (w.get("bullets") or [])[:MAX_BULLETS_PER_ROLE_FOR_API]:
             text = (b.get("original_text") or "").strip()
             if text:
                 bullets.append(text)
@@ -362,11 +376,11 @@ def _get_role_end_year(role: dict, pkb: dict) -> int:
                 d = w.get("dates") or {}
                 end = d.get("end") or d.get("start") or ""
                 break
-    # Parse "Oct 2025" or "2025" or "May 2024 – Oct 2025"
+    # Parse "Oct 2025" or "2025" or "May 2024 – Oct 2025" - use max year (end date)
     if isinstance(end, str) and end:
-        match = re.search(r"20\d{2}|19\d{2}", end)
-        if match:
-            return int(match.group(0))
+        years = re.findall(r"20\d{2}|19\d{2}", end)
+        if years:
+            return int(max(years))
     return 2030
 
 
@@ -392,15 +406,21 @@ def _fix_pre_2023_language(bullet: str, role_end_year: int) -> str:
     """Replace LLM-powered/GenAI with conversational AI/ML-powered for pre-2023 roles."""
     if role_end_year >= PRE_2023_CUTOFF_YEAR:
         return bullet
+    # Order matters: longer phrases first
     b = re.sub(r"\bLLM-powered\b", "NLP-driven", bullet, flags=re.IGNORECASE)
-    b = re.sub(r"\bLLM\b", "conversational AI", b, flags=re.IGNORECASE)
-    b = re.sub(r"\blarge language model\b", "machine learning", b, flags=re.IGNORECASE)
+    b = re.sub(r"\bChatGPT\b", "conversational AI", b, flags=re.IGNORECASE)
+    b = re.sub(r"\bGPT-4\b", "ML-powered", b, flags=re.IGNORECASE)
+    b = re.sub(r"\bGPT-3\b", "ML-powered", b, flags=re.IGNORECASE)
     b = re.sub(r"\bGPT\b", "ML-powered", b, flags=re.IGNORECASE)
+    b = re.sub(r"\bLLMs?\b", "conversational AI", b, flags=re.IGNORECASE)
+    b = re.sub(r"\bLLM\b", "conversational AI", b, flags=re.IGNORECASE)
+    b = re.sub(r"\blarge language models?\b", "machine learning", b, flags=re.IGNORECASE)
     b = re.sub(r"\bgenerative AI\b", "machine learning", b, flags=re.IGNORECASE)
     b = re.sub(r"\bgen AI\b", "ML-powered", b, flags=re.IGNORECASE)
+    b = re.sub(r"\bGenAI\b", "ML-powered", b, flags=re.IGNORECASE)
+    b = re.sub(r"\bgenai\b", "ML-powered", b, flags=re.IGNORECASE)
     b = re.sub(r"\bRAG\b", "information retrieval", b, flags=re.IGNORECASE)
     b = re.sub(r"\bretrieval-augmented\b", "information retrieval", b, flags=re.IGNORECASE)
-    b = re.sub(r"\bGenAI\b", "ML-powered", b, flags=re.IGNORECASE)
     b = re.sub(r"\bAI-powered\b", "ML-powered", b, flags=re.IGNORECASE)
     return b
 
@@ -1190,8 +1210,48 @@ def _enforce_skills_minimum(result: dict, pkb: dict, parsed_jd: dict) -> dict:
     return result
 
 
+def _text_has_metric(text: str) -> bool:
+    """True if text contains a number, %, $, or scale (e.g. 30,000+)."""
+    if not text:
+        return False
+    if "%" in text or "$" in text or "×" in text:
+        return True
+    if any(c.isdigit() for c in text):
+        return True
+    return False
+
+
+def _extract_strongest_metric_from_bullets(work_experience: list) -> str:
+    """Extract the most impactful metric phrase from bullets (%, $, or scale) for 6-second scan."""
+    candidates = []
+    for role in work_experience or []:
+        for b in role.get("bullets") or []:
+            bullet = b or ""
+            # Match: "35%", "35% improvement", "by 25%", "$5M", "30,000+", "12-person"
+            for pattern in [
+                r"\d+%[\w\s]*(?:improvement|growth|reduction|increase|uptick)?",
+                r"(?:by|of)\s+\d+%",
+                r"\$[\d,]+[KMB]?",
+                r"\d+[,+]?\d*(?:K|M|\+)?",
+                r"\d+[-–]\s*person\s+team",
+            ]:
+                m = re.search(pattern, bullet, re.I)
+                if m:
+                    phrase = m.group(0).strip()
+                    if len(phrase) >= 3 and len(phrase) <= 40:
+                        candidates.append(phrase)
+    if not candidates:
+        return ""
+    # Prefer % or $ over raw numbers
+    for c in candidates:
+        if "%" in c or "$" in c:
+            return c
+    return candidates[0] if candidates else ""
+
+
 def _enforce_summary_format(result: dict, parsed_jd: dict) -> dict:
-    """Part A Rule 3: Summary must be exactly 3 sentences, 45-55 words, max 3 JD terms."""
+    """Part A Rule 3: Summary must be exactly 3 sentences, 45-55 words, max 3 JD terms.
+    Rule 15: First 2 lines must have one standout metric (6-second scan)."""
     summary = (result.get("professional_summary") or "").strip()
     if not summary:
         return result
@@ -1254,6 +1314,21 @@ def _enforce_summary_format(result: dict, parsed_jd: dict) -> dict:
         else:
             summary = truncated.rstrip(".,;: ") + "."
         logger.info("Summary trimmed to 55 words (%d -> %d words)", word_count, len(summary.split()))
+
+    # Rule 15: 6-second scan — first 2 lines must have one standout metric
+    lines = [s.strip() for s in summary.split("\n") if s.strip()]
+    first_two_lines = " ".join(lines[:2]) if len(lines) >= 2 else (lines[0] if lines else "")
+    if first_two_lines and not _text_has_metric(first_two_lines):
+        metric_phrase = _extract_strongest_metric_from_bullets(result.get("work_experience") or [])
+        if metric_phrase:
+            # Inject into line 2 (or line 1 if single line) for 6-second scan
+            target_line = 1 if len(lines) >= 2 else 0
+            line = lines[target_line].rstrip(".,;")
+            lines[target_line] = line + f" — {metric_phrase}."
+            summary = "\n".join(lines)
+            logger.info("Injected standout metric into summary: %s", metric_phrase[:50])
+        else:
+            logger.warning("Summary first 2 lines lack a metric; no suitable metric found in bullets")
 
     result["professional_summary"] = summary
     return result
@@ -1400,11 +1475,17 @@ def _apply_programmatic_fixes(result: dict, parsed_jd: dict, pkb: dict) -> dict:
     return result
 
 
+# Patch reframe model: Haiku for speed; set REFRAMER_PATCH_MODEL=sonnet to use Sonnet
+PATCH_REFRAME_MODEL = os.environ.get("REFRAMER_PATCH_MODEL", "haiku").strip().lower()
+_PATCH_MODEL_ID = "claude-sonnet-4-5-20250929" if PATCH_REFRAME_MODEL == "sonnet" else "claude-haiku-4-5-20251001"
+
+
 def _patch_reframe_with_retry(
     current_resume_content: dict,
     feedback: str,
     parsed_jd: dict,
     max_retries: int = 1,
+    user_preferences_from_edits: str = None,
 ) -> dict:
     """Patch mode: make targeted edits to existing resume. Returns patched resume or original on failure."""
     client = anthropic.Anthropic()
@@ -1413,19 +1494,24 @@ def _patch_reframe_with_retry(
         "p0_keywords": parsed_jd.get("p0_keywords", []),
         "p1_keywords": parsed_jd.get("p1_keywords", []),
     }, indent=2)
+    preferences_block = ""
+    if user_preferences_from_edits and user_preferences_from_edits.strip():
+        preferences_block = f"\n\n---\n\n{user_preferences_from_edits.strip()}\n\n"
 
     for attempt in range(max_retries + 1):
         try:
             logger.info("Patch reframe attempt %d/%d (targeted edits only)...", attempt + 1, max_retries + 1)
-            message = client.messages.create(
-                model="claude-sonnet-4-5-20250929",
+            message = messages_create_with_retry(
+                client,
+                model=_PATCH_MODEL_ID,
                 max_tokens=8000,
-                timeout=60.0,
+                timeout=45.0,
                 messages=[
                     {
                         "role": "user",
                         "content": (
                             f"{PATCH_REFRAME_PROMPT}\n\n"
+                            f"{preferences_block}"
                             f"---\n\n"
                             f"FEEDBACK TO ADDRESS:\n{feedback}\n\n"
                             f"---\n\n"
@@ -1461,6 +1547,7 @@ def reframe_experience(
     parsed_jd: dict,
     feedback_for_improvement=None,
     current_resume_content=None,
+    user_preferences_from_edits=None,
 ) -> dict:
     """Generate tailored resume content using intelligent reframing.
 
@@ -1471,6 +1558,7 @@ def reframe_experience(
         feedback_for_improvement: Optional feedback from scorer to improve weakest component.
         current_resume_content: Optional already-reframed resume. If provided with feedback,
                                 uses patch mode (targeted edits) instead of full regeneration.
+        user_preferences_from_edits: Optional block of "User changed: X to Y" from past edits.
 
     Returns:
         Resume content dict with professional_summary, work_experience,
@@ -1479,7 +1567,10 @@ def reframe_experience(
     # Patch mode: if both feedback and current resume provided, make targeted edits only
     if feedback_for_improvement and current_resume_content:
         logger.info("Using patch mode: targeted edits to existing resume")
-        patched = _patch_reframe_with_retry(current_resume_content, feedback_for_improvement, parsed_jd)
+        patched = _patch_reframe_with_retry(
+            current_resume_content, feedback_for_improvement, parsed_jd,
+            user_preferences_from_edits=user_preferences_from_edits,
+        )
         # Ensure required keys exist
         patched.setdefault("professional_summary", current_resume_content.get("professional_summary", ""))
         patched.setdefault("work_experience", current_resume_content.get("work_experience", []))
@@ -1497,23 +1588,17 @@ def reframe_experience(
     # Full reframe mode: regenerate from PKB
     client = anthropic.Anthropic()
 
-    # Build context: JD + mapping + PKB
+    # Build context: JD + mapping + PKB (slim JD for reframer to reduce payload and latency)
     jd_json = json.dumps({
         "job_title": parsed_jd.get("job_title"),
         "company": parsed_jd.get("company"),
         "location": parsed_jd.get("location"),
-        "hard_skills": parsed_jd.get("hard_skills", []),
-        "soft_skills": parsed_jd.get("soft_skills", []),
-        "industry_terms": parsed_jd.get("industry_terms", []),
-        "experience_requirements": parsed_jd.get("experience_requirements", []),
         "key_responsibilities": parsed_jd.get("key_responsibilities", []),
         "achievement_language": parsed_jd.get("achievement_language", []),
         "company_context": parsed_jd.get("company_context"),
         "job_level": parsed_jd.get("job_level"),
-        "cultural_signals": parsed_jd.get("cultural_signals", []),
         "p0_keywords": parsed_jd.get("p0_keywords", []),
         "p1_keywords": parsed_jd.get("p1_keywords", []),
-        "p2_keywords": parsed_jd.get("p2_keywords", []),
     }, indent=2)
 
     mapping_json = json.dumps(mapping_matrix, indent=2)
@@ -1530,14 +1615,19 @@ def reframe_experience(
         )
         logger.info("Reframing with scorer feedback for improvement")
 
+    preferences_block = ""
+    if user_preferences_from_edits and user_preferences_from_edits.strip():
+        preferences_block = "\n\n---\n\n" + user_preferences_from_edits.strip() + "\n\n"
+
     logger.info("Reframing experience with Claude (intelligent reframing engine)...")
-    # Retry logic for full reframe: 2 attempts, 120s timeout
+    # Retry logic for full reframe: 2 attempts, 180s timeout (reduces retries on large payloads)
     max_retries = 1
-    full_reframe_timeout = 120.0
+    full_reframe_timeout = 180.0
     last_error = None
     for attempt in range(max_retries + 1):
         try:
-            message = client.messages.create(
+            message = messages_create_with_retry(
+                client,
                 model="claude-sonnet-4-5-20250929",
                 max_tokens=16000,
                 timeout=full_reframe_timeout,
@@ -1546,6 +1636,7 @@ def reframe_experience(
                         "role": "user",
                         "content": (
                             f"{REFRAME_PROMPT}\n\n"
+                            f"{preferences_block}"
                             f"{feedback_block}"
                             "---\n\n"
                             "JOB DESCRIPTION ANALYSIS:\n"
@@ -1605,7 +1696,8 @@ def reframe_experience(
     if not result.get("work_experience"):
         logger.warning("work_experience is EMPTY after reframe — retrying once...")
         try:
-            retry_message = client.messages.create(
+            retry_message = messages_create_with_retry(
+                client,
                 model="claude-sonnet-4-5-20250929",
                 max_tokens=16000,
                 timeout=full_reframe_timeout,
@@ -1614,6 +1706,7 @@ def reframe_experience(
                         "role": "user",
                         "content": (
                             f"{REFRAME_PROMPT}\n\n"
+                            f"{preferences_block}"
                             f"{feedback_block}"
                             "---\n\n"
                             "JOB DESCRIPTION ANALYSIS:\n"

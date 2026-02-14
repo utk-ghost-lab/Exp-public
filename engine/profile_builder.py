@@ -11,6 +11,8 @@ import logging
 import os
 
 import anthropic
+
+from engine.api_utils import messages_create_with_retry
 import pdfplumber
 
 logger = logging.getLogger(__name__)
@@ -212,7 +214,8 @@ def extract_pkb_with_llm(combined_text: str) -> dict:
     client = anthropic.Anthropic()
 
     logger.info("Sending documents to Claude for PKB extraction...")
-    message = client.messages.create(
+    message = messages_create_with_retry(
+        client,
         model="claude-sonnet-4-5-20250929",
         max_tokens=16000,
         messages=[
