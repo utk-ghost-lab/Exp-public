@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Generate Resume{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-bold mb-6">Generate Resume</h1>
+
+{% if error %}
+<p class="text-red-600 mb-4">{{ error }}</p>
+{% endif %}
+
+<form id="generate-form" class="mb-8" action="{{ request.url.path }}" method="post" hx-post="{{ request.url.path }}" hx-swap="innerHTML" hx-target="#progress-container" hx-indicator="#spinner" hx-disabled-elt="#submit-btn">
+    <label class="block font-medium mb-2">Paste Job Description</label>
+    <textarea name="jd_text" rows="12" class="w-full border border-gray-300 rounded px-3 py-2 mb-4" placeholder="Paste the full job description here..."></textarea>
+    <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed" id="submit-btn">
+        <span id="btn-text">Generate Resume</span>
+        <span id="spinner" class="htmx-indicator ml-2 text-sm font-medium">Generating...</span>
+    </button>
+</form>
+
+<div id="progress-container">
+    <!-- Progress or result will be swapped here after POST -->
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    var form = document.getElementById("generate-form");
+    var container = document.getElementById("progress-container");
+    if (!form || !container) return;
+    // Show loading state with spinner as soon as submit is clicked (before HTMX or native submit)
+    form.addEventListener("submit", function() {
+        container.innerHTML = '<div class="flex items-center gap-2 py-4 text-gray-600"><svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span class="font-medium">Starting pipeline…</span></div>';
+    }, { capture: true });
+    // If HTMX request fails, show error in container so user sees feedback
+    document.body.addEventListener("htmx:responseError", function(ev) {
+        var el = document.getElementById("progress-container");
+        if (el && (ev.detail.target.id === "generate-form" || ev.detail.target === form))
+            el.innerHTML = "<p class=\"text-red-600\">Request failed. Please try again.</p>";
+    });
+    document.body.addEventListener("htmx:sendError", function() {
+        var el = document.getElementById("progress-container");
+        if (el) el.innerHTML = "<p class=\"text-red-600\">Network error. Please try again.</p>";
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,77 @@
+<div class="border border-gray-200 rounded p-4 bg-white">
+    <h3 class="text-lg font-semibold mb-2">Resume generated — Score: {{ score_report.total_score | default(0) }} / 100</h3>
+    {% set comps = score_report.get("components") or {} %}
+    <ul class="text-sm text-gray-600 mb-4 space-y-1">
+        {% for key, c in comps.items() %}
+        <li>{{ key }}: {{ c.score | default(0) }} (×{{ c.weight | default(0) }})</li>
+        {% endfor %}
+    </ul>
+
+    <div class="flex gap-4 mb-4">
+        <div class="inline">
+            <button type="button" id="generate-pdf-no-edit" class="bg-green-600 text-white px-3 py-1.5 rounded text-sm hover:bg-green-700">Generate PDF (no edits)</button>
+        </div>
+    </div>
+
+    <p class="text-sm font-medium mt-4 mb-2">Edit before PDF (optional)</p>
+    <p class="text-sm text-gray-500 mb-2">Edit the JSON below and click "Save edits & Generate PDF" to apply changes and download. Edits are recorded to improve future resumes.</p>
+    <form id="finalize-edit-form" action="/generate/finalize" method="post" target="_blank" class="block">
+        <input type="hidden" name="job_id" value="{{ job_id }}">
+        <textarea id="resume-json" name="resume_content_json" rows="16" class="w-full border border-gray-300 rounded px-2 py-1 text-sm font-mono">{{ resume_content_json }}</textarea>
+        <button type="button" id="submit-edited" class="mt-2 bg-blue-600 text-white px-3 py-1.5 rounded text-sm hover:bg-blue-700">Save edits & Generate PDF</button>
+    </form>
+</div>
+<script>
+(function() {
+    const jobId = "{{ job_id }}";
+    document.getElementById("generate-pdf-no-edit").addEventListener("click", function() {
+        fetch("/generate/finalize", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ job_id: jobId })
+        }).then(async r => {
+            if (!r.ok) {
+                const err = await r.json().catch(() => ({}));
+                alert(err.detail || "Quality check failed. Please try again or contact support.");
+                return;
+            }
+            return r.blob();
+        }).then(blob => {
+            if (!blob) return;
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = "resume.pdf";
+            a.click();
+        });
+    });
+    document.getElementById("submit-edited").addEventListener("click", function(e) {
+        e.preventDefault();
+        let jsonStr = document.getElementById("resume-json").value;
+        let resumeContent;
+        try {
+            resumeContent = JSON.parse(jsonStr);
+        } catch (err) {
+            alert("Invalid JSON: " + err.message);
+            return;
+        }
+        fetch("/generate/finalize", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ job_id: jobId, resume_content: resumeContent })
+        }).then(async r => {
+            if (!r.ok) {
+                const err = await r.json().catch(() => ({}));
+                alert(err.detail || "Quality check failed. Please try again or contact support.");
+                return;
+            }
+            return r.blob();
+        }).then(blob => {
+            if (!blob) return;
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = "resume.pdf";
+            a.click();
+        });
+    });
+})();
+</script>

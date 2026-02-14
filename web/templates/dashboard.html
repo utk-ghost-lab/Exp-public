@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Placement Team — Command Center{% endblock %}
+{% block content %}
+<div class="space-y-8">
+    <h1 class="text-2xl font-bold">Command Center</h1>
+
+    <div>
+        <a href="/generate" class="inline-block bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Paste JD & Generate Resume</a>
+    </div>
+
+    <section>
+        <h2 class="text-lg font-semibold mb-3">Recent runs</h2>
+        {% if recent_runs %}
+        <ul class="space-y-3">
+            {% for run in recent_runs %}
+            <li class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 py-3 px-4 bg-white rounded-lg border border-gray-200 min-w-0">
+                <span class="font-medium truncate min-w-0" title="{{ run.folder }}">{{ run.folder }}</span>
+                <div class="flex items-center gap-3 shrink-0">
+                    {% if run.score is not none %}
+                    <span class="text-gray-600 text-sm">Score: {{ "%.1f"|format(run.score) }}</span>
+                    {% endif %}
+                    {% if run.pdf_name %}
+                    <a href="/output/{{ run.folder }}/{{ run.pdf_name }}" class="text-green-600 hover:underline whitespace-nowrap" target="_blank">Download PDF</a>
+                    {% else %}
+                    <span class="text-gray-400 text-sm">No PDF</span>
+                    {% endif %}
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="text-gray-500 py-4">No runs yet. Generate a resume to see them here.</p>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}

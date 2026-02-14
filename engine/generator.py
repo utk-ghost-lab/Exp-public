@@ -40,6 +40,14 @@ from reportlab.platypus import (
 logger = logging.getLogger(__name__)
 
 
+class QualityGateBlockedError(Exception):
+    """Raised when critical rule failures block PDF generation."""
+    def __init__(self, message: str, blocked_reason: str, rule13_failures: list):
+        super().__init__(message)
+        self.blocked_reason = blocked_reason
+        self.rule13_failures = rule13_failures
+
+
 import re as _re
 
 
@@ -391,6 +399,34 @@ def _clean_url(url: str) -> str:
     return url.rstrip("/")
 
 
+def _ensure_url(url: str) -> str:
+    """Ensure URL has scheme for href. Adds https:// if missing."""
+    if not url or not isinstance(url, str):
+        return ""
+    url = (url or "").strip()
+    if not url:
+        return ""
+    if not url.startswith(("http://", "https://")):
+        return "https://" + url
+    return url
+
+
+def _escape_href(url: str) -> str:
+    """Escape URL for safe use in href attribute (XML/HTML)."""
+    if not url:
+        return ""
+    return (url.replace("&", "&amp;").replace('"', "&quot;")
+            .replace("<", "&lt;").replace(">", "&gt;"))
+
+
+def _link_markup(url: str, label: str) -> str:
+    """Build reportlab <a href="...">label</a> markup for clickable link."""
+    if not url:
+        return ""
+    href = _escape_href(_ensure_url(url))
+    return f'<a href="{href}">{_esc(label)}</a>'
+
+
 def _clean_spacing(text: str) -> str:
     """Collapse multiple spaces into one and strip leading/trailing whitespace."""
     if not text:
@@ -445,29 +481,29 @@ def _generate_pdf(content: dict, pkb: dict, output_path: str):
 
     story.append(Paragraph(_fix_sp(_esc(subtitle)), styles["subtitle"]))
 
-    # Contact line 1: phone, email, linkedin (clean URL), location
+    # Contact line 1: phone, email, linkedin (clickable "LinkedIn"), location
     github = personal.get("github_url") or ""
     portfolio = personal.get("portfolio_url") or ""
     contact_parts = []
     if phone:
-        contact_parts.append(phone)
+        contact_parts.append(_esc(phone))
     if email:
-        contact_parts.append(email)
+        contact_parts.append(_esc(email))
     if linkedin:
-        contact_parts.append(_clean_url(linkedin))
+        contact_parts.append(_link_markup(linkedin, "LinkedIn"))
     if location:
-        contact_parts.append(location)
+        contact_parts.append(_esc(location))
     contact_line = " \u2022 ".join(contact_parts)
-    story.append(Paragraph(_fix_sp(_esc(contact_line)), styles["contact"]))
-    # Contact line 2: additional links (GitHub, portfolio) with clean URLs
+    story.append(Paragraph(_fix_sp(contact_line), styles["contact"]))
+    # Contact line 2: GitHub, Portfolio as clickable labels
     extra_links = []
     if github:
-        extra_links.append(_clean_url(github))
+        extra_links.append(_link_markup(github, "Github"))
     if portfolio:
-        extra_links.append(_clean_url(portfolio))
+        extra_links.append(_link_markup(portfolio, "Portfolio"))
     if extra_links:
         extra_line = " \u2022 ".join(extra_links)
-        story.append(Paragraph(_fix_sp(_esc(extra_line)), styles["contact"]))
+        story.append(Paragraph(_fix_sp(extra_line), styles["contact"]))
 
     # --- SUMMARY SECTION ---
     story.append(Spacer(1, SPACE_BEFORE_SECTION))
@@ -641,6 +677,38 @@ def _generate_pdf(content: dict, pkb: dict, output_path: str):
     logger.info("PDF generated: %s", output_path)
 
 
+def _add_docx_hyperlink(paragraph, text: str, url: str, font_size=None, color_rgb=None):
+    """Add a hyperlink run to a docx paragraph. Returns the hyperlink element."""
+    from docx.oxml.parser import OxmlElement
+    from docx.oxml.ns import qn
+    from docx.opc.constants import RELATIONSHIP_TYPE as RT
+
+    url = _ensure_url(url)
+    if not url:
+        return
+    part = paragraph.part
+    r_id = part.relate_to(url, RT.HYPERLINK, is_external=True)
+    hyperlink = OxmlElement("w:hyperlink")
+    hyperlink.set(qn("r:id"), r_id)
+    new_run = OxmlElement("w:r")
+    rPr = OxmlElement("w:rPr")
+    if font_size is not None:
+        sz = OxmlElement("w:sz")
+        sz.set(qn("w:val"), str(int(font_size)))  # half-points
+        rPr.append(sz)
+    if color_rgb is not None:
+        color = OxmlElement("w:color")
+        r, g, b = color_rgb[0], color_rgb[1], color_rgb[2]
+        color.set(qn("w:val"), f"{r:02X}{g:02X}{b:02X}")
+        rPr.append(color)
+    new_run.append(rPr)
+    t = OxmlElement("w:t")
+    t.text = text
+    new_run.append(t)
+    hyperlink.append(new_run)
+    paragraph._p.append(hyperlink)
+
+
 def _generate_docx(content: dict, pkb: dict, output_path: str):
     """Generate a DOCX version of the resume using python-docx."""
     from docx import Document
@@ -683,34 +751,52 @@ def _generate_docx(content: dict, pkb: dict, output_path: str):
     run.font.color.rgb = green_rgb
     run.font.name = "Arial"
 
-    # Contact (clean URLs)
-    contact_parts = []
-    for key in ("phone", "email", "linkedin_url", "location"):
-        val = personal.get(key)
-        if val:
-            # Clean URLs for display
-            if "url" in key:
-                val = re.sub(r'^https?://', '', str(val)).rstrip("/")
-            contact_parts.append(str(val))
+    # Contact: phone, email, LinkedIn (clickable), location; then Github, Portfolio (clickable)
+    sep = " \u2022 "
+    font_sz = 18  # 8.9pt in half-points
     p = doc.add_paragraph()
     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    run = p.add_run(" \u2022 ".join(contact_parts))
-    run.font.size = Pt(8.9)
-    run.font.color.rgb = gray_rgb
-    run.font.name = "Arial"
-    # Extra contact links (GitHub, portfolio) with clean URLs
-    extra_links = []
-    for key in ("github_url", "portfolio_url"):
-        val = personal.get(key)
-        if val:
-            extra_links.append(re.sub(r'^https?://', '', str(val)).rstrip("/"))
-    if extra_links:
-        p = doc.add_paragraph()
-        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        run = p.add_run(" \u2022 ".join(extra_links))
+    parts_added = []
+    if personal.get("phone"):
+        run = p.add_run(personal["phone"])
         run.font.size = Pt(8.9)
         run.font.color.rgb = gray_rgb
         run.font.name = "Arial"
+        parts_added.append(True)
+    if personal.get("email"):
+        if parts_added:
+            p.add_run(sep).font.size = Pt(8.9)
+        run = p.add_run(personal["email"])
+        run.font.size = Pt(8.9)
+        run.font.color.rgb = gray_rgb
+        run.font.name = "Arial"
+        parts_added.append(True)
+    if personal.get("linkedin_url"):
+        if parts_added:
+            p.add_run(sep).font.size = Pt(8.9)
+        _add_docx_hyperlink(p, "LinkedIn", personal["linkedin_url"], font_size=font_sz, color_rgb=(62, 62, 62))
+        parts_added.append(True)
+    if personal.get("location"):
+        if parts_added:
+            p.add_run(sep).font.size = Pt(8.9)
+        run = p.add_run(personal["location"])
+        run.font.size = Pt(8.9)
+        run.font.color.rgb = gray_rgb
+        run.font.name = "Arial"
+    # Extra line: Github, Portfolio as clickable labels
+    extra_parts = []
+    if personal.get("github_url"):
+        extra_parts.append(("Github", personal["github_url"]))
+    if personal.get("portfolio_url"):
+        extra_parts.append(("Portfolio", personal["portfolio_url"]))
+    if extra_parts:
+        p = doc.add_paragraph()
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        for i, (label, url) in enumerate(extra_parts):
+            if i > 0:
+                run = p.add_run(sep)
+                run.font.size = Pt(8.9)
+            _add_docx_hyperlink(p, label, url, font_size=font_sz, color_rgb=(62, 62, 62))
 
     def add_section_header(title):
         p = doc.add_paragraph()
@@ -969,6 +1055,9 @@ def generate_output(
     candidate_name: str = None,
     pkb: dict = None,
     output_dir: str = "output",
+    edit_record: dict = None,
+    existing_out_folder: str = None,
+    output_suffix: str = None,
 ) -> str:
     """Generate the full resume package (8 artifacts).
 
@@ -984,6 +1073,9 @@ def generate_output(
         candidate_name: Candidate full name
         pkb: Profile Knowledge Base (for personal info)
         output_dir: Base output directory
+        edit_record: Optional pre-generation edit record (content_before, content_after); write pre_generation_edit.json
+        existing_out_folder: If set, use this folder instead of creating one from company_slug + date
+        output_suffix: Optional unique suffix (e.g. job_id[:8]) for folder name. If None, uses HHmmss.
 
     Returns:
         Path to the output folder
@@ -1008,10 +1100,41 @@ def generate_output(
         else:
             pkb = {"personal_info": {"name": candidate_name}}
 
-    # Create output folder
-    date_str = datetime.now().strftime("%Y-%m-%d")
-    out_folder = os.path.join(output_dir, f"{company_slug}_{date_str}")
-    os.makedirs(out_folder, exist_ok=True)
+    # Quality gate: run fresh Rule 13 + anti-pattern on actual content being output
+    # (not stale score_report — fixes edit+save blocking when user fixed issues)
+    from engine.reframer import run_rule13_self_check
+    from engine.scorer import _get_anti_pattern_issues
+    rule13_checks = run_rule13_self_check(formatted_content, jd_analysis, pkb)
+    anti_pattern_issues = _get_anti_pattern_issues(formatted_content, pkb)
+    blocked_failures = []
+    if "title_fabrication" in anti_pattern_issues:
+        blocked_failures.append("title_fabrication")
+    if "pre_2023_anachronistic_tech" in anti_pattern_issues:
+        blocked_failures.append("pre_2023_anachronistic_tech")
+    no_pre_2023 = rule13_checks.get("no_pre_2023_llm_powered", {})
+    if isinstance(no_pre_2023, dict) and not no_pre_2023.get("passed", True):
+        blocked_failures.append("no_pre_2023_llm_powered")
+    no_banned = rule13_checks.get("no_banned_verb_starts", {})
+    if isinstance(no_banned, dict) and not no_banned.get("passed", True):
+        blocked_failures.append("no_banned_verb_starts")
+    every_metric = rule13_checks.get("every_bullet_has_metric", {})
+    if isinstance(every_metric, dict) and not every_metric.get("passed", True):
+        blocked_failures.append("every_bullet_has_metric")
+    if blocked_failures:
+        raise QualityGateBlockedError(
+            f"Quality gate blocked: critical rule failures ({', '.join(blocked_failures)})",
+            blocked_reason="critical_rule_failures",
+            rule13_failures=blocked_failures,
+        )
+
+    # Use existing folder (e.g. from --review flow) or create new
+    if existing_out_folder and os.path.isdir(existing_out_folder):
+        out_folder = existing_out_folder
+    else:
+        date_str = datetime.now().strftime("%Y-%m-%d")
+        suffix = output_suffix if output_suffix else datetime.now().strftime("%H%M%S")
+        out_folder = os.path.join(output_dir, f"{company_slug}_{date_str}_{suffix}")
+        os.makedirs(out_folder, exist_ok=True)
 
     # --- 1. PDF ---
     pdf_filename = f"{name_slug}_SeniorProductManager_Resume.pdf"
@@ -1062,6 +1185,13 @@ def generate_output(
     fw_data["ats_parseability"] = ats_check
     with open(os.path.join(out_folder, "format_warnings.json"), "w") as f:
         json.dump(fw_data, f, indent=2)
+
+    # --- 9. pre_generation_edit.json (when user edited before PDF) ---
+    if edit_record:
+        pre_edit_path = os.path.join(out_folder, "pre_generation_edit.json")
+        with open(pre_edit_path, "w", encoding="utf-8") as f:
+            json.dump(edit_record, f, indent=2, ensure_ascii=False)
+        logger.info("Pre-generation edit record saved to %s", pre_edit_path)
 
     logger.info("Resume package saved to: %s", out_folder)
     logger.info("  PDF: %s", pdf_filename)
