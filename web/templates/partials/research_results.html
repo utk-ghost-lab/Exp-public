@@ -1,0 +1,117 @@
+<!-- Stats summary -->
+<div class="flex flex-wrap gap-3 mb-4">
+    <span class="text-sm bg-gray-100 rounded px-3 py-1">Scanned: <strong>{{ stats.get('total_scanned', 0) }}</strong></span>
+    <span class="text-sm bg-gray-100 rounded px-3 py-1">Scored: <strong>{{ stats.get('total_scored', 0) }}</strong></span>
+    {% set tiers = stats.get('tiers', {}) %}
+    {% if tiers.get('APPLY TODAY', 0) > 0 %}
+    <span class="text-sm bg-green-100 text-green-800 rounded px-3 py-1 font-medium">Apply Today: {{ tiers['APPLY TODAY'] }}</span>
+    {% endif %}
+    {% if tiers.get('WORTH TRYING', 0) > 0 %}
+    <span class="text-sm bg-yellow-100 text-yellow-800 rounded px-3 py-1 font-medium">Worth Trying: {{ tiers['WORTH TRYING'] }}</span>
+    {% endif %}
+    {% if tiers.get('STRETCH', 0) > 0 %}
+    <span class="text-sm bg-orange-100 text-orange-800 rounded px-3 py-1 font-medium">Stretch: {{ tiers['STRETCH'] }}</span>
+    {% endif %}
+</div>
+
+{% if jobs|length == 0 %}
+<p class="text-gray-500 text-sm">No jobs found matching your criteria.</p>
+{% else %}
+<!-- Results table -->
+<div class="space-y-3">
+    {% for job in jobs %}
+    {% set badge_color = 'bg-green-100 text-green-800' if job.recommendation == 'APPLY TODAY' else ('bg-yellow-100 text-yellow-800' if job.recommendation == 'WORTH TRYING' else ('bg-orange-100 text-orange-800' if job.recommendation == 'STRETCH' else 'bg-gray-100 text-gray-600')) %}
+    <div class="border border-gray-200 rounded-lg bg-white p-4 hover:shadow-sm transition-shadow">
+        <div class="flex items-start justify-between gap-4">
+            <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 mb-1">
+                    <span class="text-xs font-semibold px-2 py-0.5 rounded {{ badge_color }}">{{ job.fit_score }}%</span>
+                    <span class="text-xs px-2 py-0.5 rounded {{ badge_color }}">{{ job.recommendation }}</span>
+                </div>
+                <h3 class="font-medium text-gray-900 truncate">{{ job.title }}</h3>
+                <p class="text-sm text-gray-600">
+                    {{ job.company }}{% if job.location %} &middot; {{ job.location }}{% endif %}
+                    {% if spike_companies is defined and job.company|lower in spike_companies %}
+                    <span class="text-xs bg-red-100 text-red-700 rounded px-1.5 py-0.5 font-medium">HIRING SPIKE</span>
+                    {% endif %}
+                </p>
+                <p class="text-xs text-gray-400 mt-1">
+                    Source: {{ job.source }}
+                    {% if job.posted_days_ago is not none %} &middot; {{ job.posted_days_ago }}d ago{% endif %}
+                </p>
+
+                {% if job.salary_signal %}
+                {% if job.salary_signal.below_target %}
+                <p class="text-xs text-red-600 mt-1">
+                    Salary: ~{{ job.salary_signal.estimated_range or 'No data' }} (benchmark: {{ job.salary_signal.benchmark }}) — BELOW TARGET
+                </p>
+                {% elif job.salary_signal.estimated_range %}
+                <p class="text-xs text-gray-500 mt-1">
+                    Salary: ~{{ job.salary_signal.estimated_range }} (benchmark: {{ job.salary_signal.benchmark }})
+                </p>
+                {% endif %}
+                {% endif %}
+
+                {% if job.why_this_fits %}
+                <p class="text-xs text-emerald-700 bg-emerald-50 rounded px-2 py-1 mt-1.5 italic">{{ job.why_this_fits }}</p>
+                {% endif %}
+
+                <!-- Score breakdown (collapsible) -->
+                <details class="mt-2">
+                    <summary class="text-xs text-gray-500 cursor-pointer hover:text-gray-700">Score breakdown</summary>
+                    <div class="mt-1 grid grid-cols-5 gap-1 text-xs text-gray-600">
+                        {% set c = job.components %}
+                        {% if c.get('domain_match') %}
+                        <div class="bg-gray-50 rounded p-1.5 text-center">
+                            <div class="font-medium">Domain</div>
+                            <div>{{ c.domain_match.score }}/{{ c.domain_match.max }}</div>
+                        </div>
+                        {% endif %}
+                        {% if c.get('keyword_overlap') %}
+                        <div class="bg-gray-50 rounded p-1.5 text-center">
+                            <div class="font-medium">Keywords</div>
+                            <div>{{ c.keyword_overlap.score }}/{{ c.keyword_overlap.max }}</div>
+                        </div>
+                        {% endif %}
+                        {% if c.get('title_match') %}
+                        <div class="bg-gray-50 rounded p-1.5 text-center">
+                            <div class="font-medium">Title</div>
+                            <div>{{ c.title_match.score }}/{{ c.title_match.max }}</div>
+                        </div>
+                        {% endif %}
+                        {% if c.get('location_fit') %}
+                        <div class="bg-gray-50 rounded p-1.5 text-center">
+                            <div class="font-medium">Location</div>
+                            <div>{{ c.location_fit.score }}/{{ c.location_fit.max }}</div>
+                        </div>
+                        {% endif %}
+                        {% if c.get('recency') %}
+                        <div class="bg-gray-50 rounded p-1.5 text-center">
+                            <div class="font-medium">Recency</div>
+                            <div>{{ c.recency.score }}/{{ c.recency.max }}</div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% if job.missing_critical_skills %}
+                    <p class="text-xs text-red-500 mt-1">Missing P0: {{ job.missing_critical_skills | join(', ') }}</p>
+                    {% endif %}
+                </details>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex flex-col gap-2 shrink-0">
+                {% if job.job_url %}
+                <a href="{{ job.job_url }}" target="_blank" class="text-xs text-blue-600 hover:text-blue-800 text-center">View JD</a>
+                {% endif %}
+                {% if job.jd_text and job.recommendation in ['APPLY TODAY', 'WORTH TRYING'] %}
+                <form action="/generate" method="post" hx-post="/generate" hx-target="#main-content" hx-swap="innerHTML">
+                    <input type="hidden" name="jd_text" value="{{ job.jd_text | e }}">
+                    <button type="submit" class="text-xs bg-green-600 text-white px-3 py-1.5 rounded hover:bg-green-700 whitespace-nowrap">Generate Resume</button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
