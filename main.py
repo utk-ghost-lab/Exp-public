@@ -53,6 +53,7 @@ def run_pipeline(
     use_cache: bool = True,
     progress_callback=None,
     stop_before_pdf: bool = False,
+    enable_research: bool = False,
 ):
     """Run the full resume generation pipeline for a given JD.
 
@@ -101,7 +102,7 @@ def run_pipeline(
 
     pipeline_start = time.time()
 
-    # Step 1 (and optionally 2): Parse JD and optionally map in one call
+    # Step 1: Parse JD
     if combined_parse_map:
         from engine.jd_parse_and_map import parse_jd_and_map
         t0 = time.time()
@@ -128,15 +129,41 @@ def run_pipeline(
         _progress(1, "done", "JD parsed", {"p0_count": len(parsed_jd.get("p0_keywords", [])), "p1_count": len(parsed_jd.get("p1_keywords", []))})
         logger.info("  Step 1 done in %.1fs", time.time() - t0)
 
-        # Step 2: Map profile to JD (from cache or API)
+    # Step 1.5: Company Research & Fit Analysis (optional, runs after JD parse, before mapping)
+    research_brief = None
+    if enable_research:
+        t0 = time.time()
+        logger.info("Step 1.5: Running company research & fit analysis...")
+        _progress(1, "running", "Researching company...")
+        try:
+            from engine.research_integration import run_company_research
+            research_brief = run_company_research(parsed_jd, pkb)
+            if research_brief:
+                fit = research_brief.get("fit_score_result") or {}
+                _progress(1, "done", "Company research complete", {
+                    "fit_score": fit.get("fit_score"),
+                    "hiring_mode": research_brief.get("hiring_mode"),
+                })
+                logger.info("  Step 1.5 done in %.1fs (fit_score=%.1f, hiring_mode=%s)",
+                            time.time() - t0,
+                            fit.get("fit_score", 0),
+                            research_brief.get("hiring_mode", "unknown"))
+            else:
+                logger.info("  Step 1.5 done in %.1fs (no brief produced)", time.time() - t0)
+        except Exception as e:
+            logger.warning("Step 1.5 failed (non-fatal): %s", e)
+            research_brief = None
+
+    # Step 2: Map profile to JD (skip if already done in combined mode)
+    if not combined_parse_map:
         t0 = time.time()
         logger.info("Step 2: Mapping profile to JD requirements...")
-        if use_cache:
+        if use_cache and not research_brief:
             mapping = get_cached_mapping(jd_text, pkb_path)
         else:
             mapping = None
         if mapping is None:
-            mapping = map_profile_to_jd(parsed_jd, pkb)
+            mapping = map_profile_to_jd(parsed_jd, pkb, research_brief=research_brief)
             if use_cache:
                 set_cached_mapping(jd_text, pkb_path, mapping)
         cov = (mapping.get("coverage_summary") or {})
@@ -152,6 +179,7 @@ def run_pipeline(
     resume_content = reframe_experience(
         mapping, pkb, parsed_jd,
         user_preferences_from_edits=user_preferences,
+        research_brief=research_brief,
     )
     reframing_log = resume_content.get("reframing_log", [])
     work = resume_content.get("work_experience") or []
@@ -214,6 +242,7 @@ def run_pipeline(
             "format_validation": format_validation,
             "iteration_log": iteration_log,
             "pkb": pkb,
+            "research_brief": research_brief,
         }
 
     # Step 6.5 (optional): Review and edit JSON before PDF
@@ -249,6 +278,7 @@ def run_pipeline(
             pkb=pkb,
             edit_record=edit_record,
             existing_out_folder=existing_out_folder,
+            research_brief=research_brief,
         )
     except QualityGateBlockedError as e:
         logger.error("Quality gate blocked PDF: %s", e.blocked_reason)
@@ -297,6 +327,10 @@ def main():
         "--no-cache", action="store_true",
         help="Disable cache for parsed JD and mapping",
     )
+    parser.add_argument(
+        "--research", action="store_true",
+        help="Enable company research & fit analysis (Step 1.5) for better resume positioning",
+    )
     parser.add_argument("--verbose", action="store_true", help="Enable verbose/debug logging")
 
     args = parser.parse_args()
@@ -315,6 +349,7 @@ def main():
                 fast_no_improve=args.fast_no_improve,
                 combined_parse_map=args.combined_parse_map,
                 use_cache=not args.no_cache,
+                enable_research=args.research,
             )
             if isinstance(result, dict) and result.get("blocked"):
                 logger.error("Quality check failed. Please try again or contact support.")
@@ -341,6 +376,7 @@ def main():
                 fast_no_improve=args.fast_no_improve,
                 combined_parse_map=args.combined_parse_map,
                 use_cache=not args.no_cache,
+                enable_research=args.research,
             )
             if isinstance(result, dict) and result.get("blocked"):
                 logger.error("Quality check failed. Please try again or contact support.")
