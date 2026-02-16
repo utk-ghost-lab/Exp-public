@@ -27,6 +27,11 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+
+class ResearchFailedError(Exception):
+    """Raised when research was requested but produced no useful brief."""
+    pass
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
@@ -135,24 +140,44 @@ def run_pipeline(
         t0 = time.time()
         logger.info("Step 1.5: Running company research & fit analysis...")
         _progress(1, "running", "Researching company...")
-        try:
-            from engine.research_integration import run_company_research
-            research_brief = run_company_research(parsed_jd, pkb)
-            if research_brief:
-                fit = research_brief.get("fit_score_result") or {}
-                _progress(1, "done", "Company research complete", {
-                    "fit_score": fit.get("fit_score"),
-                    "hiring_mode": research_brief.get("hiring_mode"),
-                })
-                logger.info("  Step 1.5 done in %.1fs (fit_score=%.1f, hiring_mode=%s)",
-                            time.time() - t0,
-                            fit.get("fit_score", 0),
-                            research_brief.get("hiring_mode", "unknown"))
-            else:
-                logger.info("  Step 1.5 done in %.1fs (no brief produced)", time.time() - t0)
-        except Exception as e:
-            logger.warning("Step 1.5 failed (non-fatal): %s", e)
-            research_brief = None
+
+        def _research_is_useful(brief):
+            """Check if brief has at least one core strategic field."""
+            if not brief:
+                return False
+            core_fields = ("role_purpose", "competitive_edge", "bridge_strategy")
+            return any(brief.get(f) for f in core_fields)
+
+        from engine.research_integration import run_company_research
+
+        for attempt in range(2):  # max 2 attempts
+            try:
+                research_brief = run_company_research(parsed_jd, pkb)
+            except Exception as e:
+                logger.warning("Step 1.5 attempt %d failed: %s", attempt + 1, e)
+                research_brief = None
+
+            if _research_is_useful(research_brief):
+                break
+            if attempt == 0:
+                logger.info("Step 1.5: brief not useful, retrying...")
+                _progress(1, "running", "Research retry...")
+
+        if not _research_is_useful(research_brief):
+            raise ResearchFailedError(
+                "Company research failed after 2 attempts — no strategic insights produced. "
+                "Check your network connection and try again."
+            )
+
+        fit = research_brief.get("fit_score_result") or {}
+        _progress(1, "done", "Company research complete", {
+            "fit_score": fit.get("fit_score"),
+            "hiring_mode": research_brief.get("hiring_mode"),
+        })
+        logger.info("  Step 1.5 done in %.1fs (fit_score=%.1f, hiring_mode=%s)",
+                    time.time() - t0,
+                    fit.get("fit_score", 0),
+                    research_brief.get("hiring_mode", "unknown"))
 
     # Step 2: Map profile to JD (skip if already done in combined mode)
     if not combined_parse_map:
@@ -356,6 +381,9 @@ def main():
                 logger.error("Blocked reason: %s", result.get("blocked_reason"))
                 logger.error("Rule 13 failures: %s", result.get("rule13_failures", []))
                 sys.exit(1)
+        except ResearchFailedError as e:
+            logger.error("Research failed: %s", e)
+            sys.exit(1)
         except FileNotFoundError as e:
             logger.error("%s", e)
             sys.exit(1)
@@ -383,6 +411,9 @@ def main():
                 logger.error("Blocked reason: %s", result.get("blocked_reason"))
                 logger.error("Rule 13 failures: %s", result.get("rule13_failures", []))
                 sys.exit(1)
+        except ResearchFailedError as e:
+            logger.error("Research failed: %s", e)
+            sys.exit(1)
         except FileNotFoundError as e:
             logger.error("%s", e)
             sys.exit(1)
