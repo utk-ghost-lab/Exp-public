@@ -135,12 +135,13 @@ def _try_repair_json(text: str):
     return None
 
 
-def map_profile_to_jd(parsed_jd: dict, pkb: dict) -> dict:
+def map_profile_to_jd(parsed_jd: dict, pkb: dict, research_brief: dict = None) -> dict:
     """Map JD requirements to user's experience in PKB.
 
     Args:
         parsed_jd: Structured JD analysis from jd_parser
         pkb: Profile Knowledge Base dict
+        research_brief: Optional strategic brief from company research (Step 1.5)
 
     Returns:
         Mapping matrix with match types, reframe strategies, and coverage
@@ -197,6 +198,60 @@ def map_profile_to_jd(parsed_jd: dict, pkb: dict) -> dict:
     pkb_summary = json.dumps(condensed_pkb, indent=2)
     logger.info("Condensed PKB for mapper: %d chars", len(pkb_summary))
 
+    # Build optional strategic context from company research
+    research_context_block = ""
+    if research_brief:
+        parts = []
+        if research_brief.get("role_purpose"):
+            parts.append(f"- Role purpose: {research_brief['role_purpose']}")
+        if research_brief.get("company_pain_points"):
+            parts.append(f"- Company pain points: {research_brief['company_pain_points']}")
+        if research_brief.get("competitive_edge"):
+            parts.append(f"- Competitive edge: {research_brief['competitive_edge']}")
+        if research_brief.get("critical_gaps"):
+            gaps = research_brief["critical_gaps"]
+            if isinstance(gaps, list):
+                gaps = ", ".join(str(g) for g in gaps)
+            parts.append(f"- Critical gaps to address: {gaps}")
+        if research_brief.get("bridge_strategy"):
+            parts.append(f"- Bridge strategy: {research_brief['bridge_strategy']}")
+        if research_brief.get("emphasis_areas"):
+            areas = research_brief["emphasis_areas"]
+            if isinstance(areas, list):
+                areas = ", ".join(str(a) for a in areas)
+            parts.append(f"- Emphasis areas: {areas}")
+        if research_brief.get("hiring_mode"):
+            parts.append(f"- Hiring mode: {research_brief['hiring_mode']}")
+
+        # Actionable gap-to-bullet mappings inform the mapper's classification
+        gap_mapping_guidance = ""
+        gtbm = research_brief.get("gap_to_bullet_mapping") or []
+        if gtbm:
+            gap_lines = []
+            for gm in gtbm:
+                if gm.get("target_bullet"):
+                    gap_lines.append(
+                        f"  • Gap \"{gm['gap']}\" → reframe bullet \"{gm['target_bullet'][:80]}...\" "
+                        f"Instruction: {gm.get('reframe_instruction', 'N/A')}"
+                    )
+            if gap_lines:
+                gap_mapping_guidance = (
+                    "\n\nGAP-TO-BULLET MAPPINGS (treat these as ADJACENT, not GAP):\n"
+                    + "\n".join(gap_lines)
+                )
+
+        if parts:
+            research_context_block = (
+                "\n\n---\n\nSTRATEGIC CONTEXT FROM COMPANY RESEARCH:\n"
+                + "\n".join(parts)
+                + gap_mapping_guidance
+                + "\n\nPrioritize mappings that address these gaps and align with the role purpose.\n"
+                "For ADJACENT/TRANSFERABLE matches on critical gaps, provide extra-detailed reframe strategies.\n"
+                "Treat gap-mapped bullets (listed above) as ADJACENT matches with confidence >= 0.7.\n"
+                "Prioritize emphasis areas as DIRECT matches when the candidate has relevant experience.\n"
+            )
+            logger.info("Injecting research context into mapper prompt (%d chars)", len(research_context_block))
+
     logger.info("Mapping profile to JD requirements with Claude...")
 
     # Retry logic with JSON repair (Bug 4 fix)
@@ -215,6 +270,7 @@ def map_profile_to_jd(parsed_jd: dict, pkb: dict) -> dict:
                         "role": "user",
                         "content": (
                             f"{MAPPING_PROMPT}\n\n"
+                            f"{research_context_block}"
                             f"---\n\nJOB DESCRIPTION ANALYSIS:\n{jd_summary}\n\n"
                             f"---\n\nCANDIDATE PROFILE KNOWLEDGE BASE:\n{pkb_summary}"
                         ),
