@@ -195,14 +195,46 @@ def validate_parsed_jd(parsed: dict) -> list:
     return warnings
 
 
+def _is_safe_scrape_url(url: str) -> bool:
+    """Validate URL before scraping."""
+    if not url or not isinstance(url, str):
+        return False
+    if not url.startswith(("http://", "https://")):
+        return False
+    try:
+        from urllib.parse import urlparse
+        p = urlparse(url)
+        host = (p.hostname or "").lower()
+        if not host or host in ("localhost", "127.0.0.1", "0.0.0.0"):
+            return False
+        if host.startswith("192.168.") or host.startswith("10.") or host.startswith("172."):
+            return False
+        return True
+    except Exception:
+        return False
+
+
 def scrape_jd_from_url(url: str) -> str:
     """Scrape job description text from a URL."""
+    if not _is_safe_scrape_url(url):
+        raise ValueError(f"Invalid or disallowed URL: {url[:80]}")
+
     logger.info(f"Scraping JD from: {url}")
     headers = {
         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
     }
-    response = requests.get(url, headers=headers, timeout=15)
-    response.raise_for_status()
+
+    for attempt in range(2):
+        try:
+            response = requests.get(url, headers=headers, timeout=15)
+            response.raise_for_status()
+            break
+        except (requests.Timeout, requests.ConnectionError):
+            if attempt == 0:
+                import time
+                time.sleep(2)
+                continue
+            raise
 
     soup = BeautifulSoup(response.text, "html.parser")
 
@@ -213,6 +245,7 @@ def scrape_jd_from_url(url: str) -> str:
     text = soup.get_text(separator="\n", strip=True)
 
     if len(text) < 100:
+        logger.warning(f"Scraped text too short ({len(text)} chars) — page may require JS rendering")
         raise ValueError(f"Scraped text too short ({len(text)} chars) — page may require JS rendering")
 
     logger.info(f"Scraped {len(text)} characters from URL")
@@ -242,7 +275,7 @@ def reclassify_priorities_from_jd_text(parsed: dict, jd_text: str, max_p0: int =
     ))
     if not all_kw:
         for item in (parsed.get("hard_skills") or []) + (parsed.get("soft_skills") or []):
-            s = (item.get("skill") or item.get("term") or "").strip()
+            s = (item.get("skill") or item.get("term") or "").strip() if isinstance(item, dict) else (str(item).strip() if item else "")
             if s and s not in all_kw:
                 all_kw.append(s)
     if not all_kw:
