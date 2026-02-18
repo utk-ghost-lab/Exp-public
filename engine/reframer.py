@@ -47,7 +47,7 @@ REQUIRED_START_VERBS = (
     "led", "drove", "launched", "built", "owned", "delivered",
     "designed", "spearheaded", "achieved", "scaled", "transformed", "architected",
 )
-MAX_WORDS_PER_BULLET = 30
+MAX_WORDS_PER_BULLET = 32
 MAX_WORDS_PER_PROJECT_BULLET = 35
 MIN_WORDS_PER_BULLET = 20
 MAX_JD_KEYWORDS_PER_BULLET = 4
@@ -59,7 +59,7 @@ MAX_BULLETS_THIRD = 4
 MIN_BULLETS_THIRD = 3
 MAX_BULLETS_OLD_ROLE = 2
 MAX_BULLETS_INTERNSHIP = 1
-MAX_WORDS_INTERNSHIP_BULLET = 15  # Internship/early-career bullets: 1 concise line
+MAX_WORDS_INTERNSHIP_BULLET = 18  # Internship/early-career bullets: 1 concise complete sentence
 PRE_2023_CUTOFF_YEAR = 2023  # Roles ending before June 2023: no LLM/GPT/RAG/GenAI
 PRE_2023_CUTOFF_MONTH = 6  # June 2023
 MAX_SKILLS_TERMS = 25
@@ -67,7 +67,8 @@ MAX_SUMMARY_WORDS_PER_LINE = 40
 # Verb variety: if same verb 3+ times, replace with synonym
 VERB_SYNONYMS = {
     "led": ["spearheaded", "championed"],
-    "drove": ["owned", "directed"],
+    "drove": ["directed", "accelerated"],
+    "owned": ["drove", "spearheaded", "directed"],
     "built": ["designed", "architected"],
     "launched": ["shipped", "delivered"],
     "managed": ["orchestrated", "coordinated"],
@@ -89,8 +90,9 @@ MAX_PAGES = 2
 
 # Part A Rule 1: Bad bullet endings — methodology/JD keywords that should be metrics
 BAD_ENDING_PATTERNS = [
-    # Comma-separated JD keyword dumps at end
-    re.compile(r",\s*\w[\w\s]*$"),
+    # NOTE: removed overly broad ",\s*\w[\w\s]*$" pattern that was catching legitimate
+    # enumerations (e.g., "Insurance, Credit Cards, Fixed Deposits, and Partner Payments").
+    # Keyword dump detection is handled by the jd_at_end >= 2 check in _fix_single_bullet_ending.
     # Soft skill phrases at end
     re.compile(r"(?:enhanced|improved|strengthened|fostered)\s+(?:customer|team|stakeholder|cross-functional)\s+\w+\.?$", re.I),
     # Method-ending phrases: "driving leadership/alignment/collaboration"
@@ -118,7 +120,7 @@ METHOD_ENDING_WORDS = {
 
 # Part A Rule 6: Cross-JD contamination — company-specific terms
 COMPANY_SPECIFIC_TERMS = {
-    "microsoft": {"azure", "microsoft 365", "m365", "copilot", "teams", "office", "windows", "bing", "sharepoint", "onedrive"},
+    "microsoft": {"azure", "microsoft 365", "m365", "copilot", "microsoft teams", "microsoft office", "windows", "bing", "sharepoint", "onedrive"},
     "google": {"gcp", "google cloud", "chromeos", "android", "bigquery", "tensorflow", "waymo"},
     "amazon": {"aws", "alexa", "prime", "kindle", "lambda", "s3", "ec2"},
     "apple": {"ios", "macos", "xcode", "swift", "siri", "airpods"},
@@ -221,6 +223,7 @@ RULE 2 — PROFESSIONAL SUMMARY:
 - Line 2: top 2-3 achievements with specific metrics FROM THE PKB ONLY
 - Line 3: key capabilities relevant to target JD domain
 - Maximum 3 JD-specific terms in the summary. The rest should be naturally worded achievements.
+- HUMAN READABILITY TEST: Read the summary out loud. If it sounds like a keyword list, rewrite it. Never list more than 2 technical terms in a row without a connecting phrase or achievement in between. BAD: "Expert in generative AI architecture, prompt engineering, data pipelines, OKRs, and technical scoping driving high-impact programs." GOOD: "Expert in building generative AI products — from architecture and prompt engineering to production data pipelines — delivering 2.5× adoption growth across enterprise platforms."
 - Do NOT claim "deep domain expertise in [JD domain]" — instead say "experience building [domain] products"
 - Do NOT aggregate or calculate metrics (no "$50M+ annual revenue impact" from individual bullets)
 - MUST reference the target company's domain naturally, not as keyword dump
@@ -275,7 +278,7 @@ RULE 11 — AWARDS & RECOGNITION: If PKB has awards, add "Awards & Recognition" 
 
 RULE 12 — EDUCATION & CERTIFICATIONS: One line per education. Certifications relevant to JD only. DEGREE INTEGRITY: Use the EXACT degree name from the PKB. Do NOT add specializations that don't exist. Examples: INSEAD = "Executive MBA" (NOT "Executive MBA in Product Management"), IIT = "B.Tech" (NOT "B.Tech in Computer Science" unless PKB says so). If the PKB degree field is blank or generic, keep it generic.
 
-RULE 13 — TONE: Confident, human, crisp. No buzzword chains. No verb used more than twice across all bullets — use synonym variety (Led → Spearheaded, Drove → Owned, etc.). Banned: AI-sounding phrases like "leveraged", "synergized", "drove alignment", "stakeholder engagement" without a concrete outcome. Use: Led, Built, Delivered, Scaled + specific result.
+RULE 13 — TONE: Confident, human, crisp. No buzzword chains. No verb used more than twice across all bullets — use synonym variety (Led → Spearheaded, Drove → Owned, etc.). Banned: AI-sounding phrases like "leveraged", "synergized", "drove alignment", "OKR-aligned consensus", "stakeholder engagement" without a concrete outcome, "organizational growth objectives" (say "business targets"), "co-innovation frameworks for scaled ecosystem growth" (say "co-innovation program"), "modern development practices and technical program delivery" (say "production deployment"). Use: Led, Built, Delivered, Scaled + specific result. HUMAN TEST: Read every bullet out loud. If it sounds like a robot listing JD keywords, rewrite it as something you'd actually say in an interview. Every sentence should make sense to a non-PM friend.
 
 RULE 14 — SELF-CHECK: Summary 3-4 lines under 60 words, opens "Senior Product Manager with 8+ years"; summary has one standout metric in first 2 lines; no bullet sounds robotic when read aloud; titles EXACTLY match PKB; no fabricated metrics; most recent role 4-5 bullets, second 3-4, third 3-4; every bullet 20-30 words, metric from PKB, no banned starts; no pre-2023 LLM/GPT/RAG/GenAI; skills ≤25 terms with no duplicates; locations City, Country; reframing_log complete.
 
@@ -371,7 +374,7 @@ def _condensed_pkb_for_api(pkb: dict) -> dict:
     for w in pkb.get("work_experience") or []:
         bullets = []
         for b in (w.get("bullets") or [])[:MAX_BULLETS_PER_ROLE_FOR_API]:
-            text = (b.get("original_text") or "").strip()
+            text = (b.get("original_text") or "").strip() if isinstance(b, dict) else str(b).strip()
             if text:
                 bullets.append(text)
         work.append({
@@ -385,6 +388,8 @@ def _condensed_pkb_for_api(pkb: dict) -> dict:
     # Condense projects: keep name, description, outcomes, skills_used
     projects = []
     for p in pkb.get("projects") or []:
+        if not isinstance(p, dict):
+            continue
         projects.append({
             "name": p.get("name") or "",
             "description": p.get("description") or "",
@@ -439,38 +444,84 @@ def _word_count(text: str) -> int:
 def _shorten_bullet_to_max_words(bullet: str, max_words: int = MAX_WORDS_PER_BULLET) -> str:
     """Shorten bullet to at most max_words. Hard cap — no exceptions.
 
-    Tries to cut at a clause boundary first for readability, but always
-    enforces the word limit as an absolute ceiling.
+    CRITICAL: Never produce an incomplete sentence. Always cut at a clause
+    boundary that forms a complete thought. If no clean boundary exists
+    within the word limit, search progressively further back until one is found.
     """
     words = bullet.split()
     if len(words) <= max_words:
         return bullet
     truncated = " ".join(words[:max_words])
-    # Try cutting at last clause boundary for cleaner sentence
+
+    # Strategy 1: Find a clause boundary in the truncated text.
+    # Try progressively lower minimum positions (from 50% down to 30%)
     best = None
-    for sep in (". ", "; ", ", ", " — "):
-        last_sep = truncated.rfind(sep)
-        if last_sep > len(truncated) * 0.5:
-            # Cut BEFORE the separator for commas (end of clause), AFTER for periods
-            if sep in (". ", "; "):
-                candidate = truncated[:last_sep + 1].strip()
-            else:
-                candidate = truncated[:last_sep].strip()
-            if len(candidate.split()) <= max_words and len(candidate.split()) >= min(15, max_words - 3):
-                best = candidate
-                break
+    for min_pct in (0.5, 0.4, 0.3):
+        for sep in (". ", "; ", ", ", " — ", " and "):
+            last_sep = truncated.rfind(sep)
+            if last_sep > len(truncated) * min_pct:
+                if sep in (". ", "; "):
+                    candidate = truncated[:last_sep + 1].strip()
+                else:
+                    candidate = truncated[:last_sep].strip()
+                cand_wc = len(candidate.split())
+                if cand_wc <= max_words and cand_wc >= 10:
+                    best = candidate
+                    break
+        if best:
+            break
+
     if best:
         truncated = best
     else:
-        # No good clause boundary — hard cut and strip dangling small words
+        # Strategy 2: Hard cut, then aggressively strip dangling words.
+        # Remove not just prepositions but also adjectives/modifiers that
+        # would be orphaned without their noun (e.g., "cross-functional",
+        # "operational", "scalable", "virtual", "American", "leading").
         truncated = " ".join(words[:max_words])
-        # Remove dangling prepositions, conjunctions, articles at the end
-        dangling = {"for", "to", "in", "of", "by", "with", "and", "or", "the",
-                    "a", "an", "at", "on", "as", "from", "into", "across", "through"}
+        dangling_function_words = {
+            "for", "to", "in", "of", "by", "with", "and", "or", "the",
+            "a", "an", "at", "on", "as", "from", "into", "across", "through",
+            "including", "ensuring", "enabling", "driving", "delivering",
+            "using", "leveraging", "via", "between", "within", "among",
+        }
+        # Also strip words ending in common adjective suffixes when they're
+        # the last word (they need a noun to follow)
+        adjective_endings = (
+            "-functional", "-driven", "-based", "-powered", "-oriented",
+            "-centric", "-office", "-trade", "-facing", "-ready",
+        )
         trunc_words = truncated.split()
-        while trunc_words and trunc_words[-1].lower().rstrip(".,;") in dangling:
-            trunc_words.pop()
+        while len(trunc_words) > 10:
+            last = trunc_words[-1].lower().rstrip(".,;:!?")
+            if last in dangling_function_words:
+                trunc_words.pop()
+                continue
+            if any(last.endswith(suffix) for suffix in adjective_endings):
+                trunc_words.pop()
+                continue
+            # Check if last word is a common orphaned adjective/modifier
+            # (word that typically requires a following noun)
+            orphan_modifiers = {
+                "operational", "scalable", "strategic", "leading", "global",
+                "distributed", "automated", "structured", "integrated",
+                "enhanced", "modern", "virtual", "advanced", "robust",
+                "comprehensive", "detailed", "relevant", "critical",
+                "technical", "analytical", "financial", "commercial",
+                "american", "international", "enterprise", "digital",
+                "manual", "significant", "competitive", "innovative",
+                "consolidated", "established", "actionable", "measurable",
+                # Numbers that need a noun (e.g. "serving five", "across six")
+                "five", "six", "seven", "eight", "nine",
+                # Verbs that trail off (e.g. "dashboard to recommend")
+                "recommend", "serving",
+            }
+            if last in orphan_modifiers:
+                trunc_words.pop()
+                continue
+            break
         truncated = " ".join(trunc_words)
+
     # Hard cap: ensure we never exceed max_words
     final_words = truncated.split()
     if len(final_words) > max_words:
@@ -609,6 +660,10 @@ def _fix_pre_2023_tech_full(result: dict, pkb: dict) -> dict:
         end_year = _get_role_end_year(role, pkb)
         new_bullets = []
         for b in role.get("bullets") or []:
+            if not isinstance(b, str):
+                b = str(b) if b else ""
+            if not b:
+                continue
             orig = b
             b = _fix_pre_2023_language(b, end_year)
             if b != orig:
@@ -713,20 +768,112 @@ def _replace_banned_verbs(result: dict) -> dict:
     return {**result, "work_experience": new_work}
 
 
-def _enforce_bullet_word_count(result: dict) -> dict:
-    """Log-only pass-through: warn about very long or very short bullets without truncating.
+def _split_bullet_via_llm(bullet: str, company: str, title: str) -> list[str]:
+    """Use Claude API to split one long bullet into two shorter, self-contained bullets.
 
-    Word-cap enforcement has been removed to let bullets complete naturally.
-    The LLM is still prompted for 20-30 words as a soft target.
+    Each output bullet: 20-30 words, starts with a REQUIRED verb, has its own metric.
+    Returns list of 2 bullets on success, or empty list on failure (caller falls back).
     """
-    for role in result.get("work_experience", []):
-        for b in role.get("bullets") or []:
+    prompt = (
+        "Split this resume bullet into exactly 2 shorter bullets.\n\n"
+        "RULES:\n"
+        "- Each bullet must be 20-30 words and a complete sentence\n"
+        "- Each bullet must start with one of: Led, Drove, Launched, Built, Owned, Delivered, "
+        "Designed, Spearheaded, Achieved, Scaled, Transformed, Architected\n"
+        "- Each bullet must contain a quantified metric (number, %, $, or team size)\n"
+        "- Preserve ALL metrics and facts from the original — do NOT invent new ones\n"
+        "- If the original has only 1 metric, reuse it in the most relevant bullet and "
+        "extract a secondary accomplishment (method, scope, team size) for the other\n"
+        "- Both bullets must be interview-defensible (no invented content)\n\n"
+        f"Role context: {title} at {company}\n\n"
+        f"Original bullet: {bullet}\n\n"
+        "Return ONLY a JSON array of exactly 2 strings. No explanation, no markdown fences."
+    )
+    try:
+        client = anthropic.Anthropic()
+        message = messages_create_with_retry(
+            client,
+            model="claude-haiku-4-5-20251001",
+            max_tokens=500,
+            timeout=15.0,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        raw = message.content[0].text.strip()
+        # Strip markdown fences if present
+        if raw.startswith("```"):
+            raw = re.sub(r"^```\w*\n?", "", raw)
+            raw = re.sub(r"\n?```$", "", raw)
+        parts = json.loads(raw)
+        if not isinstance(parts, list) or len(parts) != 2:
+            logger.warning("LLM split returned %d items instead of 2, falling back", len(parts) if isinstance(parts, list) else 0)
+            return []
+        # Validate each sub-bullet
+        for p in parts:
+            if not isinstance(p, str) or not p.strip():
+                return []
+            wc = _word_count(p)
+            if wc < 12 or wc > 35:
+                logger.warning("Split bullet outside word range (%d words): %.60s...", wc, p)
+                return []
+        logger.info("Split long bullet (%d words) into 2 bullets (%d, %d words)",
+                     _word_count(bullet), _word_count(parts[0]), _word_count(parts[1]))
+        return [p.strip() for p in parts]
+    except Exception as e:
+        logger.warning("LLM bullet split failed (%s), will use truncation fallback", e)
+        return []
+
+
+def _split_long_bullets(result: dict, parsed_jd: dict) -> dict:
+    """Split bullets over MAX_WORDS_PER_BULLET into two shorter bullets via LLM.
+
+    Respects per-role bullet caps: if splitting would exceed the cap, falls back
+    to _shorten_bullet_to_max_words truncation instead.
+    """
+    pkb_order = [w.get("company", "").strip().lower()
+                 for w in result.get("work_experience", [])]
+    work = result.get("work_experience", [])
+    new_work = []
+    for i, role in enumerate(work):
+        company = (role.get("company") or "").strip()
+        title = (role.get("title") or "").strip()
+        is_internship = "fidelity" in company.lower() or "intern" in (role.get("title") or "").lower()
+        is_early_dev = "cognizant" in company.lower()
+        if is_internship or is_early_dev:
+            cap_max = MAX_BULLETS_INTERNSHIP
+        elif i == 0:
+            cap_max = MAX_BULLETS_MOST_RECENT
+        elif i == 1:
+            cap_max = MAX_BULLETS_SECOND
+        elif i == 2:
+            cap_max = MAX_BULLETS_THIRD
+        else:
+            cap_max = MAX_BULLETS_OLD_ROLE
+
+        bullets = list(role.get("bullets") or [])
+        new_bullets = []
+        for b in bullets:
             wc = _word_count(b)
-            if wc > 45:
-                logger.warning("Bullet unusually long (%d words, soft target 20-30): %.60s...", wc, b)
-            elif wc < 15 and wc > 0:
-                logger.warning("Bullet under 15 words (flag for expansion): %d words", wc)
-    return result
+            if wc <= MAX_WORDS_PER_BULLET:
+                new_bullets.append(b)
+                continue
+            # Bullet is too long — try to split
+            current_count = len(new_bullets)
+            remaining_slots = cap_max - current_count
+            if remaining_slots >= 2:
+                # Room to split
+                parts = _split_bullet_via_llm(b, company, title)
+                if parts:
+                    new_bullets.extend(parts)
+                else:
+                    # LLM failed — truncate as fallback
+                    new_bullets.append(_shorten_bullet_to_max_words(b, MAX_WORDS_PER_BULLET))
+            else:
+                # No room to split — truncate instead
+                logger.info("No room to split bullet (slot %d/%d), truncating: %.60s...",
+                            current_count + 1, cap_max, b)
+                new_bullets.append(_shorten_bullet_to_max_words(b, MAX_WORDS_PER_BULLET))
+        new_work.append({**role, "bullets": new_bullets})
+    return {**result, "work_experience": new_work}
 
 
 def _enforce_bullet_limits(work_experience: list, pkb: dict) -> list:
@@ -771,14 +918,29 @@ def _estimate_page_count(result: dict) -> float:
 
 
 def _trim_to_fit_pages(result: dict, parsed_jd: dict, max_pages: float = MAX_PAGES) -> dict:
-    """If over max_pages, drop weakest bullets (lowest JD keyword overlap) until fit."""
+    """If over max_pages, drop weakest bullets (lowest JD keyword overlap) until fit.
+
+    Protects 1-bullet roles (Cognizant, Fidelity) from losing their only bullet,
+    since these are intentional 1-line entries showing background context.
+    """
     pages = _estimate_page_count(result)
     if pages <= max_pages:
         return result
     p0_p1 = (parsed_jd.get("p0_keywords") or []) + (parsed_jd.get("p1_keywords") or [])
     work = result.get("work_experience", [])
+
+    # Identify protected roles: 1-bullet entries for Cognizant/Fidelity/internships
+    protected_roles = set()
+    for ri, role in enumerate(work):
+        company = (role.get("company") or "").strip().lower()
+        is_minor = "cognizant" in company or "fidelity" in company or "intern" in (role.get("title") or "").lower()
+        if is_minor and len(role.get("bullets", [])) <= 1:
+            protected_roles.add(ri)
+
     all_bullets = []
     for ri, role in enumerate(work):
+        if ri in protected_roles:
+            continue
         for bi, bullet in enumerate(role.get("bullets", [])):
             score = _count_jd_keywords_in_bullet(bullet, p0_p1)
             all_bullets.append((ri, bi, bullet, score))
@@ -855,7 +1017,7 @@ def run_rule13_self_check(result: dict, parsed_jd: dict, pkb: dict) -> dict:
             wc = _word_count(b)
             if wc > 45 or wc < 5:
                 all_20_30_words = False
-    checks["every_bullet_20_30_words"] = {"passed": all_20_30_words, "message": "Bullet word count (soft target 20-30, hard cap removed — flagged if >45 or <5)"}
+    checks["every_bullet_20_30_words"] = {"passed": all_20_30_words, "message": "Bullet word count (soft target 20-30, flagged if >45 or <5)"}
 
     no_banned_starts = True
     for r in work:
@@ -1035,7 +1197,7 @@ def _enforce_title_integrity(result: dict, pkb: dict) -> dict:
 
 _SKILL_ACRONYMS = {"AI", "ML", "API", "CRM", "GTM", "FP&A", "B2B", "B2C", "SQL",
                     "KPI", "OKR", "OKRs", "NLP", "SaaS", "POS", "ROI", "UI", "UX", "PM",
-                    "A/B", "JIRA", "LLM", "RAG"}
+                    "A/B", "JIRA", "LLM", "RAG", "TPM", "ATS"}
 # Multi-word skills with specific casing that .title() would break
 _SKILL_COMPOUND_CASING = {
     "openai gpt": "OpenAI GPT",
@@ -1058,6 +1220,7 @@ _RECLASSIFY_TO_METHODOLOGIES = {
     "stakeholder management", "sprint planning", "backlog prioritization",
     "requirements documentation", "product discovery", "go-to-market",
     "cross-functional collaboration", "product strategy", "system-level problem solving",
+    "program management",
 }
 _RECLASSIFY_TO_DOMAINS = {
     "investor relations", "financial markets", "investment services technology",
@@ -1215,8 +1378,20 @@ def _dedup_skills(result: dict) -> dict:
     return result
 
 
+def _fix_bullet_acronyms(text: str) -> str:
+    """Fix common acronym casing in bullet text (e.g. uLIP -> ULIP)."""
+    if not text:
+        return text
+    # uLIP -> ULIP (Unit-Linked Insurance Plan)
+    text = re.sub(r'\buLIP\b', 'ULIP', text, flags=re.IGNORECASE)
+    return text
+
+
 def _apply_text_fixes(result: dict) -> dict:
-    """Apply number spacing and currency fixes to all text fields."""
+    """Apply number spacing, currency, and acronym fixes to all text fields."""
+    def _fix_bullet(b):
+        return _fix_currency_symbols(_fix_number_spacing(_fix_bullet_acronyms(b)))
+
     summary = result.get("professional_summary", "")
     summary = _fix_number_spacing(summary)
     summary = _fix_currency_symbols(summary)
@@ -1224,7 +1399,11 @@ def _apply_text_fixes(result: dict) -> dict:
     if result.get("subtitle"):
         result["subtitle"] = _fix_number_spacing(result["subtitle"])
     for role in result.get("work_experience", []):
-        role["bullets"] = [_fix_currency_symbols(_fix_number_spacing(b)) for b in (role.get("bullets") or [])]
+        role["bullets"] = [_fix_bullet(b) for b in (role.get("bullets") or [])]
+    for proj in result.get("key_projects", []):
+        proj["bullets"] = [_fix_bullet(b) for b in (proj.get("bullets") or [])]
+        if proj.get("description"):
+            proj["description"] = _fix_number_spacing(proj["description"])
     sk = result.get("skills", {})
     for key in ("technical", "methodologies", "domains"):
         sk[key] = [_fix_number_spacing(item) for item in (sk.get(key) or [])]
@@ -1655,6 +1834,17 @@ _DANGLING_SINGLE = {
     "scalable", "best", "comprehensive", "robust", "innovative",
     "partner", "partners", "high-impact", "scoping",
     "technical", "leadership", "multi-agent", "cross",
+    "operational", "analytical", "financial", "commercial",
+    "international", "digital", "enterprise", "virtual",
+    "american", "consolidated", "established",
+    "dependency", "dependencies", "governance", "discipline",
+    "strategy", "initiative", "initiatives",
+    "organizational",  # "improved organizational." — incomplete
+    "recommend",  # "to recommend." — incomplete
+    "five", "six", "seven", "eight", "nine",  # "serving five." — number needs noun
+    "serving",  # "bank serving." — gerund trails off
+    "org-wide",  # "influencing org-wide." — modifier needs noun
+    "pension",  # "offering life, pension" — incomplete (pension products)
 }
 
 _DANGLING_PHRASES = {
@@ -1674,6 +1864,10 @@ _DANGLING_PHRASES = {
     "end-to-end product", "through end-to-end product",
     "through end-to-end", "and agile", "sprint planning and agile",
     "through sprint planning and agile", "through sprint planning",
+    "to support",  # "using data analysis to support." — incomplete
+    "to recommend",  # "dashboard to recommend." — incomplete
+    "serving five",  # "bank serving five." — incomplete (five needs noun)
+    "influencing org-wide",  # "influencing org-wide." — incomplete (needs noun)
 }
 
 
@@ -1764,7 +1958,10 @@ def _enforce_summary_format(result: dict, parsed_jd: dict) -> dict:
         truncated = " ".join(words[:60])
         # Find last SENTENCE-ending period (not a decimal like "2.5")
         sentence_periods = [m.start() for m in re.finditer(r'(?<!\d)\.(?!\d)', truncated)]
+        # Prefer period past 60% mark, but fall back to ANY sentence period
         last_period = max((p for p in sentence_periods if p > len(truncated) * 0.6), default=-1)
+        if last_period < 0 and sentence_periods:
+            last_period = sentence_periods[-1]  # Use last sentence period at any position
         if last_period > 0:
             summary = truncated[:last_period + 1]
         else:
@@ -1802,8 +1999,54 @@ def _enforce_summary_format(result: dict, parsed_jd: dict) -> dict:
 
 
 def _generate_subtitle(result: dict, parsed_jd: dict) -> str:
-    """Generate subtitle: 'Title | Domain | Years', max 60 chars."""
-    jd_domain = ""
+    """Generate subtitle: 'Senior Product Manager | Domain | 8+ Years', max 60 chars.
+
+    Title is always 'Senior Product Manager' (candidate's real designation).
+    Middle slot is the most impactful domain keyword from the JD — always use domain,
+    never aspirational titles like 'Aspiring X' which signal insecurity.
+    """
+    display_title = "Senior Product Manager"
+
+    # Always use the most impactful domain from the JD
+    jd_domain = _pick_best_domain(parsed_jd)
+    subtitle = f"{display_title} | {jd_domain} | 8+ Years"
+    return _finalize_subtitle(subtitle, display_title, jd_domain)
+
+
+# Strong domain signals to look for in P0 keywords (order = preference).
+# No generic "Data" — use specific phrases that capture hiring manager attention.
+_DOMAIN_SIGNALS = [
+    "AI", "Platform", "Payments", "Growth", "Marketplace",
+    "Data Platform", "Data Products", "Data Analytics", "Data Analysis",
+    "Investment Services Technology", "Investment Services Tech",
+    "Cloud", "Infrastructure", "Developer Tools", "Search", "Ads",
+    "Commerce", "Security", "Healthcare", "EdTech",
+]
+
+
+def _pick_best_domain(parsed_jd: dict) -> str:
+    """Pick the most impactful domain keyword for the subtitle middle slot."""
+    # Priority 0: Company context for investment/capital markets — prefer over generic "Data"
+    ctx = (parsed_jd.get("company_context") or "").lower()
+    if any(k in ctx for k in ("investment", "capital market", "institutional", "r&d investment",
+                              "r&d initiatives", "firm-funded r&d", "investment services",
+                              "r&d", "office of r&d", "firm-funded", "capital allocation")):
+        return "Investment Services Tech"
+
+    # Priority 1: Check P0 keywords for strong domain signals
+    p0 = " ".join(parsed_jd.get("p0_keywords") or []).lower()
+    p1 = " ".join(parsed_jd.get("p1_keywords") or []).lower()
+    all_kw = p0 + " " + p1
+    matched_signals = []
+    for signal in _DOMAIN_SIGNALS:
+        if signal.lower() in all_kw:
+            matched_signals.append(signal)
+        if len(matched_signals) >= 2:
+            break
+    if matched_signals:
+        return " & ".join(matched_signals[:2])
+
+    # Priority 2: Check industry_terms from JD parser
     industry_terms = parsed_jd.get("industry_terms") or []
     if industry_terms:
         top_terms = []
@@ -1813,37 +2056,39 @@ def _generate_subtitle(result: dict, parsed_jd: dict) -> str:
                 top_terms.append(t)
             if len(top_terms) >= 2:
                 break
-        jd_domain = " & ".join(top_terms[:2])
+        if top_terms:
+            return " & ".join(top_terms[:2])
 
-    if not jd_domain:
-        ctx = parsed_jd.get("company_context") or ""
-        if "saas" in ctx.lower():
-            jd_domain = "SaaS"
-        elif "fintech" in ctx.lower() or "financial" in ctx.lower():
-            jd_domain = "Fintech"
-        elif "banking" in ctx.lower():
-            jd_domain = "Banking & Financial Services"
-        else:
-            jd_domain = "Enterprise Products"
+    # Priority 3: Infer from company_context (investment already handled above)
+    if "saas" in ctx:
+        return "SaaS"
+    if "fintech" in ctx or "financial" in ctx:
+        return "Fintech"
+    if "banking" in ctx:
+        return "Banking"
+    if "health" in ctx:
+        return "Healthcare"
+    if "e-commerce" in ctx or "commerce" in ctx or "retail" in ctx:
+        return "Commerce"
 
-    subtitle = f"Senior Product Manager | {jd_domain} | 8+ Years"
+    return "Enterprise Products"
 
-    # If over 60 chars, shorten the domain — never truncate mid-word
+
+def _finalize_subtitle(subtitle: str, display_title: str, middle: str) -> str:
+    """Apply 60-char cap and fix acronym casing in the subtitle."""
     if len(subtitle) > 60:
-        # Try first term only
-        first_term = jd_domain.split(" & ")[0].split(",")[0].strip()
-        subtitle = f"Senior Product Manager | {first_term} | 8+ Years"
-
+        first_term = middle.split(" & ")[0].split(",")[0].strip()
+        subtitle = f"{display_title} | {first_term} | 8+ Years"
     if len(subtitle) > 60:
-        subtitle = "Senior Product Manager | Enterprise Products | 8+ Years"
+        subtitle = f"{display_title} | 8+ Years"
 
-    # Capitalize each word in domain portion (preserve acronyms: AI, ML, etc.)
+    # Capitalize each word in domain portion (preserve acronyms)
     parts = subtitle.split(" | ")
     if len(parts) == 3:
         parts[1] = parts[1].title()
-        # Fix .title() turning AI->Ai, ML->Ml, SaaS->Saas, etc.
         for acr in ("AI", "ML", "API", "CRM", "GTM", "FP&A", "B2B", "B2C",
-                     "SaaS", "OKRs", "OKR", "NLP", "SQL", "LLM", "UX", "UI"):
+                     "SaaS", "OKRs", "OKR", "NLP", "SQL", "LLM", "UX", "UI",
+                     "TPM", "PM", "EdTech"):
             parts[1] = re.sub(r'\b' + re.escape(acr) + r'\b', acr, parts[1], flags=re.IGNORECASE)
         subtitle = " | ".join(parts)
 
@@ -1861,9 +2106,15 @@ def _cap_role_description(rd: str) -> str:
     truncated = words[:_MAX_ROLE_DESC_WORDS]
     text = " ".join(truncated)
     # Prefer truncating at last comma or em-dash before the cap
+    # BUT skip commas that are inside numbers (e.g. 1,200 or 10,000)
     for sep in [",", "—", "–", ";"]:
         idx = text.rfind(sep)
         if idx > len(text) // 3:
+            # Don't truncate if comma is between digits (number formatting)
+            if sep == "," and idx > 0 and idx + 1 < len(text):
+                prev_c, next_c = text[idx - 1], text[idx + 1]
+                if prev_c.isdigit() and next_c.isdigit():
+                    continue  # Skip this comma, it's inside a number
             text = text[:idx].rstrip()
             break
     return text.rstrip(".,;:– ")
@@ -1919,7 +2170,10 @@ def _enforce_project_quality(result: dict) -> dict:
         bullets = proj.get("bullets") or []
         new_bullets = []
         for b in bullets[:MAX_PROJECT_BULLETS]:
-            b = (b or "").strip()
+            if isinstance(b, dict):
+                b = (b.get("text") or b.get("bullet") or b.get("reframed") or b.get("original_text") or "").strip()
+            else:
+                b = str(b).strip() if b else ""
             if not b:
                 continue
             if _bullet_starts_with_banned(b):
@@ -2020,11 +2274,83 @@ def _enforce_internship_bullet_length(result: dict) -> dict:
     return result
 
 
+def _inject_cognizant_fallback(result: dict, pkb: dict) -> dict:
+    """Ensure Cognizant (early-career dev role) is always present in work_experience.
+
+    If the LLM omitted Cognizant but it exists in the PKB, inject it as a 1-line entry
+    showing technical/software engineering background. This is critical for TPM and
+    technical PM roles where engineering experience is a differentiator.
+    """
+    existing_companies = {(r.get("company") or "").strip().lower() for r in result.get("work_experience", [])}
+    if any("cognizant" in c for c in existing_companies):
+        return result
+
+    pkb_cognizant = None
+    for w in pkb.get("work_experience", []):
+        if "cognizant" in (w.get("company") or "").lower():
+            pkb_cognizant = w
+            break
+    if not pkb_cognizant:
+        return result
+
+    # Pick the bullet with the best metric (prefer ones with numbers/scale)
+    best_bullet = None
+    best_score = -1
+    for b in pkb_cognizant.get("bullets", []):
+        text = (b.get("original_text") or "") if isinstance(b, dict) else str(b)
+        text = text.strip()
+        if not text:
+            continue
+        metrics = b.get("metrics", []) if isinstance(b, dict) else []
+        score = len(metrics) * 2 + (1 if re.search(r'\d', text) else 0)
+        if score > best_score:
+            best_score = score
+            best_bullet = text
+    # Reframe the raw PKB bullet into a concise, outcome-focused developer line
+    if best_bullet and "foreign exchange" in best_bullet.lower():
+        best_bullet = "Built and shipped full-stack foreign exchange platform serving 5 international markets for a leading American bank."
+    elif not best_bullet:
+        best_bullet = "Built and maintained enterprise software applications for global financial services clients."
+
+    # Format dates
+    dates = pkb_cognizant.get("dates") or {}
+    start = dates.get("start") or ""
+    end = dates.get("end") or ""
+    date_str = f"{start} – {end}" if start and end else ""
+
+    cognizant_role = {
+        "company": pkb_cognizant.get("company") or "Cognizant Technology Solutions",
+        "title": pkb_cognizant.get("title") or "Software Developer",
+        "dates": date_str,
+        "location": pkb_cognizant.get("location") or "",
+        "role_description": "",
+        "bullets": [best_bullet],
+    }
+
+    work = list(result.get("work_experience", []))
+    work.append(cognizant_role)
+    result = {**result, "work_experience": work}
+    logger.info("Injected Cognizant fallback role from PKB (LLM omitted it)")
+    return result
+
+
+def _word_overlap_ratio(a: str, b: str) -> float:
+    """Return Jaccard-like word overlap ratio between two bullet texts."""
+    words_a = set(re.findall(r'[a-z]+', a.lower()))
+    words_b = set(re.findall(r'[a-z]+', b.lower()))
+    if not words_a or not words_b:
+        return 0.0
+    intersection = words_a & words_b
+    smaller = min(len(words_a), len(words_b))
+    return len(intersection) / smaller if smaller else 0.0
+
+
 def _dedup_bullet_metrics(result: dict) -> dict:
     """Detect and remove bullets that duplicate the same percentage/dollar metrics within a role.
 
-    When two bullets in the same role share the same key metrics (e.g., both cite '75%' and '50%'),
-    the duplicate (second occurrence) is removed.
+    Two dedup strategies:
+    1. Two bullets share >= 2 identical metrics -> drop the second.
+    2. Two bullets share >= 1 metric AND have > 50% word overlap -> merge (keep longer, drop shorter).
     """
     for role in result.get("work_experience", []):
         bullets = role.get("bullets") or []
@@ -2042,24 +2368,36 @@ def _dedup_bullet_metrics(result: dict) -> dict:
                 metrics.add(m.group())
             return metrics
 
-        seen_metrics = []
+        seen_bullets = []  # list of (deduped_index, bullet_text, metric_set)
         deduped = []
         for b in bullets:
             b_metrics = _extract_metric_set(b)
-            if len(b_metrics) >= 2:
-                is_dup = False
-                for prev_metrics in seen_metrics:
-                    overlap = b_metrics & prev_metrics
-                    if len(overlap) >= 2:
-                        logger.warning(
-                            "Removing duplicate-metric bullet for %s (shared: %s): %.60s...",
-                            role.get("company", "?"), overlap, b
-                        )
-                        is_dup = True
-                        break
-                if is_dup:
-                    continue
-                seen_metrics.append(b_metrics)
+            is_dup = False
+            for si, (deduped_idx, prev_b, prev_metrics) in enumerate(seen_bullets):
+                overlap = b_metrics & prev_metrics
+                # Strategy 1: >= 2 shared metrics -> drop
+                if len(overlap) >= 2:
+                    logger.warning(
+                        "Removing duplicate-metric bullet for %s (shared: %s): %.60s...",
+                        role.get("company", "?"), overlap, b
+                    )
+                    is_dup = True
+                    break
+                # Strategy 2: >= 1 shared metric + high word overlap -> merge (keep longer)
+                if len(overlap) >= 1 and _word_overlap_ratio(b, prev_b) > 0.35:
+                    logger.warning(
+                        "Merging overlapping bullet for %s (shared: %s, word overlap >50%%): %.60s...",
+                        role.get("company", "?"), overlap, b
+                    )
+                    # Keep the longer bullet in its original position
+                    if len(b) > len(prev_b):
+                        deduped[deduped_idx] = b
+                        seen_bullets[si] = (deduped_idx, b, b_metrics | prev_metrics)
+                    is_dup = True
+                    break
+            if is_dup:
+                continue
+            seen_bullets.append((len(deduped), b, b_metrics))
             deduped.append(b)
         role["bullets"] = deduped
     return result
@@ -2116,8 +2454,24 @@ def _enforce_bullet_metrics(result: dict, pkb: dict) -> dict:
 
 def _apply_programmatic_fixes(result: dict, parsed_jd: dict, pkb: dict) -> dict:
     """Apply all programmatic fixes: title integrity, pre-2023 tech, banned verbs, word count, bullet limits, locations, verb variety, skills cap, skills dedup, text fixes, awards."""
+    # Normalize bullets: ensure all are plain strings (LLM may return dicts/lists)
+    for role in result.get("work_experience", []):
+        raw = role.get("bullets") or []
+        clean = []
+        for b in raw:
+            if isinstance(b, dict):
+                b = b.get("text") or b.get("bullet") or b.get("reframed") or str(b)
+            if isinstance(b, str) and b.strip():
+                clean.append(b.strip())
+        role["bullets"] = clean
     # CRITICAL: Title integrity (Rule 0) — must run first
     result = _enforce_title_integrity(result, pkb)
+    # Fix summary: enforce "8+ years" (Rule 1) — never copy JD requirement text
+    summary = result.get("professional_summary", "")
+    for bad_years in ["6 to 8 years", "6-8 years", "5+ years", "6+ years", "7+ years"]:
+        if bad_years in summary.lower():
+            summary = re.sub(re.escape(bad_years), "8+ years", summary, flags=re.IGNORECASE)
+    result["professional_summary"] = summary
     # Role description fallback (Rule 16)
     result = _inject_role_descriptions(result, pkb)
     # Pre-2023 anachronistic tech replacement (Rule 7)
@@ -2139,8 +2493,7 @@ def _apply_programmatic_fixes(result: dict, parsed_jd: dict, pkb: dict) -> dict:
         new_work.append({**role, "bullets": new_bullets})
     result = {**result, "work_experience": new_work}
     result = _replace_banned_verbs(result)
-    # Word-count enforcement removed — LLM soft-targets 20-30 words; no programmatic truncation
-    result = _enforce_bullet_word_count(result)
+    result = _split_long_bullets(result, parsed_jd)
     result = {**result, "work_experience": _enforce_bullet_limits(result.get("work_experience", []), pkb)}
     # Remove bullets with duplicate metrics within same role (e.g., two Wealthy bullets citing same 75%/50%)
     result = _dedup_bullet_metrics(result)
@@ -2148,6 +2501,8 @@ def _apply_programmatic_fixes(result: dict, parsed_jd: dict, pkb: dict) -> dict:
     result = _enforce_bullet_metrics(result, pkb)
     # Internship/early-career bullet word-count cap (Rule 4)
     result = _enforce_internship_bullet_length(result)
+    # Ensure Cognizant dev role is always present (shows technical depth for TPM roles)
+    result = _inject_cognizant_fallback(result, pkb)
     result = _trim_to_fit_pages(result, parsed_jd, max_pages=MAX_PAGES)
     result = _normalize_locations(result)
     result = _enforce_verb_variety(result)
@@ -2174,13 +2529,21 @@ def _apply_programmatic_fixes(result: dict, parsed_jd: dict, pkb: dict) -> dict:
     # Skills dedup: remove abbreviation+full form, near-synonyms, vague words (Rule 9)
     result = _dedup_skills(result)
     # Force-clean Technical skills: remove any soft skill that slipped through
+    # BUT respect P0/P1 keywords — don't remove a term the JD explicitly requires
     _soft_skill_words = {
         "player", "communication", "negotiation", "mentoring", "coaching",
         "leadership", "interpersonal", "relationship", "influencing",
         "collaboration", "verbal", "written", "matrix management",
     }
+    p0_p1_lower = {kw.lower() for kw in (parsed_jd.get("p0_keywords") or []) + (parsed_jd.get("p1_keywords") or [])}
     tech_skills = result.get("skills", {}).get("technical", [])
-    cleaned_tech = [s for s in tech_skills if not any(sw in s.lower() for sw in _soft_skill_words)]
+    cleaned_tech = []
+    for s in tech_skills:
+        s_lower = s.lower()
+        # Keep if it matches a P0/P1 keyword, even if it's a "soft skill" word
+        if any(sw in s_lower for sw in _soft_skill_words) and not any(kw in s_lower or s_lower in kw for kw in p0_p1_lower):
+            continue
+        cleaned_tech.append(s)
     result["skills"]["technical"] = cleaned_tech
     # Skills casing normalization + generic-term filtering (Rule 9)
     result = _normalize_skills_casing(result)
@@ -2198,8 +2561,105 @@ def _apply_programmatic_fixes(result: dict, parsed_jd: dict, pkb: dict) -> dict:
     result = _enforce_summary_format(result, parsed_jd)
     # Part A Rule 4: Generate subtitle
     result["subtitle"] = _generate_subtitle(result, parsed_jd)
+    # Final safety net: ensure core candidate domains are ALWAYS present
+    _core_domains = ["Enterprise SaaS", "Fintech", "Insurance"]
+    final_dom = list(result.get("skills", {}).get("domains") or [])
+    final_dom_lower = {d.lower() for d in final_dom}
+    for cd in _core_domains:
+        if cd.lower() not in final_dom_lower:
+            final_dom.append(cd)
+            final_dom_lower.add(cd.lower())
+            logger.info("Final domain injection: added '%s'", cd)
+    result.setdefault("skills", {})["domains"] = final_dom
+    # Also add "Digitization" if JD mentions it (Google JD P0 keyword)
+    jd_all = " ".join((parsed_jd.get("p0_keywords") or []) + (parsed_jd.get("key_responsibilities") or [])).lower()
+    if "digitization" in jd_all and "digitization" not in final_dom_lower:
+        result["skills"]["domains"].append("Digitization")
+        logger.info("Final domain injection: added 'Digitization' (JD P0 keyword)")
     # Text fixes LAST: number spacing, currency symbols on ALL text (Fixes 4, 5)
     result = _apply_text_fixes(result)
+
+    # FINAL SENTENCE COMPLETENESS SAFETY NET — no incomplete sentences EVER
+    # Runs after ALL other processing to catch truncation from any source:
+    # _fix_bullet_endings, _enforce_summary_format, _shorten_bullet_to_max_words, etc.
+    _ORPHAN_LAST_WORDS = {
+        # Prepositions/conjunctions that can never end a sentence
+        "for", "to", "in", "of", "by", "with", "and", "or", "the",
+        "a", "an", "at", "on", "as", "from", "into", "across", "through",
+        "within", "between", "among", "via", "using",
+        # Adjectives that need a following noun
+        "operational", "scalable", "strategic", "global", "virtual",
+        "analytical", "financial", "commercial", "digital", "enterprise",
+        "american", "international", "consolidated", "cross",
+        "organizational",  # "improved organizational." — incomplete
+        "support",  # "to support." — incomplete
+        "recommend",  # "to recommend." — incomplete
+        "five", "six", "seven", "eight", "nine",  # "serving five." — number needs noun
+        "serving",  # "bank serving." — gerund trails off
+        "org-wide",  # "influencing org-wide." — modifier needs noun
+        "pension",  # "offering life, pension" — incomplete
+        # Gerunds that trail off
+        "including", "ensuring", "enabling", "driving", "delivering",
+        "leveraging", "establishing", "supporting", "coordinating",
+        # Abstract nouns that only make sense before another word
+        "dependency", "dependencies", "governance", "discipline",
+    }
+    _ORPHAN_HYPHENATED = (
+        "-functional", "-driven", "-based", "-powered", "-oriented",
+        "-centric", "-office", "-trade", "-facing", "-vertical",
+    )
+
+    def _ensure_complete_sentence(text: str) -> str:
+        """If text ends with an orphan word, cut back to last clause boundary."""
+        if not text or not text.strip():
+            return text
+        stripped = text.rstrip()
+        if not stripped.endswith((".", "!", "?")):
+            return stripped
+
+        inner = stripped.rstrip(".!?").rstrip()
+        words = inner.split()
+        if not words:
+            return stripped
+        last = words[-1].lower().rstrip(".,;:")
+
+        is_orphan = (
+            last in _ORPHAN_LAST_WORDS
+            or any(last.endswith(suf) for suf in _ORPHAN_HYPHENATED)
+        )
+        if not is_orphan:
+            return stripped
+
+        # Orphan detected — cut back to last clause boundary (preserves complete clauses)
+        for sep in (", ", "; ", " — ", " – "):
+            idx = inner.rfind(sep)
+            if idx > len(inner) * 0.3:
+                candidate = inner[:idx].rstrip(".,;:— ")
+                if len(candidate.split()) >= 8:
+                    logger.info("Incomplete sentence fix: cut '%s' at clause boundary",
+                                inner[idx:].strip()[:50])
+                    return candidate + "."
+        # No good clause boundary — strip only the last 1-2 orphan words (conservative)
+        removed = 0
+        while len(words) > 8 and removed < 2:
+            last_w = words[-1].lower().rstrip(".,;:")
+            if last_w in _ORPHAN_LAST_WORDS or any(last_w.endswith(s) for s in _ORPHAN_HYPHENATED):
+                words.pop()
+                removed += 1
+            else:
+                break
+        return " ".join(words).rstrip(".,;:— ") + "."
+
+    # Apply to summary
+    if result.get("professional_summary"):
+        result["professional_summary"] = _ensure_complete_sentence(result["professional_summary"])
+    # Apply to all bullets and role descriptions
+    for role in result.get("work_experience", []):
+        role["bullets"] = [_ensure_complete_sentence(b) for b in (role.get("bullets") or []) if b]
+        if role.get("role_description"):
+            role["role_description"] = _ensure_complete_sentence(role["role_description"])
+    for proj in result.get("key_projects", []):
+        proj["bullets"] = [_ensure_complete_sentence(b) for b in (proj.get("bullets") or []) if b]
 
     # FINAL SPACING SAFETY NET — last chance before output
     def _final_spacing_fix(text):
@@ -2208,6 +2668,8 @@ def _apply_programmatic_fixes(result: dict, parsed_jd: dict, pkb: dict) -> dict:
         text = re.sub(r'(\d)([a-z])', r'\1 \2', text)
         text = re.sub(r'(\d\.?\d*)([A-Z][a-z]{2,})', r'\1 \2', text)
         text = re.sub(r'  +', ' ', text)
+        # Restore multiplier notation last (10 x -> 10x) — other regexes may break it
+        text = re.sub(r'(\d+\.?\d*)\s+([xX])\b', r'\1\2', text)
         return text
 
     if result.get("subtitle"):
@@ -2379,6 +2841,10 @@ def reframe_experience(
 
     # Build 3 rule-specific research blocks instead of one generic block
     research_block = ""
+    if research_brief and not isinstance(research_brief, dict):
+        logger.warning("research_brief is not a dict (type=%s), ignoring", type(research_brief).__name__)
+        research_brief = None
+
     if research_brief:
         rule_blocks = []
 
@@ -2416,6 +2882,8 @@ def reframe_experience(
         if gap_mappings:
             gap_lines = []
             for gm in gap_mappings:
+                if not isinstance(gm, dict):
+                    continue
                 gap = gm.get("gap", "")
                 target = gm.get("target_bullet", "")
                 instruction = gm.get("reframe_instruction", "")
@@ -2446,6 +2914,8 @@ def reframe_experience(
         if keyword_plan:
             kw_lines = []
             for kp in keyword_plan:
+                if not isinstance(kp, dict):
+                    continue
                 keyword = kp.get("keyword", "")
                 location = kp.get("target_location", "")
                 phrase = kp.get("integration_phrase", "")
@@ -2483,7 +2953,7 @@ def reframe_experience(
     logger.info("Reframing experience with Claude (intelligent reframing engine)...")
     # Retry logic for full reframe: 2 attempts, 180s timeout (reduces retries on large payloads)
     max_retries = 1
-    full_reframe_timeout = 180.0
+    full_reframe_timeout = 300.0  # 5 min — large payloads (JD+mapping+PKB+research) can exceed 180s
     last_error = None
     for attempt in range(max_retries + 1):
         try:
@@ -2538,7 +3008,7 @@ def reframe_experience(
         inner = result["resume"]
         result = {
             "professional_summary": inner.get("professional_summary", ""),
-            "work_experience": inner.get("work_experience", []),
+            "work_experience": _sanitize_work_experience(inner.get("work_experience", [])),
             "skills": inner.get("skills", {}),
             "education": inner.get("education", []),
             "certifications": inner.get("certifications", []),
@@ -2548,9 +3018,10 @@ def reframe_experience(
         if "reframing_log" not in result or not result["reframing_log"]:
             result["reframing_log"] = inner.get("reframing_log", [])
 
-    # Ensure required top-level keys exist
+    # Ensure required top-level keys exist and sanitize work_experience
     result.setdefault("professional_summary", "")
     result.setdefault("work_experience", [])
+    result["work_experience"] = _sanitize_work_experience(result.get("work_experience", []))
     result.setdefault("skills", {"technical": [], "methodologies": [], "domains": []})
     result.setdefault("education", [])
     result.setdefault("certifications", [])
@@ -2596,7 +3067,7 @@ def reframe_experience(
                 retry_result = retry_result["resume"]
             if retry_result.get("work_experience"):
                 logger.info("Retry succeeded: got %d roles", len(retry_result["work_experience"]))
-                result["work_experience"] = retry_result["work_experience"]
+                result["work_experience"] = _sanitize_work_experience(retry_result["work_experience"])
                 if retry_result.get("professional_summary"):
                     result["professional_summary"] = retry_result["professional_summary"]
                 if retry_result.get("skills"):
@@ -2674,6 +3145,7 @@ def _normalize_work_experience_dates(work_experience: list, pkb: dict) -> list:
     Sorts by end date descending (most recent first). Internships and early-career
     developer roles (Fidelity, Cognizant) are always pushed to the end.
     """
+    work_experience = [r for r in work_experience if isinstance(r, dict)]
     pkb_work = {w["company"]: w for w in pkb.get("work_experience", [])}
     for role in work_experience:
         company = role.get("company")
@@ -2703,6 +3175,19 @@ def _normalize_work_experience_dates(work_experience: list, pkb: dict) -> list:
     return work_experience
 
 
+def _sanitize_work_experience(work: list) -> list:
+    """Filter to only dict roles; log and drop non-dict entries."""
+    if not isinstance(work, list):
+        return []
+    valid = []
+    for i, r in enumerate(work):
+        if isinstance(r, dict):
+            valid.append(r)
+        else:
+            logger.warning("work_experience[%d] is not a dict (type=%s), dropping", i, type(r).__name__)
+    return valid
+
+
 def _validate_reframe_output(result: dict, pkb: dict) -> list:
     """Validate reframer output structure. Returns list of warning strings."""
     warnings = []
@@ -2719,6 +3204,9 @@ def _validate_reframe_output(result: dict, pkb: dict) -> list:
             warnings.append("skills should include technical and/or methodologies/domains")
 
     for i, role in enumerate(result.get("work_experience", [])):
+        if not isinstance(role, dict):
+            warnings.append(f"work_experience[{i}] is not a dict (type={type(role).__name__})")
+            continue
         if not role.get("company"):
             warnings.append(f"work_experience[{i}] missing company")
         if not role.get("bullets"):

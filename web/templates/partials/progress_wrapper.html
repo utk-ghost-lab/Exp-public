@@ -4,18 +4,24 @@
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
         </svg>
-        <span class="font-medium">Pipeline running...</span>
+        <div>
+            <span class="font-medium">Pipeline running...</span>
+            <span class="block text-xs text-green-700 mt-0.5">Avoid starting another job until this completes.</span>
+        </div>
     </div>
-    <p class="font-medium mb-2">Pipeline progress</p>
-    <ul id="progress-steps" class="space-y-1.5 text-sm">
-        <li id="step-1" class="flex items-center gap-2 text-gray-500"><span class="step-dot w-2 h-2 rounded-full bg-gray-300 animate-pulse"></span>Step 1: JD parse — waiting...</li>
-        <li id="step-2" class="flex items-center gap-2 text-gray-500"><span class="step-dot w-2 h-2 rounded-full bg-gray-300 animate-pulse"></span>Step 2: Profile map — waiting...</li>
-        <li id="step-3" class="flex items-center gap-2 text-gray-500"><span class="step-dot w-2 h-2 rounded-full bg-gray-300 animate-pulse"></span>Step 3: Reframe — waiting...</li>
-        <li id="step-4" class="flex items-center gap-2 text-gray-500"><span class="step-dot w-2 h-2 rounded-full bg-gray-300 animate-pulse"></span>Step 4: Keywords — waiting...</li>
-        <li id="step-5" class="flex items-center gap-2 text-gray-500"><span class="step-dot w-2 h-2 rounded-full bg-gray-300 animate-pulse"></span>Step 5: Format — waiting...</li>
-        <li id="step-6" class="flex items-center gap-2 text-gray-500"><span class="step-dot w-2 h-2 rounded-full bg-gray-300 animate-pulse"></span>Step 6: Scoring — waiting...</li>
-        <li id="step-7" class="flex items-center gap-2 text-gray-500"><span class="step-dot w-2 h-2 rounded-full bg-gray-300 animate-pulse"></span>Step 7: PDF — waiting...</li>
-    </ul>
+    <details id="pipeline-details" open class="mb-4">
+        <summary class="font-medium cursor-pointer select-none text-gray-700 hover:text-gray-900">Pipeline progress (click to expand/collapse)</summary>
+        <ul id="progress-steps" class="mt-2 space-y-1.5 text-sm">
+            <li id="step-1" class="flex items-center gap-2 text-gray-500"><span class="step-dot w-2 h-2 rounded-full bg-gray-300 animate-pulse"></span>Step 1: JD parse — waiting...</li>
+            <li id="step-1-5" class="flex items-center gap-2 text-gray-500"><span class="step-dot w-2 h-2 rounded-full bg-gray-300 animate-pulse"></span>Step 1.5: Company research — waiting...</li>
+            <li id="step-2" class="flex items-center gap-2 text-gray-500"><span class="step-dot w-2 h-2 rounded-full bg-gray-300 animate-pulse"></span>Step 2: Profile map — waiting...</li>
+            <li id="step-3" class="flex items-center gap-2 text-gray-500"><span class="step-dot w-2 h-2 rounded-full bg-gray-300 animate-pulse"></span>Step 3: Reframe — waiting...</li>
+            <li id="step-4" class="flex items-center gap-2 text-gray-500"><span class="step-dot w-2 h-2 rounded-full bg-gray-300 animate-pulse"></span>Step 4: Keywords — waiting...</li>
+            <li id="step-5" class="flex items-center gap-2 text-gray-500"><span class="step-dot w-2 h-2 rounded-full bg-gray-300 animate-pulse"></span>Step 5: Format — waiting...</li>
+            <li id="step-6" class="flex items-center gap-2 text-gray-500"><span class="step-dot w-2 h-2 rounded-full bg-gray-300 animate-pulse"></span>Step 6: Scoring — waiting...</li>
+            <li id="step-7" class="flex items-center gap-2 text-gray-500"><span class="step-dot w-2 h-2 rounded-full bg-gray-300 animate-pulse"></span>Step 7: PDF — waiting...</li>
+        </ul>
+    </details>
     <div id="result-container" class="mt-4 hidden">
         <!-- Result partial will be loaded here via HTMX when complete -->
     </div>
@@ -26,6 +32,7 @@
     const evtSource = new EventSource("/generate/stream/" + jobId);
     const stepEls = {};
     for (let i = 1; i <= 7; i++) stepEls[i] = document.getElementById("step-" + i);
+    stepEls[1.5] = document.getElementById("step-1-5");
 
     evtSource.onmessage = function(e) {
         const d = JSON.parse(e.data);
@@ -33,11 +40,14 @@
         const msg = d.message || "";
         const data = d.data || {};
         if (typeof step === "number" && stepEls[step]) {
-            var dot = stepEls[step].querySelector(".step-dot");
-            var suffix = (data.p0_count !== undefined ? " (P0: " + data.p0_count + ")" : "") + " — done";
-            stepEls[step].innerHTML = '<span class="text-green-600">✓</span> Step ' + step + ": " + msg + suffix;
-            stepEls[step].classList.remove("text-gray-500");
-            stepEls[step].classList.add("text-green-600");
+            var el = stepEls[step];
+            var stepLabel = (step === 1.5) ? "1.5" : step;
+            var suffix = (data.p0_count !== undefined ? " (P0: " + data.p0_count + ")" : "");
+            if (data.fit_score !== undefined) suffix += " (Fit: " + data.fit_score + ")";
+            suffix += " — done";
+            el.innerHTML = '<span class="text-green-600">✓</span> Step ' + stepLabel + ": " + msg + suffix;
+            el.classList.remove("text-gray-500");
+            el.classList.add("text-green-600");
         }
         if (step === "complete") {
             evtSource.close();
@@ -46,6 +56,8 @@
                 banner.className = "flex items-center gap-2 mb-4 py-2 px-3 bg-green-100 border border-green-300 rounded text-green-800";
                 banner.innerHTML = '<span class="text-green-600">✓</span><span class="font-medium">Pipeline complete</span>';
             }
+            var details = document.getElementById("pipeline-details");
+            if (details) details.removeAttribute("open");
             const container = document.getElementById("result-container");
             container.classList.remove("hidden");
             container.innerHTML = "<p class='text-gray-500'>Loading result...</p>";
@@ -58,8 +70,12 @@
                 banner.className = "flex items-center gap-2 mb-4 py-2 px-3 bg-red-50 border border-red-200 rounded text-red-800";
                 banner.innerHTML = '<span class="text-red-600">✗</span><span class="font-medium">Pipeline failed</span>';
             }
-            document.getElementById("result-container").classList.remove("hidden");
-            document.getElementById("result-container").innerHTML = "<p class='text-red-600'>" + (msg || "Pipeline failed.") + "</p>";
+            var details = document.getElementById("pipeline-details");
+            if (details) details.removeAttribute("open");
+            var container = document.getElementById("result-container");
+            container.classList.remove("hidden");
+            container.innerHTML = "<p class='text-gray-500'>Loading error details...</p>";
+            htmx.ajax("GET", "/generate/result/" + jobId, { target: "#result-container", swap: "innerHTML" });
         }
     };
     evtSource.onerror = function() {

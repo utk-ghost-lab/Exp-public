@@ -1,0 +1,223 @@
+<div data-search-id="{{ search_id | default('', true) }}" class="search-results-wrapper">
+{% if show_loaded_banner | default(false) %}
+<div class="mb-4 py-2 px-3 bg-blue-50 border border-blue-200 rounded text-blue-800 text-sm">
+    Loaded previous results. <a href="#" onclick="document.getElementById('search-form').scrollIntoView({behavior:'smooth'}); return false;" class="font-medium underline hover:text-blue-900">Run new search</a>
+</div>
+{% endif %}
+<!-- Stats summary -->
+<div class="flex flex-wrap gap-3 mb-4">
+    <span class="text-sm bg-gray-100 rounded px-3 py-1">Found: <strong>{{ stats.total }}</strong> ({{ stats.get('raw_results', 0) }} raw from {{ stats.get('queries_run', 1) }} queries)</span>
+    <span class="text-sm bg-blue-50 text-blue-800 rounded px-3 py-1">India: {{ stats.get('india_jobs', 0) }}</span>
+    {% if stats.filtered_out > 0 %}
+    <span class="text-sm bg-gray-100 rounded px-3 py-1 text-gray-500">Filtered out: {{ stats.filtered_out }}</span>
+    {% endif %}
+    {% if stats.get('filtered_by_recency', 0) > 0 %}
+    <span class="text-sm bg-gray-100 rounded px-3 py-1 text-gray-500">Filtered by recency: {{ stats.filtered_by_recency }}</span>
+    {% endif %}
+    {% if stats.apply_today > 0 %}
+    <span class="text-sm bg-green-100 text-green-800 rounded px-3 py-1 font-medium">Apply Today: {{ stats.apply_today }}</span>
+    {% endif %}
+    {% if stats.worth_trying > 0 %}
+    <span class="text-sm bg-yellow-100 text-yellow-800 rounded px-3 py-1 font-medium">Worth Trying: {{ stats.worth_trying }}</span>
+    {% endif %}
+    {% if stats.stretch > 0 %}
+    <span class="text-sm bg-orange-100 text-orange-800 rounded px-3 py-1 font-medium">Stretch: {{ stats.stretch }}</span>
+    {% endif %}
+    {% if stats.skip > 0 %}
+    <span class="text-sm bg-gray-100 text-gray-500 rounded px-3 py-1">Skip: {{ stats.skip }}</span>
+    {% endif %}
+    {% if stats.get('publisher_counts') %}
+    <span class="text-sm bg-slate-100 text-slate-700 rounded px-3 py-1" title="Job sources from JSearch API">Sources: {% for pub, cnt in stats.publisher_counts.items()|sort(attribute='1', reverse=true) %}{{ pub }} ({{ cnt }}){% if not loop.last %}, {% endif %}{% endfor %}</span>
+    {% endif %}
+</div>
+
+{% set _jobs_with_resumes = jobs_with_resumes | default([]) %}
+{% set _applied_job_ids = applied_job_ids | default([]) %}
+{% if jobs|length == 0 %}
+<p class="text-gray-500 text-sm">No jobs matched your criteria after filtering.</p>
+{% else %}
+<div class="space-y-3">
+    {% for job in jobs %}
+    {% set badge_color = 'bg-green-100 text-green-800' if job.recommendation == 'APPLY TODAY' else ('bg-yellow-100 text-yellow-800' if job.recommendation == 'WORTH TRYING' else ('bg-orange-100 text-orange-800' if job.recommendation == 'STRETCH' else 'bg-gray-100 text-gray-600')) %}
+    {% set _has_resume = job.job_id in _jobs_with_resumes %}
+    {% set _is_applied = job.job_id in _applied_job_ids %}
+    {% set score_color = 'text-green-700' if job.fit_score >= 85 else ('text-yellow-700' if job.fit_score >= 70 else ('text-orange-600' if job.fit_score >= 55 else 'text-gray-500')) %}
+    <div class="border border-gray-200 rounded-lg bg-white p-4 hover:shadow-sm transition-shadow">
+        <div class="flex items-start justify-between gap-4">
+            <div class="flex-1 min-w-0">
+                <!-- Score + Tier + Title -->
+                <div class="flex items-center gap-2 mb-1.5">
+                    <span class="text-sm font-bold {{ score_color }}">{{ job.fit_score|round(0)|int }}/100</span>
+                    <span class="text-xs font-semibold px-2 py-0.5 rounded {{ badge_color }}">{{ job.recommendation }}</span>
+                    {% if _is_applied %}
+                    <span class="text-xs font-medium px-2 py-0.5 rounded bg-gray-200 text-gray-700">Applied</span>
+                    {% endif %}
+                </div>
+                <h3 class="font-medium text-gray-900">{{ job.title }}</h3>
+                <p class="text-sm text-gray-600 mt-0.5">
+                    {% if job.employer_logo %}
+                    <img src="{{ job.employer_logo }}" alt="" class="inline w-4 h-4 mr-1 rounded" onerror="this.style.display='none'">
+                    {% endif %}
+                    {{ job.company }}{% if job.location %} &middot; {{ job.location }}{% endif %}
+                </p>
+                <p class="text-xs text-gray-400 mt-0.5">
+                    {% if job.job_publisher %}{{ job.job_publisher }}{% else %}{{ job.source }}{% endif %}
+                    {% if job.posted_days_ago is not none %} &middot; {{ job.posted_days_ago }}d ago{% endif %}
+                </p>
+
+                <!-- Score component summary -->
+                {% set c = job.components %}
+                <div class="flex gap-3 mt-2 text-xs text-gray-500">
+                    {% if c.get('location_fit') %}
+                    <span title="Location Fit">Location: <strong class="{{ 'text-green-600' if c.location_fit.score >= 18 else ('text-yellow-600' if c.location_fit.score >= 12 else 'text-gray-500') }}">{{ c.location_fit.score|round(0)|int }}/{{ c.location_fit.max }}</strong></span>
+                    {% endif %}
+                    {% if c.get('profile_fit') %}
+                    <span title="Profile Fit">Profile: <strong class="{{ 'text-green-600' if c.profile_fit.score >= 55 else ('text-yellow-600' if c.profile_fit.score >= 40 else 'text-gray-500') }}">{{ c.profile_fit.score|round(0)|int }}/{{ c.profile_fit.max }}</strong></span>
+                    {% endif %}
+                </div>
+
+                <!-- Manual-review signals -->
+                {% set signals = job.get('signals', {}) %}
+                {% if signals %}
+                <div class="flex flex-wrap gap-1.5 mt-2">
+                    {% if signals.get('compensation') and signals.compensation != 'Not mentioned' %}
+                    <span class="text-xs bg-emerald-50 text-emerald-700 rounded px-2 py-0.5" title="Compensation & Benefits">{{ signals.compensation[:60] }}{% if signals.compensation|length > 60 %}...{% endif %}</span>
+                    {% endif %}
+                    {% if signals.get('culture') and signals.culture != 'Not mentioned' %}
+                    <span class="text-xs bg-blue-50 text-blue-700 rounded px-2 py-0.5" title="Work Culture">{{ signals.culture[:50] }}{% if signals.culture|length > 50 %}...{% endif %}</span>
+                    {% endif %}
+                    {% if signals.get('international') and signals.international != 'Not mentioned' %}
+                    <span class="text-xs bg-purple-50 text-purple-700 rounded px-2 py-0.5" title="International Presence">{{ signals.international[:50] }}{% if signals.international|length > 50 %}...{% endif %}</span>
+                    {% endif %}
+                    {% if signals.get('company_health') and signals.company_health != 'Not mentioned' %}
+                    <span class="text-xs bg-amber-50 text-amber-700 rounded px-2 py-0.5" title="Company Health">{{ signals.company_health[:50] }}{% if signals.company_health|length > 50 %}...{% endif %}</span>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                <!-- Detailed score breakdown (collapsible) -->
+                <details class="mt-2">
+                    <summary class="text-xs text-gray-500 cursor-pointer hover:text-gray-700">Score breakdown</summary>
+                    <div class="mt-1.5 space-y-1 text-xs text-gray-600">
+                        {% if c.get('location_fit') %}
+                        <div class="flex justify-between bg-gray-50 rounded px-2 py-1">
+                            <span>Location</span>
+                            <span>{{ c.location_fit.score|round(0)|int }}/{{ c.location_fit.max }} — {{ c.location_fit.reason }}</span>
+                        </div>
+                        {% endif %}
+                        {% if c.get('profile_fit') %}
+                        {% set pf = c.profile_fit %}
+                        <div class="flex justify-between bg-gray-50 rounded px-2 py-1">
+                            <span>Domain Match</span>
+                            <span>{{ pf.domain_match.score|round(1) }}/{{ pf.domain_match.max }}</span>
+                        </div>
+                        <div class="flex justify-between bg-gray-50 rounded px-2 py-1">
+                            <span>Keyword Overlap</span>
+                            <span>{{ pf.keyword_overlap.score|round(1) }}/{{ pf.keyword_overlap.max }}
+                                {% if pf.keyword_overlap.raw %}(P0: {{ pf.keyword_overlap.raw.p0_matched }}/{{ pf.keyword_overlap.raw.p0_total }}){% endif %}
+                            </span>
+                        </div>
+                        <div class="flex justify-between bg-gray-50 rounded px-2 py-1">
+                            <span>Title Match</span>
+                            <span>{{ pf.title_match.score|round(1) }}/{{ pf.title_match.max }}
+                                {% if pf.title_match.raw %}— {{ pf.title_match.raw.label }}{% endif %}
+                            </span>
+                        </div>
+                        <div class="flex justify-between bg-gray-50 rounded px-2 py-1">
+                            <span>Recency</span>
+                            <span>{{ pf.recency.score|round(1) }}/{{ pf.recency.max }}
+                                {% if pf.recency.raw %}— {{ pf.recency.raw.reason }}{% endif %}
+                            </span>
+                        </div>
+                        {% endif %}
+                        {% if c.get('experience_compatibility') and c.experience_compatibility.required_years %}
+                        <div class="flex justify-between bg-gray-50 rounded px-2 py-1">
+                            <span>Experience</span>
+                            <span>&times;{{ c.experience_compatibility.multiplier }} — {{ c.experience_compatibility.note }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% if job.missing_critical_skills %}
+                    <p class="text-xs text-red-500 mt-1.5">Missing P0 skills: {{ job.missing_critical_skills | join(', ') }}</p>
+                    {% endif %}
+                </details>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex flex-col gap-2 shrink-0">
+                {% if job.job_url %}
+                <a href="{{ job.job_url }}" target="_blank" class="text-xs text-blue-600 hover:text-blue-800 text-center px-3 py-1.5 border border-blue-200 rounded hover:bg-blue-50 transition-colors">View JD</a>
+                {% endif %}
+                {% if _has_resume %}
+                <a href="/generate/download/{{ job.job_id | urlencode }}" target="_blank" class="text-xs text-emerald-600 hover:text-emerald-800 text-center px-3 py-1.5 border border-emerald-200 rounded hover:bg-emerald-50 transition-colors">Download generated resume</a>
+                {% endif %}
+                {% if not _is_applied %}
+                <button type="button" class="mark-applied-btn text-xs text-gray-600 hover:text-gray-800 text-center px-3 py-1.5 border border-gray-200 rounded hover:bg-gray-50 transition-colors" data-job-id="{{ job.job_id }}">Mark as Applied</button>
+                {% endif %}
+                {% if not _is_applied %}
+                <form action="/generate" method="post" class="inline generate-resume-form"
+                      hx-post="/generate"
+                      hx-target="#inline-resume-{{ loop.index }}"
+                      hx-swap="innerHTML"
+                      hx-indicator="#gen-spinner-{{ loop.index }}"
+                      hx-disabled-elt=".generate-resume-form"
+                      hx-confirm="Generate tailored resume for this job? Only one at a time recommended.">
+                    <input type="hidden" name="job_id" value="{{ job.job_id }}">
+                    <button type="submit" class="text-xs bg-green-600 text-white px-3 py-1.5 rounded hover:bg-green-700 whitespace-nowrap w-full transition-colors">
+                        <span>Generate Resume</span>
+                        <span id="gen-spinner-{{ loop.index }}" class="htmx-indicator ml-1 inline">
+                            <svg class="animate-spin inline h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                        </span>
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+        <!-- Inline resume generation container -->
+        <div id="inline-resume-{{ loop.index }}" class="mt-3 border-t border-gray-100 pt-3"></div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+</div>
+{% if search_id %}
+<script>
+(function() {
+    var el = document.querySelector('.search-results-wrapper[data-search-id]');
+    if (el && el.getAttribute('data-search-id')) {
+        var sid = el.getAttribute('data-search-id');
+        try { localStorage.setItem('lastSearchId', sid); } catch (e) {}
+        if (!window.location.search.includes('search_id=')) {
+            history.replaceState(null, '', window.location.pathname + '?search_id=' + sid);
+        }
+    }
+    document.querySelectorAll('.mark-applied-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var jobId = btn.getAttribute('data-job-id');
+            if (!jobId) return;
+            fetch('/research/applied', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ job_id: jobId })
+            }).then(function(r) {
+                if (r.ok) {
+                    var card = btn.closest('.border.border-gray-200');
+                    if (card) {
+                        var badgeArea = card.querySelector('.flex.items-center.gap-2.mb-1\\.5');
+                        if (badgeArea && !badgeArea.querySelector('.bg-gray-200')) {
+                            var span = document.createElement('span');
+                            span.className = 'text-xs font-medium px-2 py-0.5 rounded bg-gray-200 text-gray-700';
+                            span.textContent = 'Applied';
+                            badgeArea.appendChild(span);
+                        }
+                        btn.remove();
+                        var form = card.querySelector('form[hx-post="/generate"]');
+                        if (form) form.remove();
+                    }
+                }
+            });
+        });
+    });
+})();
+</script>
+{% endif %}

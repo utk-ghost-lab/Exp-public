@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}Search Jobs — Placement Team{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-bold mb-6">Search Jobs</h1>
+
+<div class="bg-white border border-gray-200 rounded-lg p-6 mb-6">
+    <p class="text-sm text-gray-600 mb-4">Searching for: Product Manager (all levels, all locations)</p>
+    <form id="search-form" action="/research/search" method="post"
+          hx-post="/research/search"
+          hx-target="#search-results"
+          hx-swap="innerHTML"
+          hx-indicator="#search-spinner"
+          hx-disabled-elt="#search-btn">
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Date Posted</label>
+                <select name="date_posted" class="w-full border border-gray-300 rounded px-3 py-2 text-sm">
+                    <option value="today">Today</option>
+                    <option value="3days">Last 3 days</option>
+                    <option value="week">This week</option>
+                    <option value="month" selected>This month</option>
+                    <option value="all">All time</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Pages (10 jobs/page)</label>
+                <select name="num_pages" class="w-full border border-gray-300 rounded px-3 py-2 text-sm">
+                    <option value="1">1 page</option>
+                    <option value="2" selected>2 pages</option>
+                    <option value="3">3 pages</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Show only jobs from last</label>
+                <select name="max_days_ago" class="w-full border border-gray-300 rounded px-3 py-2 text-sm">
+                    <option value="" selected>No filter</option>
+                    <option value="7">7 days</option>
+                    <option value="14">14 days</option>
+                    <option value="30">30 days</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Sort by</label>
+                <select name="sort_by" class="w-full border border-gray-300 rounded px-3 py-2 text-sm">
+                    <option value="location" selected>Location (India first)</option>
+                    <option value="score">Score (highest first)</option>
+                </select>
+            </div>
+            <div class="flex items-center">
+                <label class="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" name="hide_applied" value="1" class="rounded border-gray-300">
+                    <span class="text-sm text-gray-700">Hide applied jobs</span>
+                </label>
+            </div>
+        </div>
+
+        <!-- Search Button -->
+        <button type="submit" id="search-btn"
+                class="bg-green-600 text-white px-8 py-2.5 rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 transition-colors">
+            <span id="search-btn-text">Search Jobs</span>
+            <span id="search-spinner" class="htmx-indicator ml-2">
+                <svg class="animate-spin inline h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                </svg>
+                Searching...
+            </span>
+        </button>
+    </form>
+</div>
+
+<!-- Results Area -->
+<div id="search-results">
+    <p class="text-center text-gray-400 py-8 text-sm">Select date range and pages, then click "Search Jobs" to find Product Manager roles.</p>
+</div>
+
+<script>
+(function() {
+    function getSearchId() {
+        var params = new URLSearchParams(window.location.search);
+        var sid = params.get('search_id');
+        if (sid) return sid;
+        try { return localStorage.getItem('lastSearchId'); } catch (e) { return null; }
+    }
+    var searchId = getSearchId();
+    if (searchId) {
+        htmx.ajax('GET', '/research/results/' + searchId + '?restored=1', {
+            target: '#search-results',
+            swap: 'innerHTML'
+        });
+    }
+})();
+</script>
+{% endblock %}
