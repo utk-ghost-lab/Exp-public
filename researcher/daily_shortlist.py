@@ -114,16 +114,17 @@ def _parse_jd_safe(jd_text: str) -> dict:
 
 
 def run_shortlist(skip_search: bool = False, urls: list = None,
-                  progress_cb=None) -> dict:
+                  preloaded_jobs: list = None, progress_cb=None) -> dict:
     """Run the full discovery → score pipeline.
 
     Args:
         skip_search: If True, skip board searches (only process URLs).
         urls: Optional list of specific URLs to score.
+        preloaded_jobs: Optional list of job dicts with description already set (e.g. from pasted JD text).
         progress_cb: Optional callback(step, message).
 
     Returns:
-        Dict with {jobs, stats, shortlist_path}.
+        Dict with {jobs, failed_jobs, stats, shortlist_path}.
     """
     pkb = load_pkb()
     candidate_skills = _build_candidate_skills(pkb)
@@ -131,7 +132,13 @@ def run_shortlist(skip_search: bool = False, urls: list = None,
 
     all_jobs = []
 
-    # Step 1: Discover jobs
+    # Step 1a: Preloaded jobs (e.g. pasted JD text)
+    if preloaded_jobs:
+        all_jobs.extend(preloaded_jobs)
+        if progress_cb:
+            progress_cb("preload", f"Processing {len(preloaded_jobs)} pasted JD(s)...")
+
+    # Step 1b: Discover jobs
     if not skip_search:
         if progress_cb:
             progress_cb("search", "Searching job boards...")
@@ -190,6 +197,32 @@ def run_shortlist(skip_search: bool = False, urls: list = None,
     if progress_cb:
         progress_cb("parse", f"Parsed {parsed_count}/{len(all_jobs)} JDs successfully")
 
+    # Step 3b: Auto-add companies to watchlist when user pasted URLs
+    if urls:
+        from researcher.company_analyzer import add_company_from_job, load_watchlist
+        watchlist_companies = load_watchlist().get("companies", {})
+        seen_companies = set()
+        for job in all_jobs:
+            if not job.get("parsed_jd"):
+                continue
+            company = job.get("company", "").strip()
+            if not company or company.lower() == "unknown":
+                continue
+            norm = company.lower()
+            if norm in seen_companies:
+                continue
+            seen_companies.add(norm)
+            # Check if already in watchlist (case-insensitive)
+            if any(k and k.lower() == norm for k, v in watchlist_companies.items() if v):
+                continue
+            added = add_company_from_job(
+                company,
+                job.get("job_url", ""),
+                job.get("parsed_jd"),
+            )
+            if added and progress_cb:
+                progress_cb("watchlist", f"Added {company} to watchlist")
+
     # Step 4: Score all jobs
     if progress_cb:
         progress_cb("score", f"Scoring {parsed_count} jobs...")
@@ -201,6 +234,7 @@ def run_shortlist(skip_search: bool = False, urls: list = None,
                 job["parsed_jd"], pkb, job.get("posted_days_ago"),
                 candidate_skills=candidate_skills,
                 candidate_domains=candidate_domains,
+                jd_text=job.get("description", ""),
             )
             job["score"] = result
             scored_jobs.append(job)
@@ -242,10 +276,13 @@ def run_shortlist(skip_search: bool = False, urls: list = None,
             if why:
                 job["why_this_fits"] = why
 
-    # Step 5: Generate shortlist
+    # Step 5: Collect failed jobs (fetch_error, no parsed_jd)
+    failed_jobs = [j for j in all_jobs if j.get("fetch_error")]
+
+    # Step 6: Generate shortlist
     stats = _compute_stats(all_jobs, scored_jobs)
 
-    # Step 6: Write markdown report
+    # Step 7: Write markdown report
     today = datetime.now().strftime("%Y-%m-%d")
     shortlist_path = os.path.join(RESEARCH_DIR, f"shortlist_{today}.md")
     os.makedirs(RESEARCH_DIR, exist_ok=True)
@@ -262,6 +299,7 @@ def run_shortlist(skip_search: bool = False, urls: list = None,
 
     return {
         "jobs": scored_jobs,
+        "failed_jobs": failed_jobs,
         "stats": stats,
         "shortlist_path": shortlist_path,
     }
@@ -330,7 +368,8 @@ def _generate_markdown(scored_jobs: list, stats: dict, date: str) -> str:
             components = sc.get("components", {})
             parts = []
             for name, comp in components.items():
-                parts.append(f"{name.replace('_', ' ').title()}: {comp['score']}/{comp['max']}")
+                if isinstance(comp, dict) and "score" in comp and "max" in comp:
+                    parts.append(f"{name.replace('_', ' ').title()}: {comp['score']}/{comp['max']}")
             lines.append(f"Breakdown: {' | '.join(parts)}")
 
             # Missing skills

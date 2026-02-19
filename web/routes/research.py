@@ -127,10 +127,16 @@ async def post_search(request: Request):
     sort_by = form.get("sort_by") or "location"
     if sort_by not in ("location", "score"):
         sort_by = "location"
-    min_score = 0
+    min_score = 55  # Hide SKIP-tier jobs (irrelevant results)
 
-    # Single query: "Product Manager" — all locations, all domains
-    base_query = "Product Manager"
+    # Seniority-qualified queries — search for Senior PM+ roles, not bare "Product Manager"
+    search_queries = [
+        "Senior Product Manager",
+        "Lead Product Manager",
+        "Group Product Manager",
+        "Principal Product Manager",
+        "Director of Product",
+    ]
 
     try:
         from researcher.jsearch_client import search_jobs
@@ -147,34 +153,7 @@ async def post_search(request: Request):
         seen_urls = set()
         query_count = 0
 
-        # 1. India jobs: country + cities; pass country=in for gl geo-targeting (critical for India results)
-        for loc in ("India", "Bangalore", "Hyderabad", "Mumbai", "Delhi", "Pune"):
-            for job in search_jobs(
-                query=base_query,
-                location=loc,
-                num_pages=num_pages,
-                date_posted=date_posted,
-                remote_only=False,
-                country="in",
-            ):
-                url = job.get("job_url", "")
-                if url and url not in seen_urls:
-                    seen_urls.add(url)
-                    all_jobs.append(job)
-                elif not url:
-                    key = f"{job.get('title', '')}@{job.get('company', '')}"
-                    if key not in seen_urls:
-                        seen_urls.add(key)
-                        all_jobs.append(job)
-
-        # 2. US/global jobs (no location = JSearch returns US-heavy results)
-        for job in search_jobs(
-            query=base_query,
-            location="",
-            num_pages=num_pages,
-            date_posted=date_posted,
-            remote_only=False,
-        ):
+        def _add_job(job):
             url = job.get("job_url", "")
             if url and url not in seen_urls:
                 seen_urls.add(url)
@@ -185,24 +164,63 @@ async def post_search(request: Request):
                     seen_urls.add(key)
                     all_jobs.append(job)
 
-        query_count = 7 * num_pages  # 6 India (India, Bangalore, Hyderabad, Mumbai, Delhi, Pune) + global
+        # 1. India jobs: seniority-qualified queries across major cities
+        india_locations = ("India", "Bangalore", "Hyderabad", "Mumbai", "Delhi", "Pune")
+        for q in search_queries:
+            for loc in india_locations:
+                for job in search_jobs(
+                    query=q,
+                    location=loc,
+                    num_pages=num_pages,
+                    date_posted=date_posted,
+                    remote_only=False,
+                    country="in",
+                ):
+                    _add_job(job)
+
+        # 2. Global/US jobs (no location = JSearch returns US-heavy results)
+        for q in search_queries:
+            for job in search_jobs(
+                query=q,
+                location="",
+                num_pages=num_pages,
+                date_posted=date_posted,
+                remote_only=False,
+            ):
+                _add_job(job)
+
+        query_count = len(search_queries) * (len(india_locations) + 1) * num_pages
 
         raw_count = len(all_jobs)
 
-        # Keep only PM roles: product manager, product management, product lead, APM, technical PM
-        def _is_pm_role(title: str) -> bool:
+        # Keep only PM roles at Senior+ level — exclude junior/APM/VP+
+        _EXCLUDE_TITLE_WORDS = [
+            "associate product manager", "junior product manager", "junior pm",
+            "associate pm", "apm", "product analyst", "product coordinator",
+            "entry level", "assistant product manager",
+            "vp product", "vp of product", "vice president product",
+            "cpo", "chief product officer", "svp product", "evp product",
+        ]
+
+        def _is_senior_pm_role(title: str) -> bool:
             t = (title or "").lower()
-            return (
+            # Must be a PM role
+            is_pm = (
                 "product manager" in t
                 or "product management" in t
                 or "product lead" in t
                 or "product owner" in t
-                or (t.startswith("apm ") or " apm " in t or t.endswith(" apm") or t == "apm")
                 or "technical pm" in t
-                or "associate product manager" in t
             )
+            if not is_pm:
+                return False
+            # Exclude junior/APM/VP+ titles
+            for excl in _EXCLUDE_TITLE_WORDS:
+                if excl in t:
+                    return False
+            return True
 
-        all_jobs = [j for j in all_jobs if _is_pm_role(j.get("title"))]
+        all_jobs = [j for j in all_jobs if _is_senior_pm_role(j.get("title"))]
 
         if not all_jobs:
             if raw_count == 0:
@@ -221,7 +239,6 @@ async def post_search(request: Request):
             )
 
         # Parse and score each job (PKB already loaded above)
-        # No exclude_titles or exclude_domains — show all results
         scored_jobs = []
         for job in all_jobs:
             # Lightweight parse
