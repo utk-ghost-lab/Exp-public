@@ -108,17 +108,17 @@ def search_and_score(
 
     all_jobs: list[dict] = []
 
-    _notify("Searching India locations...")
+    _notify("Searching India remote jobs...")
     for q in search_queries:
         for loc in india_locations:
             for job in search_jobs(query=q, location=loc, num_pages=num_pages,
-                                   date_posted=date_posted, remote_only=False, country="in"):
+                                   date_posted=date_posted, remote_only=True, country="in"):
                 all_jobs.append(job)
 
-    _notify("Searching global/US locations...")
+    _notify("Searching global remote jobs...")
     for q in search_queries:
         for job in search_jobs(query=q, location="", num_pages=num_pages,
-                               date_posted=date_posted, remote_only=False):
+                               date_posted=date_posted, remote_only=True):
             all_jobs.append(job)
 
     # Dedup by URL
@@ -167,6 +167,18 @@ def search_and_score(
             "description_hash": jd_hash(job.get("description", "")),
         })
 
+    # Filter out jobs with strong in-office signals that slipped past the API flag
+    _IN_OFFICE_SIGNALS = [
+        "on-site only", "onsite only", "in-office only", "no remote",
+        "must relocate", "relocation required", "not remote",
+    ]
+
+    def _is_truly_remote(job: dict) -> bool:
+        desc = (job.get("description") or "").lower()
+        return not any(signal in desc for signal in _IN_OFFICE_SIGNALS)
+
+    scored = [j for j in scored if _is_truly_remote(j)]
+
     scored.sort(key=lambda j: -j["fit_score"])
-    _notify(f"Found {len(scored)} jobs scoring {min_score}+")
+    _notify(f"Found {len(scored)} remote jobs scoring {min_score}+")
     return scored
