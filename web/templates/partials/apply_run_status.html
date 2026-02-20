@@ -1,0 +1,48 @@
+{% if running %}
+<div class="bg-blue-50 border border-blue-200 rounded-lg p-4" id="run-status-inner">
+    <div class="flex items-center gap-3">
+        <svg class="animate-spin h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+        </svg>
+        <span class="text-sm text-blue-800 font-medium" id="run-message">{{ message }}</span>
+    </div>
+</div>
+
+<!-- Auto-refresh job list every 5s while running -->
+<div hx-get="/apply/jobs-partial" hx-target="#job-list" hx-swap="innerHTML" hx-trigger="every 5s" style="display:none;"></div>
+
+<!-- SSE for progress messages (separate endpoints for search vs generate) -->
+<script>
+(function() {
+    var operation = '{{ operation|default("search") }}';
+    var sseUrl = operation === 'generate' ? '/apply/generate-progress' : '/apply/search-progress';
+    var evtSource = new EventSource(sseUrl);
+    var msgEl = document.getElementById('run-message');
+    evtSource.onmessage = function(event) {
+        try {
+            var data = JSON.parse(event.data);
+            if (msgEl) msgEl.textContent = data.message || '';
+            if (data.done) {
+                evtSource.close();
+                // Final refresh of job list
+                htmx.ajax('GET', '/apply/jobs-partial', {target: '#job-list', swap: 'innerHTML'});
+                // Replace run status with completion message
+                var statusEl = document.getElementById('run-status-inner');
+                if (statusEl) {
+                    statusEl.className = 'bg-green-50 border border-green-200 rounded-lg p-4';
+                    statusEl.innerHTML = '<p class="text-sm text-green-800 font-medium">' + (data.message || 'Complete.') + '</p>';
+                }
+            }
+        } catch(e) {}
+    };
+    evtSource.onerror = function() { evtSource.close(); };
+})();
+</script>
+{% else %}
+{% if message %}
+<div class="bg-green-50 border border-green-200 rounded-lg p-4">
+    <p class="text-sm text-green-800 font-medium">{{ message }}</p>
+</div>
+{% endif %}
+{% endif %}

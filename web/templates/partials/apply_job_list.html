@@ -1,0 +1,103 @@
+<!-- Discovered (new jobs from search — select for generation) -->
+{% if discovered|length > 0 %}
+<form id="select-form" hx-post="/apply/generate-selected" hx-target="#run-status" hx-swap="innerHTML">
+<div class="mb-6">
+    <div class="flex items-center justify-between mb-3">
+        <h2 class="text-lg font-semibold text-blue-800">Discovered ({{ discovered|length }})</h2>
+        <div class="flex gap-2">
+            <button type="button" onclick="document.querySelectorAll('#select-form input[type=checkbox]').forEach(c => c.checked = !c.checked)"
+                    class="text-xs text-blue-600 hover:underline">Toggle All</button>
+            <button type="submit"
+                    class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-1.5 rounded-lg shadow-sm transition-colors">
+                Generate Selected
+            </button>
+        </div>
+    </div>
+    <div class="space-y-3">
+        {% for job in discovered %}
+        {% include "partials/apply_job_card.html" %}
+        {% endfor %}
+    </div>
+</div>
+</form>
+{% endif %}
+
+<!-- Selected (waiting for generation) -->
+{% if selected|length > 0 %}
+<div class="mb-6">
+    <h2 class="text-lg font-semibold text-indigo-800 mb-3">Selected ({{ selected|length }})</h2>
+    <div class="space-y-3">
+        {% for job in selected %}
+        {% include "partials/apply_job_card.html" %}
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- In Progress -->
+{% if in_progress|length > 0 %}
+<div class="mb-6">
+    <h2 class="text-lg font-semibold text-yellow-800 mb-3">In Progress ({{ in_progress|length }})</h2>
+    <div class="space-y-3">
+        {% for job in in_progress %}
+        {% include "partials/apply_job_card.html" %}
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Ready to Apply -->
+{% if ready|length > 0 %}
+<div class="mb-6">
+    <h2 class="text-lg font-semibold text-green-800 mb-3">Ready to Apply ({{ ready|length }})</h2>
+    <div class="space-y-3">
+        {% for job in ready %}
+        {% include "partials/apply_job_card.html" %}
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Failed -->
+{% if failed|length > 0 %}
+<div class="mb-6">
+    <h2 class="text-lg font-semibold text-red-700 mb-3">Failed ({{ failed|length }})</h2>
+    <div class="space-y-3">
+        {% for job in failed %}
+        {% include "partials/apply_job_card.html" %}
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Applied -->
+{% if applied|length > 0 %}
+<details class="mb-6">
+    <summary class="text-lg font-semibold text-gray-500 mb-3 cursor-pointer hover:text-gray-700">Applied ({{ applied|length }})</summary>
+    <div class="space-y-3 mt-3">
+        {% for job in applied %}
+        {% include "partials/apply_job_card.html" %}
+        {% endfor %}
+    </div>
+</details>
+{% endif %}
+
+<!-- Skipped (only in "all" tab) -->
+{% if skipped|length > 0 %}
+<details class="mb-6">
+    <summary class="text-lg font-semibold text-gray-400 mb-3 cursor-pointer hover:text-gray-600">Skipped ({{ skipped|length }})</summary>
+    <div class="space-y-3 mt-3">
+        {% for job in skipped %}
+        {% include "partials/apply_job_card.html" %}
+        {% endfor %}
+    </div>
+</details>
+{% endif %}
+
+{% set total = (discovered|length) + (selected|length) + (in_progress|length) + (ready|length) + (failed|length) + (applied|length) %}
+{% if total == 0 %}
+<div class="text-center py-12 text-gray-400">
+    <p class="text-lg">No jobs in the queue yet.</p>
+    <p class="text-sm mt-1">Click "Search for Jobs" to discover new opportunities.</p>
+</div>
+{% endif %}

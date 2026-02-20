@@ -1,0 +1,178 @@
+{% set status = job.get('status', 'discovered') %}
+{% set score = job.get('fit_score', 0) %}
+{% set tier = job.get('tier', 'fast') %}
+
+{% set score_color = 'bg-green-100 text-green-800' if score >= 80 else 'bg-yellow-100 text-yellow-800' %}
+{% set tier_color = 'bg-indigo-100 text-indigo-700' if tier == 'full' else 'bg-gray-100 text-gray-600' %}
+
+{% if status == 'discovered' %}
+  {% set status_badge = 'bg-blue-500 text-white' %}
+{% elif status == 'selected' %}
+  {% set status_badge = 'bg-indigo-500 text-white' %}
+{% elif status == 'ready' %}
+  {% set status_badge = 'bg-green-600 text-white' %}
+{% elif status == 'generating' %}
+  {% set status_badge = 'bg-yellow-500 text-white' %}
+{% elif status == 'queued' %}
+  {% set status_badge = 'bg-gray-400 text-white' %}
+{% elif status == 'applied' %}
+  {% set status_badge = 'bg-gray-500 text-white' %}
+{% elif status == 'failed' %}
+  {% set status_badge = 'bg-red-600 text-white' %}
+{% elif status == 'skipped' %}
+  {% set status_badge = 'bg-gray-300 text-gray-600' %}
+{% else %}
+  {% set status_badge = 'bg-gray-400 text-white' %}
+{% endif %}
+
+<div class="border border-gray-200 rounded-lg bg-white p-4 hover:shadow-sm transition-shadow">
+    <div class="flex items-start justify-between gap-4">
+        <!-- Checkbox for discovered jobs -->
+        {% if status == 'discovered' %}
+        <div class="flex-shrink-0 pt-1">
+            <input type="checkbox" name="job_ids" value="{{ job.get('job_id', '') }}"
+                   class="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500">
+        </div>
+        {% endif %}
+
+        <div class="flex-1 min-w-0">
+            <!-- Badges row -->
+            <div class="flex items-center gap-2 mb-1.5 flex-wrap">
+                <span class="text-xs font-semibold px-2 py-0.5 rounded {{ score_color }}">{{ score }}%</span>
+                <span class="text-xs font-medium px-2 py-0.5 rounded {{ tier_color }}">{{ tier|upper }}</span>
+                <span class="text-xs font-medium px-2 py-0.5 rounded {{ status_badge }}">{{ status|upper }}</span>
+                {% if job.get('resume_score') %}
+                <span class="text-xs px-2 py-0.5 rounded bg-purple-100 text-purple-700">ATS: {{ "%.0f"|format(job.get('resume_score', 0)) }}</span>
+                {% endif %}
+                {% if job.get('has_cover_letter') %}
+                <span class="text-xs px-2 py-0.5 rounded bg-teal-100 text-teal-700">CL</span>
+                {% endif %}
+                {% if job.get('has_linkedin_message') %}
+                <span class="text-xs px-2 py-0.5 rounded bg-sky-100 text-sky-700">LI</span>
+                {% endif %}
+            </div>
+
+            <!-- Title & company -->
+            <h3 class="font-medium text-gray-900 truncate">{{ job.get('title', 'Unknown') }}</h3>
+            <p class="text-sm text-gray-600">{{ job.get('company', '') }}{% if job.get('location') %} &middot; {{ job.get('location', '') }}{% endif %}</p>
+
+            {% if status == 'generating' %}
+            <div class="mt-2 flex items-center gap-2 text-sm text-yellow-600">
+                <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                </svg>
+                Generating resume...
+            </div>
+            {% endif %}
+
+            {% if status == 'failed' and job.get('error') %}
+            <details class="mt-1.5">
+                <summary class="text-xs text-red-600 cursor-pointer hover:underline">Show error</summary>
+                <p class="text-xs text-red-600 mt-1 whitespace-pre-wrap">{{ job.get('error', '') }}</p>
+            </details>
+            {% endif %}
+        </div>
+
+        <!-- Actions -->
+        <div class="flex flex-col gap-2 items-end flex-shrink-0">
+            {% if job.get('job_url') %}
+            <a href="{{ job.get('job_url', '') }}" target="_blank" class="text-xs text-blue-600 hover:underline whitespace-nowrap">View JD</a>
+            {% endif %}
+
+            {% if status == 'discovered' %}
+            <button
+                hx-post="/apply/generate-single/{{ job.get('job_id', '') }}"
+                hx-target="#run-status"
+                hx-swap="innerHTML"
+                class="text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1 rounded font-medium whitespace-nowrap"
+            >Generate</button>
+            <button
+                hx-post="/apply/skip/{{ job.get('job_id', '') }}"
+                hx-target="#job-list"
+                hx-swap="innerHTML"
+                class="text-xs text-gray-400 hover:text-gray-600 whitespace-nowrap"
+            >Skip</button>
+            {% endif %}
+
+            {% if status == 'queued' %}
+            <button
+                hx-post="/apply/cancel/{{ job.get('job_id', '') }}"
+                hx-target="#job-list"
+                hx-swap="innerHTML"
+                class="text-xs text-gray-500 hover:text-red-600 whitespace-nowrap"
+            >Cancel</button>
+            {% endif %}
+
+            {% if status == 'ready' %}
+            <a href="/apply/download/{{ job.get('job_id', '') }}" class="text-xs bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded font-medium whitespace-nowrap">Download PDF</a>
+            <a href="/apply/download/{{ job.get('job_id', '') }}?format=docx" class="text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded font-medium whitespace-nowrap">Download DOCX</a>
+            <button
+                hx-post="/apply/mark-applied/{{ job.get('job_id', '') }}"
+                hx-target="#job-list"
+                hx-swap="innerHTML"
+                class="text-xs text-gray-500 hover:text-green-600 whitespace-nowrap"
+            >Mark Applied</button>
+            <button
+                hx-post="/apply/cover-letter/{{ job.get('job_id', '') }}"
+                hx-swap="none"
+                class="text-xs text-teal-600 hover:underline whitespace-nowrap"
+                onclick="this.textContent='Generating...'; this.disabled=true"
+            >Generate Cover Letter</button>
+            <button
+                class="text-xs text-sky-600 hover:underline whitespace-nowrap"
+                onclick="generateLinkedInMessage('{{ job.get('job_id', '') }}', this)"
+            >LinkedIn Message</button>
+            {% endif %}
+
+            {% if status == 'failed' %}
+            <button
+                hx-post="/apply/retry/{{ job.get('job_id', '') }}"
+                hx-target="#job-list"
+                hx-swap="innerHTML"
+                class="text-xs bg-red-100 hover:bg-red-200 text-red-700 px-3 py-1 rounded font-medium whitespace-nowrap"
+            >Retry</button>
+            {% endif %}
+
+            {% if status == 'applied' and job.get('output_folder') %}
+            <a href="/apply/download/{{ job.get('job_id', '') }}" class="text-xs text-gray-500 hover:underline whitespace-nowrap">Download PDF</a>
+            <a href="/apply/download/{{ job.get('job_id', '') }}?format=docx" class="text-xs text-gray-500 hover:underline whitespace-nowrap">Download DOCX</a>
+            {% if job.get('has_cover_letter') %}
+            <a href="/apply/download-cover-letter/{{ job.get('job_id', '') }}" class="text-xs text-teal-500 hover:underline whitespace-nowrap">Download CL</a>
+            {% else %}
+            <button
+                hx-post="/apply/cover-letter/{{ job.get('job_id', '') }}"
+                hx-swap="none"
+                class="text-xs text-teal-600 hover:underline whitespace-nowrap"
+                onclick="this.textContent='Generating...'; this.disabled=true"
+            >Generate Cover Letter</button>
+            {% endif %}
+            <button
+                class="text-xs text-sky-600 hover:underline whitespace-nowrap"
+                onclick="generateLinkedInMessage('{{ job.get('job_id', '') }}', this)"
+            >LinkedIn Message</button>
+            {% endif %}
+
+            {% if status == 'skipped' %}
+            <button
+                hx-post="/apply/skip/{{ job.get('job_id', '') }}"
+                hx-target="#job-list"
+                hx-swap="innerHTML"
+                class="text-xs text-gray-400 hover:text-blue-600 whitespace-nowrap"
+                hx-vals='{"restore": "1"}'
+            >Undo Skip</button>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- LinkedIn message modal (inline, shown on demand) -->
+<div id="linkedin-modal-{{ job.get('job_id', '') }}" class="hidden mt-2 border border-sky-200 rounded-lg bg-sky-50 p-4">
+    <div class="flex items-center justify-between mb-2">
+        <span class="text-sm font-medium text-sky-800">LinkedIn Message</span>
+        <button onclick="this.closest('[id^=linkedin-modal]').classList.add('hidden')" class="text-xs text-gray-400 hover:text-gray-600">Close</button>
+    </div>
+    <pre class="text-sm text-gray-800 whitespace-pre-wrap" id="linkedin-text-{{ job.get('job_id', '') }}"></pre>
+    <button onclick="navigator.clipboard.writeText(document.getElementById('linkedin-text-{{ job.get('job_id', '') }}').textContent).then(() => this.textContent='Copied!')"
+            class="mt-2 text-xs bg-sky-600 hover:bg-sky-700 text-white px-3 py-1 rounded font-medium">Copy to Clipboard</button>
+</div>

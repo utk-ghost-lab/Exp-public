@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}Apply Manager — Placement Team{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">Apply Manager</h1>
+            <p class="text-sm text-gray-500 mt-1">Search for jobs, review, and generate tailored resumes</p>
+        </div>
+        <button
+            hx-post="/apply/search-now"
+            hx-target="#run-status"
+            hx-swap="innerHTML"
+            class="bg-green-600 hover:bg-green-700 text-white font-medium px-5 py-2.5 rounded-lg shadow-sm transition-colors"
+        >
+            Search for Jobs
+        </button>
+    </div>
+
+    <!-- Tab navigation -->
+    <div class="flex gap-1 border-b border-gray-200">
+        <a href="/apply?tab=fresh"
+           class="px-4 py-2 text-sm font-medium rounded-t-lg border-b-2 transition-colors {{ 'border-blue-600 text-blue-600 bg-blue-50' if tab == 'fresh' else 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
+            Fresh Jobs
+            {% if counts.get('discovered', 0) > 0 %}
+            <span class="ml-1 text-xs bg-blue-100 text-blue-700 rounded-full px-2 py-0.5">{{ counts.discovered }}</span>
+            {% endif %}
+        </a>
+        <a href="/apply?tab=all"
+           class="px-4 py-2 text-sm font-medium rounded-t-lg border-b-2 transition-colors {{ 'border-blue-600 text-blue-600 bg-blue-50' if tab == 'all' else 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
+            All Jobs
+        </a>
+    </div>
+
+    <!-- Stats bar -->
+    <div class="flex flex-wrap gap-3">
+        {% if counts.get('discovered', 0) > 0 %}
+        <span class="text-sm bg-blue-100 text-blue-800 rounded px-3 py-1 font-medium">Discovered: {{ counts.discovered }}</span>
+        {% endif %}
+        {% if counts.get('selected', 0) > 0 %}
+        <span class="text-sm bg-indigo-100 text-indigo-800 rounded px-3 py-1 font-medium">Selected: {{ counts.selected }}</span>
+        {% endif %}
+        {% if counts.get('in_progress', 0) > 0 %}
+        <span class="text-sm bg-yellow-100 text-yellow-800 rounded px-3 py-1 font-medium">In Progress: {{ counts.in_progress }}</span>
+        {% endif %}
+        {% if counts.get('ready', 0) > 0 %}
+        <span class="text-sm bg-green-100 text-green-800 rounded px-3 py-1 font-medium">Ready: {{ counts.ready }}</span>
+        {% endif %}
+        {% if counts.get('failed', 0) > 0 %}
+        <span class="text-sm bg-red-100 text-red-800 rounded px-3 py-1 font-medium">Failed: {{ counts.failed }}</span>
+        {% endif %}
+        {% if counts.get('applied', 0) > 0 %}
+        <span class="text-sm bg-gray-100 text-gray-600 rounded px-3 py-1 font-medium">Applied: {{ counts.applied }}</span>
+        {% endif %}
+        {% if last_run %}
+        <span class="text-sm text-gray-400 ml-auto">Last run: {{ last_run.get('status', '') }} ({{ last_run.get('completed_at', last_run.get('started_at', ''))[:16] }})</span>
+        {% endif %}
+    </div>
+
+    <!-- Run status (HTMX target for progress) -->
+    <div id="run-status"></div>
+
+    <!-- Job list -->
+    <div id="job-list">
+        {% include "partials/apply_job_list.html" %}
+    </div>
+</div>
+
+<script>
+function generateLinkedInMessage(jobId, btn) {
+    btn.textContent = 'Generating...';
+    btn.disabled = true;
+    fetch('/apply/linkedin-message/' + jobId, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({message_type: 'connection_request'})
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        btn.textContent = 'LinkedIn Message';
+        btn.disabled = false;
+        if (data.status === 'ok') {
+            var modal = document.getElementById('linkedin-modal-' + jobId);
+            var textEl = document.getElementById('linkedin-text-' + jobId);
+            if (modal && textEl) {
+                textEl.textContent = data.text || '';
+                modal.classList.remove('hidden');
+            }
+        } else {
+            alert('Error: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(function(e) {
+        btn.textContent = 'LinkedIn Message';
+        btn.disabled = false;
+        alert('Error: ' + e.message);
+    });
+}
+</script>
+{% endblock %}

@@ -129,160 +129,31 @@ async def post_search(request: Request):
         sort_by = "location"
     min_score = 55  # Hide SKIP-tier jobs (irrelevant results)
 
-    # Seniority-qualified queries — search for Senior PM+ roles, not bare "Product Manager"
-    search_queries = [
-        "Senior Product Manager",
-        "Lead Product Manager",
-        "Group Product Manager",
-        "Principal Product Manager",
-        "Director of Product",
-    ]
-
     try:
-        from researcher.jsearch_client import search_jobs
-        from researcher.job_scorer import load_pkb, _build_candidate_skills, _build_candidate_domains
-        from researcher.lightweight_parser import lightweight_parse_jd, score_search_result
+        from researcher.search_and_score import search_and_score
 
-        # Load PKB once (needed for scoring)
-        pkb = load_pkb()
-        candidate_skills = _build_candidate_skills(pkb)
-        candidate_domains = _build_candidate_domains(pkb)
+        scored_jobs = search_and_score(
+            date_posted=date_posted,
+            num_pages=num_pages,
+            min_score=min_score,
+        )
 
-        # Query India first (country + major cities), then US/global — JSearch defaults to US when no location
-        all_jobs = []
-        seen_urls = set()
-        query_count = 0
-
-        def _add_job(job):
-            url = job.get("job_url", "")
-            if url and url not in seen_urls:
-                seen_urls.add(url)
-                all_jobs.append(job)
-            elif not url:
-                key = f"{job.get('title', '')}@{job.get('company', '')}"
-                if key not in seen_urls:
-                    seen_urls.add(key)
-                    all_jobs.append(job)
-
-        # 1. India jobs: seniority-qualified queries across major cities
-        india_locations = ("India", "Bangalore", "Hyderabad", "Mumbai", "Delhi", "Pune")
-        for q in search_queries:
-            for loc in india_locations:
-                for job in search_jobs(
-                    query=q,
-                    location=loc,
-                    num_pages=num_pages,
-                    date_posted=date_posted,
-                    remote_only=False,
-                    country="in",
-                ):
-                    _add_job(job)
-
-        # 2. Global/US jobs (no location = JSearch returns US-heavy results)
-        for q in search_queries:
-            for job in search_jobs(
-                query=q,
-                location="",
-                num_pages=num_pages,
-                date_posted=date_posted,
-                remote_only=False,
-            ):
-                _add_job(job)
-
-        query_count = len(search_queries) * (len(india_locations) + 1) * num_pages
-
-        raw_count = len(all_jobs)
-
-        # Keep only PM roles at Senior+ level — exclude junior/APM/VP+
-        _EXCLUDE_TITLE_WORDS = [
-            "associate product manager", "junior product manager", "junior pm",
-            "associate pm", "apm", "product analyst", "product coordinator",
-            "entry level", "assistant product manager",
-            "vp product", "vp of product", "vice president product",
-            "cpo", "chief product officer", "svp product", "evp product",
-        ]
-
-        def _is_senior_pm_role(title: str) -> bool:
-            t = (title or "").lower()
-            # Must be a PM role
-            is_pm = (
-                "product manager" in t
-                or "product management" in t
-                or "product lead" in t
-                or "product owner" in t
-                or "technical pm" in t
-            )
-            if not is_pm:
-                return False
-            # Exclude junior/APM/VP+ titles
-            for excl in _EXCLUDE_TITLE_WORDS:
-                if excl in t:
-                    return False
-            return True
-
-        all_jobs = [j for j in all_jobs if _is_senior_pm_role(j.get("title"))]
-
-        if not all_jobs:
-            if raw_count == 0:
-                hint = (
-                    "JSearch API returned no results. Check that JSEARCH_API_KEY is set in .env "
-                    "(get a free key at rapidapi.com/letscrape-6bRBa3QguO5/api/jsearch). "
-                    "Try a wider date range (e.g. This month)."
-                )
-            else:
-                hint = f"API returned {raw_count} jobs but none had 'Product Manager' in the title. Try a wider date range."
+        if not scored_jobs:
             return HTMLResponse(
-                f'<div class="text-center py-8 text-gray-500">'
-                f'<p class="text-lg font-medium">No Product Manager roles found</p>'
-                f'<p class="text-sm mt-1">{hint}</p></div>',
+                '<div class="text-center py-8 text-gray-500">'
+                '<p class="text-lg font-medium">No Product Manager roles found</p>'
+                '<p class="text-sm mt-1">Try a wider date range (e.g. This month).</p></div>',
                 status_code=200,
             )
 
-        # Parse and score each job (PKB already loaded above)
-        scored_jobs = []
-        for job in all_jobs:
-            # Lightweight parse
-            parsed_jd = lightweight_parse_jd(
-                description=job.get("description", ""),
-                title=job.get("title", ""),
-                company=job.get("company", ""),
-                location=job.get("location", ""),
-            )
+        # Store JD text for "Generate Resume" button
+        for j in scored_jobs:
+            job_id = j.get("job_id", "")
+            if job_id and j.get("description"):
+                web_state.search_job_descriptions[job_id] = j["description"]
 
-            # Score with custom formula
-            score = score_search_result(
-                job=job,
-                parsed_jd=parsed_jd,
-                pkb=pkb,
-                candidate_skills=candidate_skills,
-                candidate_domains=candidate_domains,
-            )
-
-            # Min score filter
-            if score["fit_score"] < min_score:
-                continue
-
-            # Store JD text for "Generate Resume" button
-            job_id = job.get("jsearch_job_id") or job.get("title", "")
-            web_state.search_job_descriptions[job_id] = job.get("description", "")
-
-            scored_jobs.append({
-                "title": job.get("title", "Unknown"),
-                "company": job.get("company", "Unknown"),
-                "location": job.get("location", ""),
-                "job_url": job.get("job_url", ""),
-                "source": job.get("source", ""),
-                "posted_days_ago": job.get("posted_days_ago"),
-                "employer_logo": job.get("employer_logo", ""),
-                "job_publisher": job.get("job_publisher", ""),
-                "job_id": job_id,
-                "description": job.get("description", ""),
-                "fit_score": score["fit_score"],
-                "recommendation": score["recommendation"],
-                "components": score["components"],
-                "missing_critical_skills": score["missing_critical_skills"],
-                "signals": parsed_jd.get("signals", {}),
-            })
+        # Compute query_count for stats (approximate)
+        query_count = 2 * (3 + 1) * num_pages  # 2 queries * (3 india + 1 global) * pages
 
         # Optional recency filter: keep jobs with posted_days_ago <= max_days or unknown date
         filtered_by_recency = 0
