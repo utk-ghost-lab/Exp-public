@@ -35,9 +35,9 @@ _progress_lock = threading.Lock()
 async def get_apply_page(request: Request):
     """Render the Apply Manager dashboard."""
     templates = request.app.state.templates
-    tab = request.query_params.get("tab", "fresh")
-    if tab not in ("fresh", "all"):
-        tab = "fresh"
+    tab = request.query_params.get("tab", "discover")
+    if tab not in ("discover", "ready", "applied"):
+        tab = "discover"
     data = apply_manager.get_dashboard_data(tab=tab)
     return templates.TemplateResponse("apply.html", {
         "request": request,
@@ -63,6 +63,13 @@ async def post_search_now(request: Request):
             "message": "An operation is already in progress...",
         })
 
+    # Parse filter params from form
+    form = await request.form()
+    date_posted = form.get("date_posted", "week")
+    num_pages = int(form.get("num_pages", "1"))
+    min_score = int(form.get("min_score", "65"))
+    sort_by = form.get("sort_by", "score")
+
     with _progress_lock:
         _search_progress_queue = queue.Queue()
 
@@ -71,7 +78,13 @@ async def post_search_now(request: Request):
             if _search_progress_queue is not None:
                 _search_progress_queue.put(msg)
 
-    started = apply_manager.start_search_thread(progress_cb=_on_progress)
+    started = apply_manager.start_search_thread(
+        progress_cb=_on_progress,
+        date_posted=date_posted,
+        num_pages=num_pages,
+        min_score=min_score,
+        sort_by=sort_by,
+    )
     if not started:
         return templates.TemplateResponse("partials/apply_run_status.html", {
             "request": request,
@@ -135,7 +148,7 @@ async def post_generate_selected(request: Request):
 
     job_ids = form.getlist("job_ids")
     if not job_ids:
-        data = apply_manager.get_dashboard_data(tab="fresh")
+        data = apply_manager.get_dashboard_data(tab="discover")
         return templates.TemplateResponse("partials/apply_job_list.html", {
             "request": request,
             **data,
@@ -258,9 +271,7 @@ async def get_generate_progress():
 async def get_download(request: Request, job_id: str):
     """Serve generated PDF or DOCX for a job. Use ?format=docx for Word."""
     fmt = request.query_params.get("format", "pdf").lower()
-    data = apply_manager.get_dashboard_data(tab="all")
-    all_jobs = data["ready"] + data["applied"] + data["in_progress"] + data["failed"]
-    job = next((j for j in all_jobs if j.get("job_id") == job_id), None)
+    job = apply_manager.get_job_by_id(job_id)
     if not job or not job.get("output_folder"):
         return JSONResponse({"detail": "Resume not found for this job."}, status_code=404)
 
@@ -298,9 +309,7 @@ async def post_cover_letter(job_id: str):
 @router.get("/download-cover-letter/{job_id}")
 async def get_download_cover_letter(job_id: str):
     """Download cover letter text file."""
-    data = apply_manager.get_dashboard_data(tab="all")
-    all_jobs = data["ready"] + data["applied"]
-    job = next((j for j in all_jobs if j.get("job_id") == job_id), None)
+    job = apply_manager.get_job_by_id(job_id)
     if not job or not job.get("output_folder"):
         return JSONResponse({"detail": "Job not found."}, status_code=404)
 
@@ -309,6 +318,29 @@ async def get_download_cover_letter(job_id: str):
         return JSONResponse({"detail": "Cover letter not generated yet."}, status_code=404)
 
     return FileResponse(str(cl_path), media_type="text/plain", filename=f"cover_letter_{job.get('company', 'company')}.txt")
+
+
+@router.get("/open-folder/{job_id}", response_class=JSONResponse)
+async def get_open_folder(job_id: str):
+    """Open the job output folder in the native file manager (local use only)."""
+    import subprocess
+    import platform
+    job = apply_manager.get_job_by_id(job_id)
+    if not job or not job.get("output_folder"):
+        return JSONResponse({"detail": "No output folder for this job."}, status_code=404)
+    out_dir = Path(job["output_folder"])
+    if not out_dir.is_dir():
+        return JSONResponse({"detail": "Output folder does not exist on disk."}, status_code=404)
+    system = platform.system()
+    if system == "Darwin":
+        subprocess.Popen(["open", str(out_dir)])
+    elif system == "Linux":
+        subprocess.Popen(["xdg-open", str(out_dir)])
+    elif system == "Windows":
+        subprocess.Popen(["explorer", str(out_dir)])
+    else:
+        return JSONResponse({"detail": f"Unsupported platform: {system}"}, status_code=400)
+    return JSONResponse({"status": "ok"})
 
 
 @router.post("/linkedin-message/{job_id}", response_class=JSONResponse)
@@ -328,9 +360,7 @@ async def post_linkedin_message(request: Request, job_id: str):
 @router.get("/linkedin-message/{job_id}", response_class=JSONResponse)
 async def get_linkedin_message(job_id: str):
     """Get saved LinkedIn message for a job."""
-    data = apply_manager.get_dashboard_data(tab="all")
-    all_jobs = data["ready"] + data["applied"]
-    job = next((j for j in all_jobs if j.get("job_id") == job_id), None)
+    job = apply_manager.get_job_by_id(job_id)
     if not job or not job.get("output_folder"):
         return JSONResponse({"detail": "Job not found."}, status_code=404)
 
@@ -350,7 +380,7 @@ async def post_mark_applied(request: Request, job_id: str):
     """Mark job as applied. Returns updated job list partial."""
     apply_manager.mark_applied(job_id)
     templates = request.app.state.templates
-    tab = request.query_params.get("tab", "fresh")
+    tab = request.query_params.get("tab", "discover")
     data = apply_manager.get_dashboard_data(tab=tab)
     return templates.TemplateResponse("partials/apply_job_list.html", {
         "request": request,
@@ -363,7 +393,7 @@ async def post_retry(request: Request, job_id: str):
     """Reset failed job to selected. Returns updated job list partial."""
     apply_manager.retry_failed(job_id)
     templates = request.app.state.templates
-    tab = request.query_params.get("tab", "fresh")
+    tab = request.query_params.get("tab", "discover")
     data = apply_manager.get_dashboard_data(tab=tab)
     return templates.TemplateResponse("partials/apply_job_list.html", {
         "request": request,
@@ -376,7 +406,7 @@ async def post_skip(request: Request, job_id: str):
     """Skip a discovered job. Returns updated job list partial."""
     apply_manager.skip_job(job_id)
     templates = request.app.state.templates
-    tab = request.query_params.get("tab", "fresh")
+    tab = request.query_params.get("tab", "discover")
     data = apply_manager.get_dashboard_data(tab=tab)
     return templates.TemplateResponse("partials/apply_job_list.html", {
         "request": request,
@@ -389,7 +419,7 @@ async def post_cancel(request: Request, job_id: str):
     """Cancel a queued job back to discovered. Returns updated job list partial."""
     apply_manager.cancel_generation(job_id)
     templates = request.app.state.templates
-    tab = request.query_params.get("tab", "fresh")
+    tab = request.query_params.get("tab", "discover")
     data = apply_manager.get_dashboard_data(tab=tab)
     return templates.TemplateResponse("partials/apply_job_list.html", {
         "request": request,
@@ -401,11 +431,22 @@ async def post_cancel(request: Request, job_id: str):
 # Partials
 # ---------------------------------------------------------------------------
 
+@router.get("/search-info-partial", response_class=HTMLResponse)
+async def get_search_info_partial(request: Request):
+    """HTMX partial: refreshed last-search info bar."""
+    templates = request.app.state.templates
+    data = apply_manager.get_dashboard_data()
+    return templates.TemplateResponse("partials/apply_search_info.html", {
+        "request": request,
+        **data,
+    })
+
+
 @router.get("/jobs-partial", response_class=HTMLResponse)
 async def get_jobs_partial(request: Request):
     """HTMX partial: refreshed job card list."""
     templates = request.app.state.templates
-    tab = request.query_params.get("tab", "fresh")
+    tab = request.query_params.get("tab", "discover")
     data = apply_manager.get_dashboard_data(tab=tab)
     return templates.TemplateResponse("partials/apply_job_list.html", {
         "request": request,
