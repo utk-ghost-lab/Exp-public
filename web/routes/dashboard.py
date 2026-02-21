@@ -4,7 +4,7 @@ import json
 import os
 
 from fastapi import APIRouter, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 
 from web import config
 
@@ -48,6 +48,28 @@ def _list_recent_runs():
         })
     runs.sort(key=lambda r: r["mtime"], reverse=True)
     return runs[:RECENT_MAX]
+
+
+@router.get("/open-output-folder/{folder_name}", response_class=JSONResponse)
+async def get_open_output_folder(folder_name: str):
+    """Open an output folder in the native file manager (local use only)."""
+    import subprocess
+    import platform
+    target = (OUTPUT_DIR / folder_name).resolve()
+    if not str(target).startswith(str(OUTPUT_DIR.resolve())):
+        return JSONResponse({"detail": "Invalid folder."}, status_code=400)
+    if not target.is_dir():
+        return JSONResponse({"detail": "Folder not found."}, status_code=404)
+    system = platform.system()
+    if system == "Darwin":
+        subprocess.Popen(["open", str(target)])
+    elif system == "Linux":
+        subprocess.Popen(["xdg-open", str(target)])
+    elif system == "Windows":
+        subprocess.Popen(["explorer", str(target)])
+    else:
+        return JSONResponse({"detail": f"Unsupported platform: {system}"}, status_code=400)
+    return JSONResponse({"status": "ok"})
 
 
 @router.get("/", response_class=HTMLResponse)

@@ -20,11 +20,10 @@
                     {% if run.score is not none %}
                     <span class="text-gray-600 text-sm">Score: {{ "%.1f"|format(run.score) }}</span>
                     {% endif %}
-                    {% if run.pdf_name %}
-                    <a href="/output/{{ run.folder }}/{{ run.pdf_name }}" class="text-green-600 hover:underline whitespace-nowrap" target="_blank">Download PDF</a>
-                    {% else %}
-                    <span class="text-gray-400 text-sm">No PDF</span>
-                    {% endif %}
+                    <button onclick="fetch('/open-output-folder/{{ run.folder }}')"
+                            class="text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded font-medium whitespace-nowrap">
+                        Open Folder
+                    </button>
                 </div>
             </li>
             {% endfor %}
