@@ -19,6 +19,7 @@ from __future__ import annotations
 import json
 import logging
 import threading
+import datetime
 import time
 import uuid
 from pathlib import Path
@@ -29,6 +30,15 @@ logger = logging.getLogger(__name__)
 
 DATA_DIR = Path(__file__).resolve().parent / "data"
 QUEUE_FILE = DATA_DIR / "apply_queue.json"
+
+MIN_JD_LINES = 10
+
+
+def _jd_line_count(description: str) -> int:
+    """Count non-empty lines in a JD description."""
+    if not description:
+        return 0
+    return sum(1 for line in description.splitlines() if line.strip())
 
 _lock = threading.Lock()
 _active_search_thread: threading.Thread | None = None
@@ -113,7 +123,13 @@ def _generate_resume_for_job(job_id: str, jd_text: str, tier: str) -> dict:
 # Search only (Step 1 of manual workflow)
 # ---------------------------------------------------------------------------
 
-def run_search_only(progress_cb=None) -> dict:
+def run_search_only(
+    progress_cb=None,
+    date_posted: str = "week",
+    num_pages: int = 1,
+    min_score: int = 65,
+    sort_by: str = "score",
+) -> dict:
     """Search for jobs and save as discovered. Does NOT generate resumes.
 
     Returns run summary dict.
@@ -126,12 +142,20 @@ def run_search_only(progress_cb=None) -> dict:
     run_id = f"run_{time.strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:6]}"
     run_record = {
         "run_id": run_id,
-        "started_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "started_at": datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=5, minutes=30))).strftime("%Y-%m-%dT%H:%M:%S"),
         "completed_at": None,
         "status": "running",
         "type": "search",
         "jobs_found": 0,
         "jobs_new": 0,
+        "filters": {
+            "date_posted": date_posted,
+            "scope": "India (all) + Global remote",
+            "roles": "Senior PM, Lead PM, Principal PM, GPM, Director of Product",
+            "min_score": min_score,
+            "num_pages": num_pages,
+            "sort_by": sort_by,
+        },
     }
 
     with _lock:
@@ -142,9 +166,9 @@ def run_search_only(progress_cb=None) -> dict:
     _notify("Searching for jobs...")
 
     try:
-        scored_jobs = search_and_score(
-            date_posted="week", num_pages=1, min_score=65,
-            progress_cb=_notify,
+        scored_jobs, _ = search_and_score(
+            date_posted=date_posted, num_pages=num_pages, min_score=min_score,
+            sort_by=sort_by, progress_cb=_notify,
         )
     except Exception as e:
         logger.exception("Search failed: %s", e)
@@ -154,7 +178,7 @@ def run_search_only(progress_cb=None) -> dict:
             for r in q["runs"]:
                 if r["run_id"] == run_id:
                     r["status"] = "failed"
-                    r["completed_at"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+                    r["completed_at"] = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=5, minutes=30))).strftime("%Y-%m-%dT%H:%M:%S")
             _save_queue(q)
         return {"run_id": run_id, "status": "failed", "error": str(e)}
 
@@ -176,17 +200,38 @@ def run_search_only(progress_cb=None) -> dict:
 
     _notify(f"{len(new_jobs)} new jobs after dedup.")
 
-    # Add new jobs as "discovered"
+    # Add new jobs as "discovered" (thin-JD jobs stored as skipped_thin_jd)
+    skipped_thin = 0
+    discovered_count = 0
     with _lock:
         q = _load_queue()
-        for r in q["runs"]:
-            if r["run_id"] == run_id:
-                r["jobs_found"] = len(scored_jobs)
-                r["jobs_new"] = len(new_jobs)
-                r["status"] = "completed"
-                r["completed_at"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
         for sj in new_jobs:
             apply_id = f"apply_{time.strftime('%Y%m%d')}_{uuid.uuid4().hex[:8]}"
+            desc = sj.get("description", "")
+            line_count = _jd_line_count(desc)
+            if line_count < MIN_JD_LINES:
+                logger.info(
+                    "Skipping '%s' @ %s — JD too thin (%d lines)",
+                    sj.get("title"), sj.get("company"), line_count,
+                )
+                q["jobs"][apply_id] = {
+                    "job_id": apply_id,
+                    "run_id": run_id,
+                    "title": sj.get("title", "Unknown"),
+                    "company": sj.get("company", "Unknown"),
+                    "location": sj.get("location", ""),
+                    "job_url": sj.get("job_url", ""),
+                    "fit_score": sj.get("fit_score", 0),
+                    "status": "skipped_thin_jd",
+                    "skip_reason": f"JD too thin ({line_count} lines, need {MIN_JD_LINES}+)",
+                    "description_hash": sj.get("description_hash", jd_hash(sj.get("description", ""))),
+                    "description": desc,
+                    "job_publisher": sj.get("job_publisher", ""),
+                    "posted_days_ago": sj.get("posted_days_ago"),
+                }
+                skipped_thin += 1
+                continue
+
             tier = "full" if sj["fit_score"] >= 80 else "fast"
             q["jobs"][apply_id] = {
                 "job_id": apply_id,
@@ -203,18 +248,35 @@ def run_search_only(progress_cb=None) -> dict:
                 "resume_score": None,
                 "error": None,
                 "description_hash": sj.get("description_hash", jd_hash(sj.get("description", ""))),
-                "description": sj.get("description", ""),
+                "description": desc,
+                "components": sj.get("components", {}),
+                "missing_critical_skills": sj.get("missing_critical_skills", []),
+                "signals": sj.get("signals", {}),
+                "job_publisher": sj.get("job_publisher", ""),
+                "posted_days_ago": sj.get("posted_days_ago"),
             }
+            discovered_count += 1
+
+        for r in q["runs"]:
+            if r["run_id"] == run_id:
+                r["jobs_found"] = len(scored_jobs)
+                r["jobs_new"] = discovered_count
+                r["status"] = "completed"
+                r["completed_at"] = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=5, minutes=30))).strftime("%Y-%m-%dT%H:%M:%S")
         _save_queue(q)
 
-    summary_msg = f"Search complete: {len(new_jobs)} new jobs discovered out of {len(scored_jobs)} found."
+    if skipped_thin:
+        _notify(f"Skipped {skipped_thin} job(s): JD too short (< {MIN_JD_LINES} lines)")
+
+    summary_msg = f"Search complete: {discovered_count} new jobs discovered out of {len(scored_jobs)} found."
     _notify(summary_msg)
 
     return {
         "run_id": run_id,
         "status": "completed",
         "jobs_found": len(scored_jobs),
-        "jobs_new": len(new_jobs),
+        "jobs_new": discovered_count,
+        "jobs_skipped_thin": skipped_thin,
     }
 
 
@@ -370,11 +432,15 @@ def generate_single_resume(job_id: str, progress_cb=None) -> dict:
 # Dashboard data
 # ---------------------------------------------------------------------------
 
-def get_dashboard_data(tab: str = "fresh") -> dict:
-    """Return jobs grouped by status for the UI.
+def get_dashboard_data(tab: str = "discover") -> dict:
+    """Return jobs grouped by status for the 3-tab UI.
 
-    tab="fresh": only discovered jobs from latest search run_id
-    tab="all": all jobs across all runs, grouped by status
+    tab="discover": discovered jobs from latest search run (default)
+    tab="ready": all jobs with status 'ready'
+    tab="applied": all jobs with status 'applied'
+
+    Always returns in_progress counts (selected + queued + generating + failed)
+    for the status bar shown above tabs.
     """
     with _lock:
         q = _load_queue()
@@ -382,69 +448,86 @@ def get_dashboard_data(tab: str = "fresh") -> dict:
     runs = q.get("runs", [])
     # Find latest search run
     latest_search_run_id = None
+    latest_search_run = None
     for r in reversed(runs):
         if r.get("type") == "search" and r.get("status") == "completed":
             latest_search_run_id = r["run_id"]
+            latest_search_run = r
             break
 
-    discovered = []
-    selected = []
-    in_progress = []
-    ready = []
-    failed_jobs = []
-    applied = []
-    skipped = []
+    # Collect ALL jobs into groups regardless of tab (needed for counts)
+    all_discovered = []
+    all_selected = []
+    all_in_progress = []
+    all_ready = []
+    all_failed = []
+    all_applied = []
+    all_skipped = []
+
+    # Discover tab: ALL discovered jobs, tagged with is_new
+    discover_jobs = []
 
     for jid, job in q["jobs"].items():
         entry = dict(job)
         entry["job_id"] = jid
         status = job.get("status", "discovered")
 
-        # For "fresh" tab, only show discovered from latest run
-        if tab == "fresh" and status == "discovered":
-            if job.get("run_id") != latest_search_run_id:
-                continue
-
         if status == "discovered":
-            discovered.append(entry)
+            all_discovered.append(entry)
+            entry["is_new"] = (job.get("run_id") == latest_search_run_id)
+            discover_jobs.append(entry)
         elif status == "selected":
-            selected.append(entry)
+            all_selected.append(entry)
         elif status in ("queued", "generating"):
-            in_progress.append(entry)
+            all_in_progress.append(entry)
         elif status == "ready":
-            ready.append(entry)
+            all_ready.append(entry)
         elif status == "failed":
-            failed_jobs.append(entry)
+            all_failed.append(entry)
         elif status == "applied":
-            applied.append(entry)
-        elif status == "skipped":
-            if tab == "all":
-                skipped.append(entry)
+            all_applied.append(entry)
+        elif status == "skipped_thin_jd":
+            all_skipped.append(entry)
 
     # Sort each group by fit_score descending
-    for group in (discovered, selected, in_progress, ready, failed_jobs, applied, skipped):
+    for group in (discover_jobs, all_discovered, all_selected, all_in_progress, all_ready, all_failed, all_applied, all_skipped):
         group.sort(key=lambda j: -j.get("fit_score", 0))
+
+    # Select which jobs to show based on active tab
+    if tab == "ready":
+        tab_jobs = all_ready
+    elif tab == "applied":
+        tab_jobs = all_applied
+    elif tab == "skipped":
+        tab_jobs = all_skipped
+    else:
+        tab_jobs = discover_jobs
 
     last_run = runs[-1] if runs else None
 
     return {
-        "discovered": discovered,
-        "selected": selected,
-        "in_progress": in_progress,
-        "ready": ready,
-        "failed": failed_jobs,
-        "applied": applied,
-        "skipped": skipped,
-        "last_run": last_run,
         "tab": tab,
+        "tab_jobs": tab_jobs,
+        # Keep legacy group names for backwards compat with job list partial
+        "discovered": discover_jobs if tab == "discover" else [],
+        "selected": all_selected if tab == "discover" else [],
+        "in_progress": all_in_progress if tab == "discover" else [],
+        "ready": all_ready if tab == "ready" else [],
+        "failed": all_failed if tab == "discover" else [],
+        "applied": all_applied if tab == "applied" else [],
+        "skipped": all_skipped if tab == "skipped" else [],
+        "last_run": last_run,
+        "last_search_run": latest_search_run,
         "counts": {
-            "discovered": len(discovered),
-            "selected": len(selected),
-            "in_progress": len(in_progress),
-            "ready": len(ready),
-            "failed": len(failed_jobs),
-            "applied": len(applied),
-            "skipped": len(skipped),
+            "discovered": len(discover_jobs),
+            "new": sum(1 for j in discover_jobs if j.get("is_new")),
+            "selected": len(all_selected),
+            "in_progress": len(all_in_progress),
+            "ready": len(all_ready),
+            "failed": len(all_failed),
+            "applied": len(all_applied),
+            "total_discovered": len(all_discovered),
+            "skipped": len(all_skipped),
         },
     }
 
@@ -452,6 +535,51 @@ def get_dashboard_data(tab: str = "fresh") -> dict:
 # ---------------------------------------------------------------------------
 # Actions
 # ---------------------------------------------------------------------------
+
+def get_job_by_id(job_id: str) -> dict | None:
+    """Look up a single job by ID. Returns job dict with job_id key, or None."""
+    with _lock:
+        q = _load_queue()
+        job = q["jobs"].get(job_id)
+        if not job:
+            return None
+        entry = dict(job)
+        entry["job_id"] = job_id
+        return entry
+
+
+def register_external_job(
+    title: str,
+    company: str,
+    output_folder: str,
+    resume_score: float = 0,
+    job_url: str = "",
+    source: str = "resume_generator",
+) -> str:
+    """Register a resume from the generate flow into the apply queue with status='ready'.
+    Idempotent: if output_folder already registered under the same source, returns existing job_id."""
+    with _lock:
+        q = _load_queue()
+        for jid, job in q["jobs"].items():
+            if job.get("output_folder") == str(output_folder) and job.get("source") == source:
+                return jid
+        job_id = str(uuid.uuid4())[:8]
+        q["jobs"][job_id] = {
+            "title": title,
+            "company": company,
+            "job_url": job_url,
+            "status": "ready",
+            "source": source,
+            "output_folder": str(output_folder),
+            "resume_score": resume_score,
+            "fit_score": int(resume_score),
+            "tier": "full",
+            "has_cover_letter": False,
+            "has_linkedin_message": False,
+        }
+        _save_queue(q)
+    return job_id
+
 
 def mark_applied(job_id: str) -> bool:
     with _lock:
@@ -517,7 +645,7 @@ def recover_interrupted():
         for r in q.get("runs", []):
             if r.get("status") == "running":
                 r["status"] = "interrupted"
-                r["completed_at"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+                r["completed_at"] = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=5, minutes=30))).strftime("%Y-%m-%dT%H:%M:%S")
         if recovered:
             _save_queue(q)
             logger.info("Recovered %d interrupted jobs back to selected", recovered)
@@ -526,6 +654,47 @@ def recover_interrupted():
 # ---------------------------------------------------------------------------
 # Cover letter & LinkedIn message
 # ---------------------------------------------------------------------------
+
+def _synthetic_parsed_jd_from_output(job: dict, out_dir) -> dict:
+    """Build a minimal parsed_jd dict from output folder artifacts when JD text is unavailable."""
+    import json as _json
+    from pathlib import Path as _Path
+
+    research_brief = {}
+    rb_path = _Path(out_dir) / "research_brief.json"
+    if rb_path.exists():
+        with open(rb_path) as f:
+            research_brief = _json.load(f)
+
+    kw_coverage = {}
+    kw_path = _Path(out_dir) / "keyword_coverage.json"
+    if kw_path.exists():
+        with open(kw_path) as f:
+            kw_coverage = _json.load(f)
+
+    # Reconstruct responsibilities from research brief emphasis areas
+    responsibilities = research_brief.get("emphasis_areas", [])
+
+    # P0/P1 keywords from keyword coverage counts
+    p0_keywords = list((kw_coverage.get("p0_counts") or {}).keys())
+    p1_keywords = list((kw_coverage.get("p1_counts") or {}).keys())
+    all_keywords = p0_keywords + p1_keywords
+
+    return {
+        "job_title": job.get("title", "Director of Product Management"),
+        "company": job.get("company", ""),
+        "location": job.get("location", ""),
+        "key_responsibilities": responsibilities,
+        "company_context": research_brief.get("role_purpose", ""),
+        "achievement_language": research_brief.get("emphasis_areas", []),
+        "p0_keywords": p0_keywords,
+        "p1_keywords": p1_keywords,
+        "p2_keywords": [],
+        "all_keywords_flat": all_keywords,
+        "cultural_signals": [],
+        "job_level": "Director",
+    }
+
 
 def generate_cover_letter_for_job(job_id: str) -> dict:
     """Generate a cover letter for a job that has a ready resume."""
@@ -539,8 +708,6 @@ def generate_cover_letter_for_job(job_id: str) -> dict:
         jd_text = job.get("description", "")
         output_folder = job.get("output_folder", "")
 
-    if not jd_text:
-        return {"status": "error", "error": "No JD text available"}
     if not output_folder:
         return {"status": "error", "error": "No output folder"}
 
@@ -557,8 +724,13 @@ def generate_cover_letter_for_job(job_id: str) -> dict:
             with open(pkb_path) as f:
                 pkb = _json.load(f)
 
-        # Parse JD
-        parsed_jd = parse_jd(jd_text)
+        # Parse JD — fall back to synthetic parsed_jd from output folder artifacts
+        # when JD text was not stored at queue time
+        if jd_text:
+            parsed_jd = parse_jd(jd_text)
+        else:
+            logger.info("No JD text for %s — building synthetic parsed_jd from output folder", job_id)
+            parsed_jd = _synthetic_parsed_jd_from_output(job, _Path(output_folder))
 
         # Load resume content from reframing_log or formatted content
         resume_content = {}
@@ -576,18 +748,30 @@ def generate_cover_letter_for_job(job_id: str) -> dict:
 
         result = generate_cover_letter(parsed_jd, pkb, resume_content, research_brief)
 
-        # Save to output folder
+        # Save cover letter
         out_dir = _Path(output_folder)
         with open(out_dir / "cover_letter.txt", "w") as f:
             f.write(result.get("text", ""))
+
+        # Save LinkedIn message if generated in same call
+        linkedin_text = result.get("linkedin_text", "")
+        if linkedin_text:
+            with open(out_dir / "linkedin_message.txt", "w") as f:
+                f.write(linkedin_text)
 
         with _lock:
             q = _load_queue()
             j = q["jobs"].get(job_id, {})
             j["has_cover_letter"] = True
+            if linkedin_text:
+                j["has_linkedin_message"] = True
             _save_queue(q)
 
-        return {"status": "ok", "text": result.get("text", "")}
+        return {
+            "status": "ok",
+            "text": result.get("text", ""),
+            "linkedin_text": linkedin_text,
+        }
     except Exception as e:
         logger.exception("Cover letter generation failed for %s: %s", job_id, e)
         return {"status": "error", "error": str(e)}
@@ -661,7 +845,13 @@ def is_run_active() -> bool:
     return is_search_active() or is_generate_active()
 
 
-def start_search_thread(progress_cb=None) -> bool:
+def start_search_thread(
+    progress_cb=None,
+    date_posted: str = "week",
+    num_pages: int = 1,
+    min_score: int = 65,
+    sort_by: str = "score",
+) -> bool:
     """Start a search-only run in a daemon thread. Returns False if already running."""
     global _active_search_thread
     with _lock:
@@ -670,7 +860,13 @@ def start_search_thread(progress_cb=None) -> bool:
 
         def _run():
             try:
-                run_search_only(progress_cb=progress_cb)
+                run_search_only(
+                    progress_cb=progress_cb,
+                    date_posted=date_posted,
+                    num_pages=num_pages,
+                    min_score=min_score,
+                    sort_by=sort_by,
+                )
             except Exception:
                 logger.exception("Search thread crashed")
 

@@ -32,6 +32,9 @@
                 {% if job.get('has_linkedin_message') %}
                 <span class="text-xs px-2 py-0.5 rounded bg-sky-100 text-sky-700">LI</span>
                 {% endif %}
+                {% if job.get('source') == 'resume_generator' %}
+                <span class="text-xs font-medium px-2 py-0.5 rounded bg-indigo-100 text-indigo-700">Resume Generator</span>
+                {% endif %}
             </div>
 
             <!-- Title & company -->
@@ -150,7 +153,11 @@
                     hx-swap="none"
                     class="text-xs text-teal-600 hover:underline whitespace-nowrap"
                     onclick="this.textContent='Generating...'; this.disabled=true"
-                >Generate Outreach</button>
+                >Cover Letter</button>
+                <button
+                    class="text-xs text-sky-600 hover:underline whitespace-nowrap"
+                    onclick="generateLinkedInMessage('{{ job.get('job_id', '') }}', this)"
+                >LinkedIn Msg</button>
                 <!-- Find Contacts dropdown -->
                 <div class="relative inline-block">
                     <button

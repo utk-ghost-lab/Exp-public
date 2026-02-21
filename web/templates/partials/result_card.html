@@ -1,77 +1,268 @@
 <div class="border border-gray-200 rounded p-4 bg-white">
     <h3 class="text-lg font-semibold mb-2">Resume generated — Score: {{ score_report.total_score | default(0) }} / 100</h3>
     {% set comps = score_report.get("components") or {} %}
-    <ul class="text-sm text-gray-600 mb-4 space-y-1">
+    <ul class="text-sm text-gray-600 mb-4 space-y-2">
         {% for key, c in comps.items() %}
-        <li>{{ key }}: {{ c.score | default(0) }} (×{{ c.weight | default(0) }})</li>
+        <li class="flex flex-col gap-0.5">
+            <span><strong>{{ key }}</strong>: {{ c.score | default(0) }} (×{{ c.weight | default(0) }})</span>
+            {% if c.get("explanation") %}
+            <span class="text-gray-500 text-xs pl-2 border-l-2 border-gray-200">{{ c.explanation }}</span>
+            {% endif %}
+        </li>
         {% endfor %}
     </ul>
 
-    <div class="flex gap-4 mb-4">
-        <div class="inline">
-            <button type="button" id="generate-pdf-no-edit" class="bg-green-600 text-white px-3 py-1.5 rounded text-sm hover:bg-green-700">Generate PDF (no edits)</button>
+    {% if research_brief %}
+    <details class="mb-4 border border-indigo-200 rounded bg-indigo-50">
+        <summary class="cursor-pointer px-4 py-2 text-sm font-semibold text-indigo-800 hover:bg-indigo-100 select-none">
+            Step 1.5: Company Research Brief
+            {% if research_brief.get("fit_score_result") and research_brief.fit_score_result.get("fit_score") %}
+                <span class="ml-2 text-xs font-normal text-indigo-600">(Fit score: {{ research_brief.fit_score_result.fit_score }})</span>
+            {% endif %}
+        </summary>
+        <div class="px-4 pb-4 pt-2 space-y-3 text-sm">
+
+            {% if research_brief.get("role_purpose") %}
+            <div>
+                <span class="font-semibold text-gray-700">Role Purpose:</span>
+                <p class="text-gray-600 mt-0.5">{{ research_brief.role_purpose }}</p>
+            </div>
+            {% endif %}
+
+            {% if research_brief.get("company_pain_points") %}
+            <div>
+                <span class="font-semibold text-gray-700">Company Pain Points:</span>
+                <p class="text-gray-600 mt-0.5">{{ research_brief.company_pain_points }}</p>
+            </div>
+            {% endif %}
+
+            {% if research_brief.get("competitive_edge") %}
+            <div>
+                <span class="font-semibold text-gray-700">Competitive Edge:</span>
+                <p class="text-gray-600 mt-0.5">{{ research_brief.competitive_edge }}</p>
+            </div>
+            {% endif %}
+
+            {% if research_brief.get("critical_gaps") %}
+            <div>
+                <span class="font-semibold text-gray-700">Critical Gaps:</span>
+                <ul class="list-disc list-inside text-gray-600 mt-0.5">
+                    {% for gap in research_brief.critical_gaps %}
+                    <li>{{ gap }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            {% if research_brief.get("bridge_strategy") %}
+            <div>
+                <span class="font-semibold text-gray-700">Bridge Strategy:</span>
+                <p class="text-gray-600 mt-0.5">{{ research_brief.bridge_strategy }}</p>
+            </div>
+            {% endif %}
+
+            {% if research_brief.get("emphasis_areas") %}
+            <div>
+                <span class="font-semibold text-gray-700">Emphasis Areas:</span>
+                <ul class="list-disc list-inside text-gray-600 mt-0.5">
+                    {% for area in research_brief.emphasis_areas %}
+                    <li>{{ area }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            {% if research_brief.get("hiring_mode") %}
+            <div>
+                <span class="font-semibold text-gray-700">Hiring Mode:</span>
+                <span class="text-gray-600">{{ research_brief.hiring_mode }}</span>
+            </div>
+            {% endif %}
+
+            {% if research_brief.get("summary_hooks") %}
+            <div>
+                <span class="font-semibold text-gray-700">Summary Hooks:</span>
+                <ol class="list-decimal list-inside text-gray-600 mt-0.5">
+                    {% for hook in research_brief.summary_hooks %}
+                    <li>"{{ hook }}"</li>
+                    {% endfor %}
+                </ol>
+            </div>
+            {% endif %}
+
+            {% if research_brief.get("gap_to_bullet_mapping") %}
+            <div>
+                <span class="font-semibold text-gray-700">Gap-to-Bullet Mapping:</span>
+                <div class="mt-1 space-y-2">
+                    {% for gm in research_brief.gap_to_bullet_mapping %}
+                    <div class="bg-white border border-indigo-100 rounded p-2 text-xs">
+                        <div><span class="font-medium text-red-700">Gap:</span> {{ gm.gap }}</div>
+                        {% if gm.get("target_bullet") %}
+                        <div class="mt-0.5"><span class="font-medium text-gray-700">Source bullet:</span> {{ gm.target_bullet }}</div>
+                        {% endif %}
+                        {% if gm.get("reframe_instruction") %}
+                        <div class="mt-0.5"><span class="font-medium text-green-700">Reframe:</span> {{ gm.reframe_instruction }}</div>
+                        {% endif %}
+                        {% if gm.get("fallback") %}
+                        <div class="mt-0.5"><span class="font-medium text-amber-700">Fallback:</span> {{ gm.fallback }}</div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if research_brief.get("keyword_insertion_plan") %}
+            <div>
+                <span class="font-semibold text-gray-700">Keyword Insertion Plan:</span>
+                <div class="mt-1 overflow-x-auto">
+                    <table class="text-xs w-full border-collapse">
+                        <thead>
+                            <tr class="bg-indigo-100 text-left">
+                                <th class="px-2 py-1 border border-indigo-200">Keyword</th>
+                                <th class="px-2 py-1 border border-indigo-200">Target</th>
+                                <th class="px-2 py-1 border border-indigo-200">Integration Phrase</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for kp in research_brief.keyword_insertion_plan %}
+                            <tr>
+                                <td class="px-2 py-1 border border-indigo-200 font-medium">{{ kp.keyword }}</td>
+                                <td class="px-2 py-1 border border-indigo-200 text-gray-600">{{ kp.target_location }}</td>
+                                <td class="px-2 py-1 border border-indigo-200 text-gray-600">"{{ kp.integration_phrase }}"</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+
         </div>
+    </details>
+    {% endif %}
+
+    <!-- Primary action -->
+    <div class="flex items-center gap-3 mb-3 mt-2">
+        <button id="open-folder-btn"
+                class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-1.5 rounded text-sm font-medium">
+            Open Folder
+        </button>
+        <span id="folder-status" class="text-sm text-gray-500"></span>
     </div>
 
-    <p class="text-sm font-medium mt-4 mb-2">Edit before PDF (optional)</p>
-    <p class="text-sm text-gray-500 mb-2">Edit the JSON below and click "Save edits & Generate PDF" to apply changes and download. Edits are recorded to improve future resumes.</p>
-    <form id="finalize-edit-form" action="/generate/finalize" method="post" target="_blank" class="block">
-        <input type="hidden" name="job_id" value="{{ job_id }}">
-        <textarea id="resume-json" name="resume_content_json" rows="16" class="w-full border border-gray-300 rounded px-2 py-1 text-sm font-mono">{{ resume_content_json }}</textarea>
-        <button type="button" id="submit-edited" class="mt-2 bg-blue-600 text-white px-3 py-1.5 rounded text-sm hover:bg-blue-700">Save edits & Generate PDF</button>
-    </form>
+    <!-- Post-generation actions (revealed after folder opens) -->
+    <div id="post-gen-actions" class="hidden flex items-center gap-3 mb-4 flex-wrap">
+        <button id="gen-cover-letter-btn"
+                class="text-xs text-teal-600 hover:underline whitespace-nowrap">
+            Cover Letter
+        </button>
+        <button id="gen-linkedin-btn"
+                class="text-xs text-sky-600 hover:underline whitespace-nowrap">
+            LinkedIn Msg
+        </button>
+        <div class="relative inline-block" id="gen-contacts-wrapper"></div>
+    </div>
+
+    <p class="text-sm font-medium mb-2">Review / edit resume JSON (optional)</p>
+    <p class="text-sm text-gray-500 mb-2">Edit the JSON below — edits are applied when you click "Open Folder". Edits are recorded to improve future resumes.</p>
+    <textarea id="resume-json" rows="16"
+        class="w-full border border-gray-300 rounded px-2 py-1 text-sm font-mono">{{ resume_content_json }}</textarea>
 </div>
 <script>
 (function() {
     const jobId = "{{ job_id }}";
-    document.getElementById("generate-pdf-no-edit").addEventListener("click", function() {
-        fetch("/generate/finalize", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ job_id: jobId })
-        }).then(async r => {
-            if (!r.ok) {
-                const err = await r.json().catch(() => ({}));
-                alert(err.detail || "Quality check failed. Please try again or contact support.");
-                return;
-            }
-            return r.blob();
-        }).then(blob => {
-            if (!blob) return;
-            const a = document.createElement("a");
-            a.href = URL.createObjectURL(blob);
-            a.download = "resume.pdf";
-            a.click();
-        });
-    });
-    document.getElementById("submit-edited").addEventListener("click", function(e) {
-        e.preventDefault();
-        let jsonStr = document.getElementById("resume-json").value;
-        let resumeContent;
+    const company = {{ parsed_jd.get('company', '') | tojson }};
+    let applyJobId = null;
+
+    document.getElementById("open-folder-btn").addEventListener("click", async function() {
+        const btn = this;
+        btn.textContent = "Generating\u2026";
+        btn.disabled = true;
+        document.getElementById("folder-status").textContent = "";
+
+        let resumeContent = null;
+        try { resumeContent = JSON.parse(document.getElementById("resume-json").value); } catch(e) {}
+
+        const body = { job_id: jobId };
+        if (resumeContent) body.resume_content = resumeContent;
+
         try {
-            resumeContent = JSON.parse(jsonStr);
-        } catch (err) {
-            alert("Invalid JSON: " + err.message);
-            return;
-        }
-        fetch("/generate/finalize", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ job_id: jobId, resume_content: resumeContent })
-        }).then(async r => {
-            if (!r.ok) {
-                const err = await r.json().catch(() => ({}));
+            const resp = await fetch("/generate/finalize", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(body),
+            });
+            if (!resp.ok) {
+                const err = await resp.json().catch(() => ({}));
                 alert(err.detail || "Quality check failed. Please try again or contact support.");
+                btn.textContent = "Open Folder";
+                btn.disabled = false;
                 return;
             }
-            return r.blob();
-        }).then(blob => {
-            if (!blob) return;
-            const a = document.createElement("a");
-            a.href = URL.createObjectURL(blob);
-            a.download = "resume.pdf";
-            a.click();
-        });
+            const data = await resp.json();
+            applyJobId = data.apply_job_id;
+
+            await fetch("/apply/open-folder/" + applyJobId);
+
+            document.getElementById("folder-status").textContent = "Folder opened \u2713";
+            btn.textContent = "Open Folder Again";
+            btn.disabled = false;
+
+            _setupPostGenActions(applyJobId, company);
+            document.getElementById("post-gen-actions").classList.remove("hidden");
+        } catch(e) {
+            alert("Unexpected error: " + e.message);
+            btn.textContent = "Open Folder";
+            btn.disabled = false;
+        }
     });
+
+    function _setupPostGenActions(ajid, co) {
+        const clBtn = document.getElementById("gen-cover-letter-btn");
+        clBtn.onclick = function() {
+            this.textContent = "Generating\u2026";
+            this.disabled = true;
+            fetch("/apply/cover-letter/" + ajid, { method: "POST" })
+                .then(() => { this.textContent = "CL generated \u2713"; })
+                .catch(() => { this.textContent = "Cover Letter"; this.disabled = false; });
+        };
+
+        const liBtn = document.getElementById("gen-linkedin-btn");
+        liBtn.onclick = function() {
+            this.textContent = "Generating\u2026";
+            this.disabled = true;
+            fetch("/apply/linkedin-message/" + ajid, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ message_type: "connection_request" }),
+            }).then(async r => {
+                const d = await r.json().catch(() => ({}));
+                if (d.text) {
+                    navigator.clipboard.writeText(d.text).catch(() => {});
+                    this.textContent = "Copied \u2713";
+                } else {
+                    this.textContent = "LinkedIn Msg";
+                    this.disabled = false;
+                }
+            }).catch(() => { this.textContent = "LinkedIn Msg"; this.disabled = false; });
+        };
+
+        if (co) {
+            const enc = encodeURIComponent(co);
+            document.getElementById("gen-contacts-wrapper").innerHTML =
+                '<button onclick="this.nextElementSibling.classList.toggle(\'hidden\')" ' +
+                'class="text-xs text-purple-600 hover:text-purple-800 whitespace-nowrap">' +
+                'Find Contacts &#9662;</button>' +
+                '<div class="hidden absolute right-0 z-10 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg py-1 w-64">' +
+                '<a href="https://www.linkedin.com/search/results/people/?keywords=Recruiter%20' + enc + '%20Product%20Manager" ' +
+                'target="_blank" rel="noopener" class="block px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50">Recruiters at ' + co + '</a>' +
+                '<a href="https://www.linkedin.com/search/results/people/?keywords=Hiring%20Manager%20' + enc + '%20Product" ' +
+                'target="_blank" rel="noopener" class="block px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50">Product Hiring Managers</a>' +
+                '<a href="https://www.linkedin.com/search/results/people/?keywords=Head%20of%20Product%20' + enc + '" ' +
+                'target="_blank" rel="noopener" class="block px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50">Product Leaders</a>' +
+                '</div>';
+        }
+    }
 })();
 </script>
